@@ -11,12 +11,16 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::error::AppError;
 use crate::inspect::PdfiumFacts;
 use crate::ports::{
-    AssemblyPlan, DocumentInfo, FileStore, FormFlattener, ImageConverter, OutlineItem,
-    OutlineReader, PageSize, PdfEdit, PdfEditor, PdfReader, PdfVerifier, PdfWriter, TextExtractor,
-    TocBuilder, TocLine,
+    AssemblyPlan, DocumentInfo, FileStore, FormFlattener, ImageConverter, ImageOptimizer,
+    ImageReport, OutlineItem, OutlineReader, PackageOptions, PageImage, PageImageWriter, PageSize,
+    PdfEdit, PdfEditor, PdfPackager, PdfReader, PdfRepairer, PdfSecurity, PdfVerifier, PdfWriter,
+    PngImage, RenderedImage, Renderer, RepairOutcome, TextExtractor, TocBuilder, TocLine,
 };
 use crate::runtime::{Password, ProgressEvent};
 use crate::tool::{InputDoc, JobContext, OutputArtifact};
+use domain::Dpi;
+use domain::tools::optimize::CompressSettings;
+use domain::tools::secure::ProtectPlan;
 
 /// The ports the Organize tools are built on. Cloning is cheap (shared handles).
 #[derive(Clone)]
@@ -39,6 +43,18 @@ pub struct ToolDeps {
     pub flattener: Arc<dyn FormFlattener>,
     /// Output verification.
     pub verifier: Arc<dyn PdfVerifier>,
+    /// Page rendering.
+    pub renderer: Arc<dyn Renderer>,
+    /// Encryption and decryption.
+    pub security: Arc<dyn PdfSecurity>,
+    /// Stream compression, object streams and linearization.
+    pub packager: Arc<dyn PdfPackager>,
+    /// Ways to repair a damaged file, gentlest first.
+    pub repairers: Vec<Arc<dyn PdfRepairer>>,
+    /// Image downsampling and recompression.
+    pub optimizer: Arc<dyn ImageOptimizer>,
+    /// Documents made of page pictures.
+    pub page_images: Arc<dyn PageImageWriter>,
 }
 
 impl ToolDeps {
@@ -55,7 +71,13 @@ impl ToolDeps {
             outlines: none.clone(),
             text: none.clone(),
             flattener: none.clone(),
-            verifier: none,
+            verifier: none.clone(),
+            renderer: none.clone(),
+            security: none.clone(),
+            packager: none.clone(),
+            repairers: vec![none.clone()],
+            optimizer: none.clone(),
+            page_images: none,
         }
     }
 }
@@ -162,6 +184,80 @@ impl crate::ports::PdfFacts for Unavailable {
     }
 }
 
+impl Renderer for Unavailable {
+    fn render_page(
+        &self,
+        _: &Path,
+        _: Option<&Password>,
+        _: PageIndex,
+        _: Dpi,
+    ) -> Result<RenderedImage, AppError> {
+        missing()
+    }
+    fn render_png(
+        &self,
+        _: &Path,
+        _: Option<&Password>,
+        _: PageIndex,
+        _: u32,
+    ) -> Result<PngImage, AppError> {
+        missing()
+    }
+}
+
+impl PdfSecurity for Unavailable {
+    fn protect(
+        &self,
+        _: &Path,
+        _: Option<&Password>,
+        _: &ProtectPlan,
+        _: &Path,
+    ) -> Result<(), AppError> {
+        missing()
+    }
+    fn unlock(&self, _: &Path, _: Option<&Password>, _: &Path) -> Result<(), AppError> {
+        missing()
+    }
+}
+
+impl PdfPackager for Unavailable {
+    fn package(
+        &self,
+        _: &Path,
+        _: Option<&Password>,
+        _: &PackageOptions,
+        _: &Path,
+    ) -> Result<(), AppError> {
+        missing()
+    }
+}
+
+impl PdfRepairer for Unavailable {
+    fn name(&self) -> &'static str {
+        "unavailable"
+    }
+    fn repair(&self, _: &Path, _: Option<&Password>, _: &Path) -> Result<RepairOutcome, AppError> {
+        missing()
+    }
+}
+
+impl ImageOptimizer for Unavailable {
+    fn optimize_images(
+        &self,
+        _: &Path,
+        _: &CompressSettings,
+        _: &Path,
+    ) -> Result<ImageReport, AppError> {
+        missing()
+    }
+}
+
+impl PageImageWriter for Unavailable {
+    fn pages_to_pdf(&self, _: &[PageImage], _: &Path) -> Result<(), AppError> {
+        missing()
+    }
+}
+
 /// The error for options that belong to a different tool. `RunTool` prevents it, so reaching
 /// this means a programming mistake rather than bad user input.
 pub fn wrong_options() -> AppError {
@@ -259,6 +355,33 @@ impl Drop for Scratch<'_> {
     }
 }
 
+/// The common path of tools that change a document's structure: unlock a scratch copy, apply
+/// `edit`, then repack the result into `tmp`. The output is unencrypted.
+pub fn edit_pipeline(
+    ctx: &JobContext<'_>,
+    deps: &ToolDeps,
+    input: &InputDoc,
+    edit: &PdfEdit,
+    tmp: &Path,
+) -> Result<(), AppError> {
+    let unlocked = Scratch::new(ctx, "pdf");
+    deps.security
+        .unlock(&input.path, input.password.as_ref(), unlocked.path())?;
+    ctx.cancel.check()?;
+    let edited = Scratch::new(ctx, "pdf");
+    deps.editor.apply(unlocked.path(), edit, edited.path())?;
+    ctx.cancel.check()?;
+    deps.packager.package(
+        edited.path(),
+        None,
+        &PackageOptions {
+            linearize: false,
+            object_streams: true,
+        },
+        tmp,
+    )
+}
+
 /// Publishes one PDF output: picks a free name, lets `produce` write the temp file, verifies it
 /// (reopen, `qpdf --check`, page count) and renames it into place without overwriting anything.
 pub fn publish_pdf(
@@ -269,15 +392,29 @@ pub fn publish_pdf(
     expected_pages: u32,
     produce: &mut dyn FnMut(&Path) -> Result<(), AppError>,
 ) -> Result<OutputArtifact, AppError> {
+    publish_pdf_checked(ctx, deps, input, label, Some(expected_pages), None, produce)
+}
+
+/// Like [`publish_pdf`], for outputs that are encrypted (verified with their own password) or
+/// whose page count is not known beforehand (Repair).
+pub fn publish_pdf_checked(
+    ctx: &JobContext<'_>,
+    deps: &ToolDeps,
+    input: &InputDoc,
+    label: &str,
+    expected_pages: Option<u32>,
+    output_password: Option<&Password>,
+    produce: &mut dyn FnMut(&Path) -> Result<(), AppError>,
+) -> Result<OutputArtifact, AppError> {
     ctx.cancel.check()?;
     let dest = ctx.output_path(input, label, "pdf", |_| {})?;
     let path = ctx.files.publish(&dest, produce, &|tmp| {
-        deps.verifier.verify(tmp, None, Some(expected_pages))
+        deps.verifier.verify(tmp, output_password, expected_pages)
     })?;
     let bytes = ctx.files.len(&path)?;
     Ok(OutputArtifact {
         path,
-        pages: Some(expected_pages),
+        pages: expected_pages,
         bytes,
     })
 }

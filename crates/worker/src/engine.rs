@@ -95,6 +95,13 @@ pub fn tool_deps(engines: &Engines) -> ToolDeps {
         text: Arc::new(engines.pdfium),
         flattener: Arc::new(engines.pdfium),
         verifier: Arc::new(CompositeVerifier::new(engines.clone())),
+        renderer: Arc::new(engines.pdfium),
+        security: Arc::new(engines.qpdf.clone()),
+        packager: Arc::new(engines.qpdf.clone()),
+        // qpdf first: it changes the least. PDFium rewrites everything it manages to load.
+        repairers: vec![Arc::new(engines.qpdf.clone()), Arc::new(engines.pdfium)],
+        optimizer: Arc::new(RasterConverter),
+        page_images: Arc::new(RasterConverter),
     }
 }
 

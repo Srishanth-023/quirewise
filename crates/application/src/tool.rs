@@ -157,6 +157,12 @@ pub trait Tool: Send + Sync {
         InputMode::PerFile
     }
 
+    /// False for tools that work on files that may not open normally, such as Repair. The
+    /// runner then skips opening the input to count pages and the tool must cope without them.
+    fn reads_pages_first(&self) -> bool {
+        true
+    }
+
     /// JSON Schema of the options, used to generate the option form.
     fn options_schema(&self) -> schemars::Schema;
 

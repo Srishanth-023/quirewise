@@ -5,6 +5,9 @@ use domain::components::ComponentEntry;
 use domain::naming::DateTimeParts;
 use domain::settings::Settings;
 use domain::tools::common::{FractionBox, Region, RightAngle};
+use domain::tools::document::{AnnotationKind, MetadataChange};
+use domain::tools::optimize::CompressSettings;
+use domain::tools::secure::{ProtectPlan, SanitizeOptions};
 use domain::{Dpi, PageIndex};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -189,12 +192,124 @@ pub enum PdfEdit {
         /// Target height in points.
         height_pt: f32,
     },
+    /// Changes document information fields (and the XMP packet when there is one).
+    SetMetadata(MetadataChange),
+    /// Removes annotations of these kinds from these pages.
+    RemoveAnnotations {
+        /// Kinds to remove.
+        kinds: Vec<AnnotationKind>,
+        /// Pages to clean.
+        pages: Vec<PageIndex>,
+    },
+    /// Removes hidden or risky content.
+    Sanitize(SanitizeOptions),
 }
 
 /// Applies structural edits to PDFs.
 pub trait PdfEditor: Send + Sync {
     /// Writes `source` with `edit` applied to `dest`.
     fn apply(&self, source: &Path, edit: &PdfEdit, dest: &Path) -> Result<(), AppError>;
+}
+
+/// Encrypts and decrypts documents.
+pub trait PdfSecurity: Send + Sync {
+    /// Writes `source` to `dest` encrypted as `plan` says. The new passwords never appear on a
+    /// command line or in a file.
+    fn protect(
+        &self,
+        source: &Path,
+        password: Option<&Password>,
+        plan: &ProtectPlan,
+        dest: &Path,
+    ) -> Result<(), AppError>;
+
+    /// Writes an unencrypted copy of `source`. Needs the open password when there is one.
+    fn unlock(
+        &self,
+        source: &Path,
+        password: Option<&Password>,
+        dest: &Path,
+    ) -> Result<(), AppError>;
+}
+
+/// How a finished document is packed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PackageOptions {
+    /// Write for fast web view.
+    pub linearize: bool,
+    /// Pack objects into compressed object streams.
+    pub object_streams: bool,
+}
+
+/// Rewrites the file structure: stream compression, object streams and linearization.
+pub trait PdfPackager: Send + Sync {
+    /// Writes an unencrypted, repacked copy of `source` to `dest`.
+    fn package(
+        &self,
+        source: &Path,
+        password: Option<&Password>,
+        options: &PackageOptions,
+        dest: &Path,
+    ) -> Result<(), AppError>;
+}
+
+/// What a repair attempt found.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct RepairOutcome {
+    /// Number of problems the engine reported and worked around.
+    pub problems: usize,
+}
+
+/// One way to rewrite a damaged document into a sound one. The Repair tool tries them in turn.
+pub trait PdfRepairer: Send + Sync {
+    /// Short name for the log, such as `qpdf`.
+    fn name(&self) -> &'static str;
+
+    /// Writes a repaired copy of `source` to `dest`.
+    fn repair(
+        &self,
+        source: &Path,
+        password: Option<&Password>,
+        dest: &Path,
+    ) -> Result<RepairOutcome, AppError>;
+}
+
+/// What Compress did to the images.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ImageReport {
+    /// Images found.
+    pub found: usize,
+    /// Images that were replaced by a smaller version.
+    pub replaced: usize,
+}
+
+/// Reduces the size of the pictures inside a document.
+pub trait ImageOptimizer: Send + Sync {
+    /// Writes `source` (unencrypted) to `dest` with images downsampled and recompressed. An
+    /// image only changes when the new version is smaller.
+    fn optimize_images(
+        &self,
+        source: &Path,
+        settings: &CompressSettings,
+        dest: &Path,
+    ) -> Result<ImageReport, AppError>;
+}
+
+/// One page picture for [`PageImageWriter`].
+#[derive(Debug, Clone)]
+pub struct PageImage {
+    /// A PNG file.
+    pub png: PathBuf,
+    /// Page width in points.
+    pub width_pt: f32,
+    /// Page height in points.
+    pub height_pt: f32,
+}
+
+/// Builds a document whose pages are pictures.
+pub trait PageImageWriter: Send + Sync {
+    /// Writes one page per image, each `width_pt` by `height_pt`, to `dest`.
+    fn pages_to_pdf(&self, pages: &[PageImage], dest: &Path) -> Result<(), AppError>;
 }
 
 /// One line of a generated table of contents.

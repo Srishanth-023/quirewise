@@ -2,8 +2,11 @@
 
 pub mod combine;
 pub mod common;
+pub mod document;
+pub mod optimize;
 pub mod pages;
 pub mod rotate;
+pub mod secure;
 
 use core::fmt;
 use core::str::FromStr;
@@ -12,12 +15,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::DomainError;
 pub use combine::{AlternateMixOptions, MergeOptions, OrganizeOptions};
+pub use document::{FlattenOptions, MetadataOptions, RemoveAnnotationsOptions};
+pub use optimize::{CompressOptions, LinearizeOptions, RepairOptions};
 pub use pages::{
     ExtractPagesOptions, InsertPagesOptions, RemovePagesOptions, SplitByBookmarksOptions,
     SplitBySizeOptions, SplitByTextOptions, SplitEveryNOptions, SplitInHalfOptions,
     SplitRangesOptions,
 };
 pub use rotate::RotateOptions;
+pub use secure::{ProtectOptions, SanitizeOptions, UnlockOptions};
 
 /// Navigation group a tool belongs to (MASTER_PROMPT.md section 3.1).
 #[derive(
@@ -77,11 +83,29 @@ pub enum ToolId {
     Rotate,
     /// Insert blank or duplicate pages (row 69).
     InsertPages,
+    /// Compress (row 14).
+    Compress,
+    /// Repair (row 15).
+    Repair,
+    /// Remove annotations (row 44).
+    RemoveAnnotations,
+    /// Flatten (row 47).
+    Flatten,
+    /// Edit metadata (row 48).
+    EditMetadata,
+    /// Protect (row 51).
+    Protect,
+    /// Unlock (row 52).
+    Unlock,
+    /// Sanitize (row 63).
+    Sanitize,
+    /// Linearize (row 64).
+    Linearize,
 }
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 13] = [
+    pub const ALL: [ToolId; 22] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -95,6 +119,15 @@ impl ToolId {
         ToolId::SplitByText,
         ToolId::Rotate,
         ToolId::InsertPages,
+        ToolId::Compress,
+        ToolId::Repair,
+        ToolId::RemoveAnnotations,
+        ToolId::Flatten,
+        ToolId::EditMetadata,
+        ToolId::Protect,
+        ToolId::Unlock,
+        ToolId::Sanitize,
+        ToolId::Linearize,
     ];
 
     /// The kebab-case identifier.
@@ -113,6 +146,15 @@ impl ToolId {
             Self::SplitByText => "split-by-text",
             Self::Rotate => "rotate",
             Self::InsertPages => "insert-pages",
+            Self::Compress => "compress",
+            Self::Repair => "repair",
+            Self::RemoveAnnotations => "remove-annotations",
+            Self::Flatten => "flatten",
+            Self::EditMetadata => "edit-metadata",
+            Self::Protect => "protect",
+            Self::Unlock => "unlock",
+            Self::Sanitize => "sanitize",
+            Self::Linearize => "linearize",
         }
     }
 }
@@ -164,6 +206,24 @@ pub enum ToolOptions {
     Rotate(RotateOptions),
     /// Options for [`ToolId::InsertPages`].
     InsertPages(InsertPagesOptions),
+    /// Options for [`ToolId::Compress`].
+    Compress(CompressOptions),
+    /// Options for [`ToolId::Repair`].
+    Repair(RepairOptions),
+    /// Options for [`ToolId::RemoveAnnotations`].
+    RemoveAnnotations(RemoveAnnotationsOptions),
+    /// Options for [`ToolId::Flatten`].
+    Flatten(FlattenOptions),
+    /// Options for [`ToolId::EditMetadata`].
+    EditMetadata(MetadataOptions),
+    /// Options for [`ToolId::Protect`].
+    Protect(ProtectOptions),
+    /// Options for [`ToolId::Unlock`].
+    Unlock(UnlockOptions),
+    /// Options for [`ToolId::Sanitize`].
+    Sanitize(SanitizeOptions),
+    /// Options for [`ToolId::Linearize`].
+    Linearize(LinearizeOptions),
 }
 
 impl ToolOptions {
@@ -183,6 +243,15 @@ impl ToolOptions {
             Self::SplitByText(_) => ToolId::SplitByText,
             Self::Rotate(_) => ToolId::Rotate,
             Self::InsertPages(_) => ToolId::InsertPages,
+            Self::Compress(_) => ToolId::Compress,
+            Self::Repair(_) => ToolId::Repair,
+            Self::RemoveAnnotations(_) => ToolId::RemoveAnnotations,
+            Self::Flatten(_) => ToolId::Flatten,
+            Self::EditMetadata(_) => ToolId::EditMetadata,
+            Self::Protect(_) => ToolId::Protect,
+            Self::Unlock(_) => ToolId::Unlock,
+            Self::Sanitize(_) => ToolId::Sanitize,
+            Self::Linearize(_) => ToolId::Linearize,
         }
     }
 
@@ -202,6 +271,17 @@ impl ToolOptions {
             ToolId::SplitByText => Self::SplitByText(SplitByTextOptions::default()),
             ToolId::Rotate => Self::Rotate(RotateOptions::default()),
             ToolId::InsertPages => Self::InsertPages(InsertPagesOptions::default()),
+            ToolId::Compress => Self::Compress(CompressOptions::default()),
+            ToolId::Repair => Self::Repair(RepairOptions::default()),
+            ToolId::RemoveAnnotations => {
+                Self::RemoveAnnotations(RemoveAnnotationsOptions::default())
+            }
+            ToolId::Flatten => Self::Flatten(FlattenOptions::default()),
+            ToolId::EditMetadata => Self::EditMetadata(MetadataOptions::default()),
+            ToolId::Protect => Self::Protect(ProtectOptions::default()),
+            ToolId::Unlock => Self::Unlock(UnlockOptions::default()),
+            ToolId::Sanitize => Self::Sanitize(SanitizeOptions::default()),
+            ToolId::Linearize => Self::Linearize(LinearizeOptions::default()),
         }
     }
 }

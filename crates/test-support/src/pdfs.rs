@@ -72,6 +72,12 @@ pub fn build(
     }
     objects.extend(extra_objects);
 
+    serialize(&objects, "")
+}
+
+/// Writes numbered objects (1-based, in order) with a cross-reference table. `trailer_extra` is
+/// added to the trailer, for example `/Info 9 0 R`.
+pub fn serialize(objects: &[String], trailer_extra: &str) -> Vec<u8> {
     let mut out = b"%PDF-1.7\n%\xE2\xE3\xCF\xD3\n".to_vec();
     let mut offsets = Vec::with_capacity(objects.len());
     for (i, body) in objects.iter().enumerate() {
@@ -87,7 +93,7 @@ pub fn build(
     }
     out.extend_from_slice(
         format!(
-            "trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n",
+            "trailer\n<< /Size {} /Root 1 0 R {trailer_extra} >>\nstartxref\n{xref}\n%%EOF\n",
             objects.len() + 1
         )
         .as_bytes(),
@@ -244,6 +250,116 @@ pub fn pdf_with_heavy_pages(pages: usize, bytes_per_page: usize, heavy: &[usize]
         },
         |i| format!("/Thumb {} 0 R", 4 + 2 * pages + i),
     )
+}
+
+/// A stream object body.
+fn stream(dict: &str, content: &str) -> String {
+    format!(
+        "<< {dict} /Length {} >>\nstream\n{content}\nendstream",
+        content.len()
+    )
+}
+
+/// One Letter page with document information (title and author) and no XMP.
+pub fn pdf_with_metadata(title: &str, author: &str) -> Vec<u8> {
+    let objects = vec![
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        "<< /Type /Pages /Kids [4 0 R] /Count 1 >>".to_owned(),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>".to_owned(),
+        stream("", "BT /F1 24 Tf 40 700 Td (Page 1) Tj ET"),
+        format!("<< /Title ({title}) /Author ({author}) /Producer (Test Producer) >>"),
+    ];
+    serialize(&objects, "/Info 6 0 R")
+}
+
+/// One Letter page without any document information.
+pub fn minimal_pdf_without_info() -> Vec<u8> {
+    pdf_with_texts(&["Page 1"])
+}
+
+/// Like [`pdf_with_metadata`], plus an XMP packet that repeats the title and author.
+pub fn pdf_with_metadata_and_xmp(title: &str, author: &str) -> Vec<u8> {
+    let xmp = format!(
+        "<?xpacket begin=\"x\"?><x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">{title}</rdf:li></rdf:Alt></dc:title><dc:creator><rdf:Seq><rdf:li>{author}</rdf:li></rdf:Seq></dc:creator></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end=\"w\"?>"
+    );
+    let objects = vec![
+        "<< /Type /Catalog /Pages 2 0 R /Metadata 7 0 R >>".to_owned(),
+        "<< /Type /Pages /Kids [4 0 R] /Count 1 >>".to_owned(),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>".to_owned(),
+        stream("", "BT /F1 24 Tf 40 700 Td (Page 1) Tj ET"),
+        format!("<< /Title ({title}) /Author ({author}) /Producer (Test Producer) >>"),
+        stream("/Type /Metadata /Subtype /XML", &xmp),
+    ];
+    serialize(&objects, "/Info 6 0 R")
+}
+
+/// Two pages with annotations of every kind Remove annotations knows. Page 1 holds a URI link, a
+/// highlight, a strikeout, a sticky note with its popup and a form field; page 2 holds an
+/// internal link and a sticky note.
+pub fn pdf_with_annotations() -> Vec<u8> {
+    let rect = "/Rect [100 600 200 620]";
+    let objects = vec![
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        "<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>".to_owned(),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R /Annots [8 0 R 9 0 R 10 0 R 11 0 R 12 0 R 13 0 R] >>".to_owned(),
+        stream("", "BT /F1 24 Tf 40 700 Td (Page 1) Tj ET"),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R /Annots [14 0 R 15 0 R] >>".to_owned(),
+        stream("", "BT /F1 24 Tf 40 700 Td (Page 2) Tj ET"),
+        format!("<< /Type /Annot /Subtype /Link {rect} /A << /S /URI /URI (http://example.com) >> >>"),
+        format!("<< /Type /Annot /Subtype /Highlight {rect} /QuadPoints [100 620 200 620 100 600 200 600] /Contents (hl) >>"),
+        format!("<< /Type /Annot /Subtype /StrikeOut {rect} /QuadPoints [100 620 200 620 100 600 200 600] >>"),
+        format!("<< /Type /Annot /Subtype /Text {rect} /Contents (note) /Popup 12 0 R >>"),
+        format!("<< /Type /Annot /Subtype /Popup {rect} /Parent 11 0 R >>"),
+        format!("<< /Type /Annot /Subtype /Widget /FT /Tx /T (field) /V (value) {rect} >>"),
+        format!("<< /Type /Annot /Subtype /Link {rect} /Dest [4 0 R /Fit] >>"),
+        format!("<< /Type /Annot /Subtype /Text {rect} /Contents (second note) >>"),
+    ];
+    serialize(&objects, "")
+}
+
+/// One page packed with everything Sanitize removes: document information, XMP, JavaScript (open
+/// action, name tree and page action), an attached file (name tree and attachment annotation), a
+/// hidden layer with text, a link that opens a web address, a thumbnail and private application
+/// data. The visible text is "Visible text"; the hidden layer holds "Hidden text".
+pub fn pdf_with_risky_content() -> Vec<u8> {
+    let content = "BT /F1 24 Tf 40 700 Td (Visible text) Tj ET\n\
+                   /OC /OC2 BDC BT /F1 24 Tf 40 650 Td (Hidden text) Tj ET EMC\n\
+                   /OC /OC1 BDC BT /F1 24 Tf 40 600 Td (Shown layer) Tj ET EMC";
+    let objects = vec![
+        // 1 catalog
+        "<< /Type /Catalog /Pages 2 0 R /Metadata 12 0 R \
+         /OpenAction << /S /JavaScript /JS (app.alert\\(1\\);) >> \
+         /Names << /JavaScript << /Names [(init) 6 0 R] >> /EmbeddedFiles << /Names [(a.txt) 7 0 R] >> >> \
+         /OCProperties << /OCGs [9 0 R 10 0 R] /D << /Order [9 0 R 10 0 R] /OFF [10 0 R] >> >> \
+         /PieceInfo << /App << /Private (secret) >> >> >>".to_owned(),
+        "<< /Type /Pages /Kids [4 0 R] /Count 1 >>".to_owned(),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
+        // 4 page
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] \
+         /Resources << /Font << /F1 3 0 R >> /Properties << /OC1 9 0 R /OC2 10 0 R >> >> \
+         /Contents 5 0 R /Thumb 14 0 R /AA << /O 6 0 R >> \
+         /PieceInfo << /App << /Private (page secret) >> >> /Annots [13 0 R 15 0 R] >>".to_owned(),
+        stream("", content),
+        // 6 javascript action
+        "<< /S /JavaScript /JS (app.alert\\(1\\);) >>".to_owned(),
+        // 7 file specification, 8 embedded file
+        "<< /Type /Filespec /F (a.txt) /EF << /F 8 0 R >> >>".to_owned(),
+        stream("/Type /EmbeddedFile", "attached secret"),
+        // 9 visible layer, 10 hidden layer
+        "<< /Type /OCG /Name (Visible layer) >>".to_owned(),
+        "<< /Type /OCG /Name (Hidden layer) >>".to_owned(),
+        // 11 information, 12 XMP
+        "<< /Title (Secret title) /Author (Secret author) /Producer (Test) >>".to_owned(),
+        stream("/Type /Metadata /Subtype /XML", "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><secret/></x:xmpmeta>"),
+        // 13 web link, 14 thumbnail, 15 attachment annotation
+        "<< /Type /Annot /Subtype /Link /Rect [10 10 100 30] /A << /S /URI /URI (http://example.com) >> >>".to_owned(),
+        stream("/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x"),
+        "<< /Type /Annot /Subtype /FileAttachment /Rect [10 40 30 60] /FS 7 0 R /Name /Paperclip >>".to_owned(),
+    ];
+    serialize(&objects, "/Info 11 0 R")
 }
 
 /// A syntactically valid PDF whose page tree holds no pages.

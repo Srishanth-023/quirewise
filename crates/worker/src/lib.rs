@@ -217,7 +217,7 @@ mod tests {
             Request::Ping,
             Request::Run {
                 id: 5,
-                unit: unit("a.pdf"),
+                unit: Box::new(unit("a.pdf")),
             },
             Request::Shutdown,
         ]);
@@ -245,7 +245,7 @@ mod tests {
         let input = frames(&[
             Request::Run {
                 id: 9,
-                unit: unit("wait.pdf"),
+                unit: Box::new(unit("wait.pdf")),
             },
             Request::Cancel { id: 9 },
             Request::Shutdown,
@@ -263,7 +263,7 @@ mod tests {
     fn end_of_input_cancels_running_units_and_exits_cleanly() {
         let input = frames(&[Request::Run {
             id: 1,
-            unit: unit("wait.pdf"),
+            unit: Box::new(unit("wait.pdf")),
         }]);
         let out = SharedBuf::default();
         assert!(serve(input, out.clone(), services()).is_ok());

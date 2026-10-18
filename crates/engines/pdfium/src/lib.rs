@@ -142,6 +142,25 @@ impl FormFlattener for PdfiumEngine {
     }
 }
 
+impl application::ports::PdfRepairer for PdfiumEngine {
+    fn name(&self) -> &'static str {
+        "pdfium"
+    }
+
+    /// PDFium rebuilds a broken cross-reference table while loading; saving writes a clean file.
+    fn repair(
+        &self,
+        source: &Path,
+        password: Option<&Password>,
+        dest: &Path,
+    ) -> Result<application::ports::RepairOutcome, AppError> {
+        let doc = self.open(source, password)?;
+        doc.save_to_file(dest)
+            .map_err(|e| map_error(&e, password.is_some()))?;
+        Ok(application::ports::RepairOutcome::default())
+    }
+}
+
 impl PdfFacts for PdfiumEngine {
     fn facts(&self, path: &Path, password: Option<&Password>) -> Result<PdfiumFacts, AppError> {
         let doc = self.open(path, password)?;
@@ -302,6 +321,29 @@ mod tests {
         let path = dir.path().join(name);
         std::fs::write(&path, bytes).unwrap();
         path
+    }
+
+    #[test]
+    fn repair_rewrites_a_file_with_a_broken_cross_reference_table() {
+        use application::ports::PdfRepairer;
+        let dir = tempfile::tempdir().unwrap();
+        let good = minimal_pdf(3);
+        let cut = good.windows(4).rposition(|w| w == b"xref").unwrap();
+        let broken = write(&dir, "broken.pdf", &good[..cut]);
+        let dest = dir.path().join("fixed.pdf");
+        engine().repair(&broken, None, &dest).unwrap();
+        assert_eq!(engine().open_info(&dest, None).unwrap().page_count, 3);
+    }
+
+    #[test]
+    fn repair_fails_cleanly_on_a_file_that_is_not_a_pdf() {
+        use application::ports::PdfRepairer;
+        let dir = tempfile::tempdir().unwrap();
+        let junk = write(&dir, "j.pdf", b"not a pdf at all");
+        let err = engine()
+            .repair(&junk, None, &dir.path().join("o.pdf"))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::PdfDamaged);
     }
 
     #[test]

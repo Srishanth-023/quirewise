@@ -119,5 +119,10 @@ pub fn apply(doc: &mut Document, edit: &PdfEdit) -> Result<(), AppError> {
             width_pt,
             height_pt,
         } => scale_pages(doc, *width_pt, *height_pt),
+        PdfEdit::SetMetadata(change) => crate::metadata::set_metadata(doc, change),
+        PdfEdit::RemoveAnnotations { kinds, pages } => {
+            crate::annotations::remove_annotations(doc, kinds, pages)
+        }
+        PdfEdit::Sanitize(options) => crate::sanitize::sanitize(doc, options),
     }
 }

@@ -9,6 +9,12 @@ export interface ToolForm {
   limits?: Record<string, { min?: number; max?: number }>;
   /** Fields that hold one entry per input file, in the order of the file list. */
   perFile?: string[];
+  /** Text fields typed hidden, such as passwords. */
+  secret?: string[];
+  /** Text fields with a "remove" switch, where blank means "keep the current value". */
+  clearable?: string[];
+  /** Fields shown only while another field has a given value. */
+  visibleWhen?: Record<string, { field: string; equals: unknown }>;
 }
 
 export const toolForms: Record<string, ToolForm> = {
@@ -27,6 +33,62 @@ export const toolForms: Record<string, ToolForm> = {
   'split-by-size': { limits: { max_size_mb: { min: 1, max: 2048 } } },
   'split-by-text': { order: ['region', 'starts_with'], custom: ['region'] },
   rotate: { order: ['angle', 'pages'] },
+  compress: {
+    order: ['preset', 'jpeg_quality', 'max_image_ppi', 'grayscale', 'strip_metadata', 'object_streams'],
+    limits: { jpeg_quality: { min: 1, max: 100 } },
+  },
+  repair: {},
+  linearize: { order: ['enabled'] },
+  'remove-annotations': { order: ['kinds', 'pages'] },
+  flatten: {
+    order: ['mode', 'dpi'],
+    visibleWhen: { dpi: { field: 'mode', equals: 'everything' } },
+  },
+  'edit-metadata': {
+    order: [
+      'title',
+      'author',
+      'subject',
+      'keywords',
+      'creator',
+      'producer',
+      'creation_date',
+      'modification_date',
+      'trapped',
+      'remove_all',
+    ],
+    clearable: ['title', 'author', 'subject', 'keywords', 'creator', 'producer', 'creation_date', 'modification_date'],
+    visibleWhen: Object.fromEntries(
+      [
+        'title',
+        'author',
+        'subject',
+        'keywords',
+        'creator',
+        'producer',
+        'creation_date',
+        'modification_date',
+        'trapped',
+      ].map((key) => [key, { field: 'remove_all', equals: false }]),
+    ),
+  },
+  protect: {
+    order: ['user_password', 'owner_password', 'cipher', 'permissions'],
+    secret: ['user_password', 'owner_password'],
+  },
+  unlock: {},
+  sanitize: {
+    order: [
+      'metadata',
+      'xmp',
+      'javascript',
+      'embedded_files',
+      'hidden_layers',
+      'form_actions',
+      'thumbnails',
+      'private_data',
+    ],
+  },
   'insert-pages': {
     order: ['mode', 'pages', 'position', 'count', 'page_size'],
     limits: { count: { min: 1, max: 100 } },

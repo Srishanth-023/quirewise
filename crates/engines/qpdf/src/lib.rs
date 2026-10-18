@@ -8,6 +8,7 @@
 mod assemble;
 mod blank;
 mod process;
+mod security;
 
 use application::AppError;
 use application::Password;
@@ -68,6 +69,24 @@ impl QpdfCli {
     ) -> Result<(Output, CheckOutcome), AppError> {
         let stdin = password.map(|p| format!("{}\n", p.expose()).into_bytes());
         let output = run(&self.exe, &args, stdin.as_deref(), self.timeout)?;
+        Self::finish(output, had_password)
+    }
+
+    /// Runs qpdf with its arguments read from standard input (`@-`), one per line. Used when
+    /// the arguments themselves contain secrets.
+    pub(crate) fn execute_args_from_stdin(
+        &self,
+        lines: &[String],
+        had_password: bool,
+    ) -> Result<(Output, CheckOutcome), AppError> {
+        let mut text = lines.join("\n");
+        text.push('\n');
+        let args: Vec<OsString> = vec!["@-".into()];
+        let output = run(&self.exe, &args, Some(text.as_bytes()), self.timeout)?;
+        Self::finish(output, had_password)
+    }
+
+    fn finish(output: Output, had_password: bool) -> Result<(Output, CheckOutcome), AppError> {
         match output.code {
             Some(0) => Ok((output, CheckOutcome::Clean)),
             Some(3) => Ok((output, CheckOutcome::Warnings)),

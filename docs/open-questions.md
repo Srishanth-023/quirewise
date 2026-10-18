@@ -26,3 +26,11 @@ Questions are recorded here and work continues with the safest default (AGENTS.m
 | 20 | The Merge contents page has no clickable links | Plain list, 35 lines per page | Add link annotations with the Edit tools |
 | 21 | Images converted by Merge are sized at 150 dpi, so small images give small pages | Normalize page size is available | Offer a page size choice for images |
 | 22 | Per-file options of multi-input tools use one `per_file` array matching the input order; missing entries use defaults | Same convention in Merge and Alternate and Mix; the UI shows one group per file | None |
+| 23 | Compress has no "subset fonts" option | No font subsetter is available that fits the license rules; images and structure are optimized instead | Decide on a subsetting approach in a later phase |
+| 24 | Remove annotations uses lopdf, not PDFium as the architecture table suggests | lopdf edits `/Annots` and prunes the removed objects exactly; PDFium cannot save such edits without re-rendering | Owner to accept the deviation |
+| 25 | Compress touches only page-level images stored as DCT or Flate, 8-bit gray or RGB, and never makes an image bigger | Masks, indexed, CMYK, 16-bit and images inside form XObjects are left alone | Widen coverage with the performance pass |
+| 26 | Edit metadata does not prefill the current values, and rewrites the XMP packet (a PDF/A claim is lost) | Blank keeps a field, the Remove switch clears it | Prefill from Inspect in a later UI pass |
+| 27 | Sanitize strips hidden layers only from page content streams | Marked content inside form XObjects stays | Walk form XObjects in a later pass |
+| 28 | Protect passwords travel to the worker over its private stdio pipe and to qpdf on its standard input; restrictions are advisory | Never on a command line, in logs or on disk | None |
+| 29 | Repair needs `%PDF-` near the start of the file, because inputs are recognized by that signature | A file without it is rejected as not a PDF | Add a lenient mode if real files need it |
+| 30 | Compress, Linearize, Remove annotations, Edit metadata, Sanitize and Flatten write an unprotected file when the input was password protected | Documented in each tool page; Protect locks it again | Owner to decide whether to re-apply the original protection |

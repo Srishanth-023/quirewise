@@ -83,8 +83,12 @@ pub enum Command {
         #[arg(required = true)]
         files: Vec<PathBuf>,
         /// Tool options as JSON; missing fields use the defaults, for example `{"angle":"180"}`.
-        #[arg(long)]
+        #[arg(long, conflicts_with = "options_file")]
         options: Option<String>,
+        /// Read the options JSON from a file. Use it for secrets such as the passwords of
+        /// `protect`, which would otherwise show up in the process list.
+        #[arg(long)]
+        options_file: Option<PathBuf>,
         /// Output folder. Default: next to each source file.
         #[arg(long)]
         out: Option<PathBuf>,
@@ -231,19 +235,28 @@ pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
             tool,
             files: inputs,
             options,
+            options_file,
             out,
             ..
-        } => run_cmd::run_tool(
-            registry,
-            runner,
-            run_cmd::RunArgs {
-                tool: &tool,
-                files: &inputs,
-                options: options.as_deref(),
-                out,
-                password,
-            },
-        ),
+        } => {
+            let from_file = options_file
+                .map(|path| {
+                    std::fs::read_to_string(&path)
+                        .map_err(|e| AppError::from_io("read the options file", &e))
+                })
+                .transpose()?;
+            run_cmd::run_tool(
+                registry,
+                runner,
+                run_cmd::RunArgs {
+                    tool: &tool,
+                    files: &inputs,
+                    options: from_file.as_deref().or(options.as_deref()),
+                    out,
+                    password,
+                },
+            )
+        }
         Command::Schema => Ok(application::dto::ipc_schema_json()),
         Command::Inspect { path, .. } => {
             let query = DocumentQuery::Inspect { path, password };

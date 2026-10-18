@@ -5,7 +5,7 @@
   import { toolName } from '../stores/tools.svelte';
   import { formFields, toolOptions } from '../stores/options.svelte';
   import FieldInput from './FieldInput.svelte';
-  import type { Field } from './schema';
+  import type { Field, Values } from './schema';
   import { formFor } from './toolForms';
 
   interface Props {
@@ -17,7 +17,18 @@
   const fields = $derived(formFields(tool));
   const hints = $derived(formFor(tool.id));
   const values = $derived(toolOptions.values(tool));
-  const shown = (field: Field): boolean => field.kind !== 'unsupported' && field.kind !== 'group';
+  const drawable = (field: Field): boolean => field.kind !== 'unsupported';
+
+  /** Hidden fields wait for the value of the field they depend on. */
+  const visible = (field: Field): boolean => {
+    const rule = hints.visibleWhen?.[field.key];
+    return !rule || values[rule.field] === rule.equals;
+  };
+
+  function groupValues(field: Field): Values {
+    const current = values[field.key];
+    return typeof current === 'object' && current !== null ? (current as Values) : {};
+  }
 
   function listLabel(field: Field): string {
     return tDynamic(`option.${tool.id}.${field.key}`, tDynamic(`option.${field.key}`, field.key.replaceAll('_', ' ')));
@@ -25,8 +36,21 @@
 </script>
 
 <form class="form" aria-label={t('options.formLabel', { tool: toolName(tool) })} onsubmit={(e) => e.preventDefault()}>
-  {#each fields.filter(shown) as field (field.key)}
-    {#if field.kind === 'list'}
+  {#each fields.filter((f) => drawable(f) && visible(f)) as field (field.key)}
+    {#if field.kind === 'group'}
+      <fieldset class="group">
+        <legend>{listLabel(field)}</legend>
+        {#each field.children ?? [] as child (child.key)}
+          <FieldInput
+            field={child}
+            value={groupValues(field)[child.key]}
+            toolId={tool.id}
+            id={`${tool.id}-${field.key}-${child.key}`}
+            onchange={(v) => toolOptions.set(tool, field.key, { ...groupValues(field), [child.key]: v })}
+          />
+        {/each}
+      </fieldset>
+    {:else if field.kind === 'list'}
       <!-- One group of settings per file, in the order of the file list. -->
       {#if files.entries.length > 0}
         <section class="per-file" aria-label={listLabel(field)}>
@@ -55,11 +79,13 @@
         toolId={tool.id}
         id={`${tool.id}-${field.key}`}
         limits={hints.limits?.[field.key]}
+        secret={hints.secret?.includes(field.key)}
+        clearable={hints.clearable?.includes(field.key)}
         onchange={(v) => toolOptions.set(tool, field.key, v)}
       />
     {/if}
   {/each}
-  {#if fields.some(shown)}
+  {#if fields.some(drawable)}
     <button type="button" class="reset" onclick={() => toolOptions.reset(tool)}>{t('options.reset')}</button>
   {:else}
     <p class="none">{t('options.none')}</p>

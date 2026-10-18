@@ -4,10 +4,13 @@
 //! runs inside the worker, with a cap on how far any stream may expand.
 #![forbid(unsafe_code)]
 
+mod annotations;
 mod boxes;
 mod edit;
 mod encryption;
+mod metadata;
 mod outline;
+mod sanitize;
 mod scan;
 mod toc;
 

@@ -111,3 +111,70 @@ export const byTextSchema = {
   },
 };
 
+
+function choices(values: string[]) {
+  return { oneOf: values.map((v) => ({ type: 'string', const: v, description: v })) };
+}
+const nullableText = { type: ['string', 'null'], default: null };
+
+/** Protect: secrets, a cipher choice and a group of booleans. */
+export const protectSchema = {
+  type: 'object',
+  properties: {
+    cipher: { $ref: '#/$defs/Cipher', default: 'aes256' },
+    owner_password: { anyOf: [{ $ref: '#/$defs/Secret' }, { type: 'null' }], default: null },
+    permissions: {
+      $ref: '#/$defs/Permissions',
+      default: { annotate: true, assemble: true, copy: true, fill_forms: true, modify: true, print: true },
+    },
+    user_password: { anyOf: [{ $ref: '#/$defs/Secret' }, { type: 'null' }], default: null },
+  },
+  $defs: {
+    Cipher: choices(['aes256', 'aes128']),
+    Secret: { type: 'string' },
+    Permissions: {
+      type: 'object',
+      properties: Object.fromEntries(
+        ['annotate', 'assemble', 'copy', 'fill_forms', 'modify', 'print'].map((k) => [
+          k,
+          { type: 'boolean', default: true },
+        ]),
+      ),
+    },
+  },
+};
+
+/** Edit metadata: nullable texts that a switch can clear, and a nullable choice. */
+export const editMetadataSchema = {
+  type: 'object',
+  properties: {
+    author: nullableText,
+    remove_all: { type: 'boolean', default: false },
+    title: nullableText,
+    trapped: { anyOf: [{ $ref: '#/$defs/Trapped' }, { type: 'null' }], default: null },
+  },
+  $defs: { Trapped: choices(['true', 'false', 'unknown']) },
+};
+
+/** Remove annotations: a list of choices that can be ticked together. */
+export const removeAnnotationsSchema = {
+  type: 'object',
+  properties: {
+    kinds: { type: 'array', default: ['all'], items: { $ref: '#/$defs/AnnotationKind' } },
+    pages: { $ref: '#/$defs/PageRange', default: 'all' },
+  },
+  $defs: { AnnotationKind: choices(['all', 'highlights', 'links']), PageRange: pageRange },
+};
+
+/** Flatten: a resolution that only matters in one mode. */
+export const flattenSchema = {
+  type: 'object',
+  properties: {
+    dpi: { $ref: '#/$defs/FlattenDpi', default: '150' },
+    mode: { $ref: '#/$defs/FlattenMode', default: 'forms-and-annotations' },
+  },
+  $defs: {
+    FlattenDpi: choices(['75', '100', '150', '220']),
+    FlattenMode: choices(['forms-and-annotations', 'everything']),
+  },
+};

@@ -17,7 +17,16 @@ export interface JsonSchema {
   maximum?: number;
 }
 
-export type FieldKind = 'boolean' | 'integer' | 'number' | 'text' | 'choice' | 'group' | 'list' | 'unsupported';
+export type FieldKind =
+  | 'boolean'
+  | 'integer'
+  | 'number'
+  | 'text'
+  | 'choice'
+  | 'multichoice'
+  | 'group'
+  | 'list'
+  | 'unsupported';
 
 export interface Choice {
   value: string;
@@ -100,6 +109,14 @@ function buildField(key: string, raw: JsonSchema, root: JsonSchema): Field {
       return { ...base, kind: 'group', children: buildFields(schema, root) };
     case 'array': {
       const item = schema.items ? resolve(schema.items, root) : undefined;
+      if (item?.oneOf && item.oneOf.every((s) => typeof s.const === 'string')) {
+        return {
+          ...base,
+          kind: 'multichoice',
+          default: base.default ?? [],
+          choices: item.oneOf.map((s) => ({ value: String(s.const), description: s.description ?? '' })),
+        };
+      }
       if (item?.type === 'object') {
         return { ...base, kind: 'list', default: base.default ?? [], children: buildFields(item, root) };
       }

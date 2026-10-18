@@ -5,6 +5,9 @@
 //! sized from the pixels at 150 dpi. HEIC arrives with the Windows imaging component in Phase 6.
 #![forbid(unsafe_code)]
 
+mod compress;
+mod pages;
+
 use application::AppError;
 use application::ports::ImageConverter;
 use domain::ErrorCode;

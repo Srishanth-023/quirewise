@@ -53,3 +53,66 @@ fn run_rejects_unknown_options_before_starting_a_worker() {
     assert_eq!(code, 1, "{text}");
     assert!(text.contains("QW-OPTION"), "{text}");
 }
+
+#[test]
+fn run_protects_a_file_with_secrets_read_from_an_options_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let input = dir.path().join("plain.pdf");
+    std::fs::write(&input, minimal_pdf(2)).unwrap();
+    let options = dir.path().join("options.json");
+    std::fs::write(
+        &options,
+        r#"{"user_password":"open","owner_password":"boss"}"#,
+    )
+    .unwrap();
+    let out = dir.path().join("out");
+
+    let (text, code) = qw(&[
+        "run",
+        "protect",
+        input.to_str().unwrap(),
+        "--options-file",
+        options.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{text}");
+    assert!(
+        !text.contains("open") || text.contains("(protected)"),
+        "secrets are never echoed"
+    );
+    assert!(!text.contains("boss"));
+
+    // The result needs its password: running unlock on it without one says so.
+    let protected = std::fs::read_dir(&out)
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    let (text, code) = qw(&["run", "unlock", protected.to_str().unwrap()]);
+    assert_eq!(code, 1, "{text}");
+    assert!(text.contains("QW-PDF-ENCRYPTED"), "{text}");
+}
+
+#[test]
+fn run_refuses_options_given_twice_and_a_missing_options_file() {
+    let (_, code) = qw(&[
+        "run",
+        "rotate",
+        "a.pdf",
+        "--options",
+        "{}",
+        "--options-file",
+        "x.json",
+    ]);
+    assert_eq!(code, 2);
+    let (text, code) = qw(&[
+        "run",
+        "rotate",
+        "a.pdf",
+        "--options-file",
+        r"C:\no\such\file.json",
+    ]);
+    assert_eq!(code, 1, "{text}");
+}

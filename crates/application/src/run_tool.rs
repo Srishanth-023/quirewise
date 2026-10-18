@@ -82,13 +82,14 @@ impl RunTool {
         &self,
         request: &UnitRequest,
         accepts: &[InputKind],
+        open_first: bool,
     ) -> Result<Vec<InputDoc>, AppError> {
         let mut inspected = Vec::with_capacity(request.inputs.len());
         for input in &request.inputs {
             let (mut doc, kind) =
                 validate_input(self.files.as_ref(), &input.path, accepts, &self.limits)?;
             doc.password = input.password.clone();
-            if kind == InputKind::Pdf {
+            if kind == InputKind::Pdf && open_first {
                 let info = self.reader.open_info(&doc.path, doc.password.as_ref())?;
                 if info.page_count > self.limits.max_pages {
                     return Err(AppError::new(
@@ -139,7 +140,7 @@ impl UnitRunner for RunTool {
         }
         cancel.check()?;
 
-        let inputs = self.inspect_inputs(request, tool.accepts())?;
+        let inputs = self.inspect_inputs(request, tool.accepts(), tool.reads_pages_first())?;
         let plan = tool.validate(&inputs, &request.options)?;
         cancel.check()?;
 
@@ -179,6 +180,7 @@ mod tests {
     use super::*;
     use crate::runtime::{NoProgress, Password};
     use crate::testing::{FixedClock, MemoryFiles, NullLogger, RotateLikeTool, StubReader};
+    use crate::tool::{Plan, Tool};
     use domain::tools::RotateOptions;
     use domain::{ErrorCode, PageRange};
 
@@ -219,6 +221,88 @@ mod tests {
             output_dir: None,
             naming_pattern: OutputNamingPattern::default(),
         }
+    }
+
+    /// A tool that must see files the PDF reader cannot open, like Repair.
+    struct BlindTool {
+        reads_first: bool,
+    }
+
+    impl Tool for BlindTool {
+        fn id(&self) -> ToolId {
+            ToolId::Repair
+        }
+        fn group(&self) -> domain::tools::ToolGroup {
+            domain::tools::ToolGroup::Optimize
+        }
+        fn label(&self) -> &'static str {
+            "repaired"
+        }
+        fn accepts(&self) -> &'static [InputKind] {
+            &[InputKind::Pdf]
+        }
+        fn options_schema(&self) -> schemars::Schema {
+            schemars::schema_for!(domain::tools::RepairOptions)
+        }
+        fn reads_pages_first(&self) -> bool {
+            self.reads_first
+        }
+        fn validate(&self, inputs: &[InputDoc], opts: &ToolOptions) -> Result<Plan, AppError> {
+            Ok(Plan {
+                tool: ToolId::Repair,
+                inputs: inputs.to_vec(),
+                options: opts.clone(),
+                total_units: 1,
+            })
+        }
+        fn execute(&self, _: &JobContext<'_>, plan: Plan) -> Result<Vec<OutputArtifact>, AppError> {
+            assert_eq!(plan.inputs[0].page_count, None, "no page count was read");
+            Ok(vec![OutputArtifact {
+                path: PathBuf::from("C:\\in\\fixed.pdf"),
+                pages: None,
+                bytes: 0,
+            }])
+        }
+    }
+
+    fn blind_run(reads_first: bool) -> Result<Vec<OutputArtifact>, AppError> {
+        let files = Arc::new(MemoryFiles::default());
+        files.put("C:\\in\\broken.pdf", b"%PDF-1.4 broken");
+        let mut registry = ToolRegistry::new();
+        registry
+            .register(Arc::new(BlindTool { reads_first }))
+            .unwrap();
+        // The reader knows no documents, so opening anything fails as damaged.
+        let run = RunTool::new(
+            Arc::new(registry),
+            Arc::new(StubReader::default()),
+            files,
+            Arc::new(FixedClock),
+            Arc::new(NullLogger),
+            SafetyLimits::default(),
+            PathBuf::from("C:\\tmp"),
+        );
+        run.run_unit(
+            &UnitRequest {
+                tool: ToolId::Repair,
+                options: ToolOptions::defaults_for(ToolId::Repair),
+                inputs: vec![InputDoc::new("C:\\in\\broken.pdf")],
+                output_dir: None,
+                naming_pattern: OutputNamingPattern::default(),
+            },
+            &CancellationToken::new(),
+            &NoProgress,
+        )
+    }
+
+    #[test]
+    fn a_tool_can_opt_out_of_opening_the_file_first() {
+        assert!(blind_run(false).is_ok());
+    }
+
+    #[test]
+    fn other_tools_still_get_a_damaged_file_rejected_up_front() {
+        assert_eq!(blind_run(true).unwrap_err().code, ErrorCode::PdfDamaged);
     }
 
     #[test]

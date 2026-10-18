@@ -114,6 +114,35 @@ export type OrganizedPage =
       width_pt: number;
     };
 /**
+ * The highest resolution images keep, in pixels per inch.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "ImagePpi".
+ */
+export type ImagePpi = '72' | '144' | '288' | '720';
+/**
+ * A kind of annotation Remove annotations can target.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "AnnotationKind".
+ */
+export type AnnotationKind = 'all' | 'highlights' | 'strikeouts' | 'notes' | 'links';
+/**
+ * The value of the `Trapped` entry.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Trapped".
+ */
+export type Trapped = 'true' | 'false' | 'unknown';
+/**
+ * Text that must never reach a log: `Debug` hides it. It serializes as a plain string because
+ * the worker receives it over its private stdio pipe.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Secret".
+ */
+export type Secret = string;
+/**
  * JSON Schema of the options.
  */
 export type Schema = {} | boolean;
@@ -129,6 +158,21 @@ export type Base64Bytes = string;
  * via the `definition` "Bytes".
  */
 export type Bytes = number;
+/**
+ * The encryption algorithm.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Cipher".
+ */
+export type Cipher = 'aes256' | 'aes128';
+/**
+ * How hard Compress works. Presets set the image quality and resolution; the advanced options
+ * override them one by one.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "CompressPreset".
+ */
+export type CompressPreset = 'extreme' | 'recommended' | 'less';
 /**
  * Stable, user-visible error code. The string form never changes once released.
  *
@@ -160,6 +204,20 @@ export type ErrorCode =
  */
 export type FileStatus =
   'pending' | 'running' | 'done' | 'wrong-password' | 'damaged' | 'out-of-range' | 'cancelled' | 'failed';
+/**
+ * Resolution for [`FlattenMode::Everything`], in dots per inch.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FlattenDpi".
+ */
+export type FlattenDpi = '75' | '100' | '150' | '220';
+/**
+ * What Flatten turns into page content.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FlattenMode".
+ */
+export type FlattenMode = 'forms-and-annotations' | 'everything';
 /**
  * What to do with form fields while merging.
  *
@@ -277,7 +335,16 @@ export type ToolId =
   | 'split-by-size'
   | 'split-by-text'
   | 'rotate'
-  | 'insert-pages';
+  | 'insert-pages'
+  | 'compress'
+  | 'repair'
+  | 'remove-annotations'
+  | 'flatten'
+  | 'edit-metadata'
+  | 'protect'
+  | 'unlock'
+  | 'sanitize'
+  | 'linearize';
 /**
  * Options for any tool. The tag is the tool id.
  *
@@ -443,6 +510,162 @@ export type ToolOptions =
        */
       position?: 'before' | 'after';
       tool: 'insert-pages';
+    }
+  | {
+      /**
+       * Turn color images gray. Default off.
+       */
+      grayscale?: boolean;
+      /**
+       * JPEG quality 1 to 100, replacing the preset's value. Default none.
+       */
+      jpeg_quality?: number | null;
+      /**
+       * Highest image resolution, replacing the preset's value. Default none.
+       */
+      max_image_ppi?: ImagePpi | null;
+      /**
+       * Pack objects into compressed object streams. Default on.
+       */
+      object_streams?: boolean;
+      /**
+       * Starting point for quality and resolution. Default recommended.
+       */
+      preset?: 'extreme' | 'recommended' | 'less';
+      /**
+       * Remove the document information and XMP metadata. Default off.
+       */
+      strip_metadata?: boolean;
+      tool: 'compress';
+    }
+  | {
+      tool: 'repair';
+    }
+  | {
+      /**
+       * Which kinds to remove. Default all.
+       */
+      kinds?: AnnotationKind[];
+      /**
+       * Pages to clean: `all`, `even`, `odd` or a range such as `1,3-5`. Default `all`.
+       */
+      pages?: string;
+      tool: 'remove-annotations';
+    }
+  | {
+      /**
+       * Resolution when everything becomes a picture. Default 150.
+       */
+      dpi?: '75' | '100' | '150' | '220';
+      /**
+       * What to flatten. Default form fields and annotations only.
+       */
+      mode?: 'forms-and-annotations' | 'everything';
+      tool: 'flatten';
+    }
+  | {
+      /**
+       * Author.
+       */
+      author?: string | null;
+      /**
+       * Creation date as `2026-10-19` or `2026-10-19T14:30:00`.
+       */
+      creation_date?: string | null;
+      /**
+       * The program that made the original document.
+       */
+      creator?: string | null;
+      /**
+       * Keywords, separated by commas.
+       */
+      keywords?: string | null;
+      /**
+       * Modification date, same format.
+       */
+      modification_date?: string | null;
+      /**
+       * The program that made the PDF.
+       */
+      producer?: string | null;
+      /**
+       * Remove all metadata. Default off.
+       */
+      remove_all?: boolean;
+      /**
+       * Subject.
+       */
+      subject?: string | null;
+      /**
+       * Title.
+       */
+      title?: string | null;
+      tool: 'edit-metadata';
+      /**
+       * Trapped flag.
+       */
+      trapped?: Trapped | null;
+    }
+  | {
+      /**
+       * Algorithm. Default AES-256.
+       */
+      cipher?: 'aes256' | 'aes128';
+      /**
+       * Password that lifts the restrictions. Required when any permission is turned off.
+       */
+      owner_password?: Secret | null;
+      permissions?: Permissions2;
+      tool: 'protect';
+      /**
+       * Password needed to open the file. Leave empty to let anyone open it.
+       */
+      user_password?: Secret | null;
+    }
+  | {
+      tool: 'unlock';
+    }
+  | {
+      /**
+       * Remove attached files.
+       */
+      embedded_files?: boolean;
+      /**
+       * Remove actions of form fields and links that run or open something.
+       */
+      form_actions?: boolean;
+      /**
+       * Remove layers that are hidden, together with their content.
+       */
+      hidden_layers?: boolean;
+      /**
+       * Remove JavaScript and automatic actions.
+       */
+      javascript?: boolean;
+      /**
+       * Remove the document information (title, author, dates).
+       */
+      metadata?: boolean;
+      /**
+       * Remove private data that applications stored in the file.
+       */
+      private_data?: boolean;
+      /**
+       * Remove page thumbnails.
+       */
+      thumbnails?: boolean;
+      tool: 'sanitize';
+      /**
+       * Remove the XMP metadata packets.
+       */
+      xmp?: boolean;
+    }
+  | {
+      /**
+       * Write the file for fast web view (default). Off writes a normal, non-linearized copy.
+       */
+      enabled?: boolean;
+      tool: 'linearize';
     };
 
 /**
@@ -961,6 +1184,162 @@ export interface RunBatchRequest {
          */
         position?: 'before' | 'after';
         tool: 'insert-pages';
+      }
+    | {
+        /**
+         * Turn color images gray. Default off.
+         */
+        grayscale?: boolean;
+        /**
+         * JPEG quality 1 to 100, replacing the preset's value. Default none.
+         */
+        jpeg_quality?: number | null;
+        /**
+         * Highest image resolution, replacing the preset's value. Default none.
+         */
+        max_image_ppi?: ImagePpi | null;
+        /**
+         * Pack objects into compressed object streams. Default on.
+         */
+        object_streams?: boolean;
+        /**
+         * Starting point for quality and resolution. Default recommended.
+         */
+        preset?: 'extreme' | 'recommended' | 'less';
+        /**
+         * Remove the document information and XMP metadata. Default off.
+         */
+        strip_metadata?: boolean;
+        tool: 'compress';
+      }
+    | {
+        tool: 'repair';
+      }
+    | {
+        /**
+         * Which kinds to remove. Default all.
+         */
+        kinds?: AnnotationKind[];
+        /**
+         * Pages to clean: `all`, `even`, `odd` or a range such as `1,3-5`. Default `all`.
+         */
+        pages?: string;
+        tool: 'remove-annotations';
+      }
+    | {
+        /**
+         * Resolution when everything becomes a picture. Default 150.
+         */
+        dpi?: '75' | '100' | '150' | '220';
+        /**
+         * What to flatten. Default form fields and annotations only.
+         */
+        mode?: 'forms-and-annotations' | 'everything';
+        tool: 'flatten';
+      }
+    | {
+        /**
+         * Author.
+         */
+        author?: string | null;
+        /**
+         * Creation date as `2026-10-19` or `2026-10-19T14:30:00`.
+         */
+        creation_date?: string | null;
+        /**
+         * The program that made the original document.
+         */
+        creator?: string | null;
+        /**
+         * Keywords, separated by commas.
+         */
+        keywords?: string | null;
+        /**
+         * Modification date, same format.
+         */
+        modification_date?: string | null;
+        /**
+         * The program that made the PDF.
+         */
+        producer?: string | null;
+        /**
+         * Remove all metadata. Default off.
+         */
+        remove_all?: boolean;
+        /**
+         * Subject.
+         */
+        subject?: string | null;
+        /**
+         * Title.
+         */
+        title?: string | null;
+        tool: 'edit-metadata';
+        /**
+         * Trapped flag.
+         */
+        trapped?: Trapped | null;
+      }
+    | {
+        /**
+         * Algorithm. Default AES-256.
+         */
+        cipher?: 'aes256' | 'aes128';
+        /**
+         * Password that lifts the restrictions. Required when any permission is turned off.
+         */
+        owner_password?: Secret | null;
+        permissions?: Permissions2;
+        tool: 'protect';
+        /**
+         * Password needed to open the file. Leave empty to let anyone open it.
+         */
+        user_password?: Secret | null;
+      }
+    | {
+        tool: 'unlock';
+      }
+    | {
+        /**
+         * Remove attached files.
+         */
+        embedded_files?: boolean;
+        /**
+         * Remove actions of form fields and links that run or open something.
+         */
+        form_actions?: boolean;
+        /**
+         * Remove layers that are hidden, together with their content.
+         */
+        hidden_layers?: boolean;
+        /**
+         * Remove JavaScript and automatic actions.
+         */
+        javascript?: boolean;
+        /**
+         * Remove the document information (title, author, dates).
+         */
+        metadata?: boolean;
+        /**
+         * Remove private data that applications stored in the file.
+         */
+        private_data?: boolean;
+        /**
+         * Remove page thumbnails.
+         */
+        thumbnails?: boolean;
+        tool: 'sanitize';
+        /**
+         * Remove the XMP metadata packets.
+         */
+        xmp?: boolean;
+      }
+    | {
+        /**
+         * Write the file for fast web view (default). Off writes a normal, non-linearized copy.
+         */
+        enabled?: boolean;
+        tool: 'linearize';
       };
   /**
    * Output folder, or `None` for next to each source.
@@ -982,7 +1361,16 @@ export interface RunBatchRequest {
     | 'split-by-size'
     | 'split-by-text'
     | 'rotate'
-    | 'insert-pages';
+    | 'insert-pages'
+    | 'compress'
+    | 'repair'
+    | 'remove-annotations'
+    | 'flatten'
+    | 'edit-metadata'
+    | 'protect'
+    | 'unlock'
+    | 'sanitize'
+    | 'linearize';
 }
 /**
  * One file the user added, with an optional password for this session.
@@ -1053,6 +1441,35 @@ export interface Region {
    * Top edge, 0 to 1.
    */
   y: number;
+}
+/**
+ * What opening the file allows. Default everything.
+ */
+export interface Permissions2 {
+  /**
+   * Add or change comments and annotations.
+   */
+  annotate?: boolean;
+  /**
+   * Insert, rotate, delete and reorder pages.
+   */
+  assemble?: boolean;
+  /**
+   * Copy text and images out of it.
+   */
+  copy?: boolean;
+  /**
+   * Fill in form fields.
+   */
+  fill_forms?: boolean;
+  /**
+   * Change the document.
+   */
+  modify?: boolean;
+  /**
+   * Print the document.
+   */
+  print?: boolean;
 }
 /**
  * User preferences stored in `settings.toml`. Never holds passwords or keys.
@@ -1176,7 +1593,16 @@ export interface ToolDescriptor {
     | 'split-by-size'
     | 'split-by-text'
     | 'rotate'
-    | 'insert-pages';
+    | 'insert-pages'
+    | 'compress'
+    | 'repair'
+    | 'remove-annotations'
+    | 'flatten'
+    | 'edit-metadata'
+    | 'protect'
+    | 'unlock'
+    | 'sanitize'
+    | 'linearize';
   /**
    * How a batch maps onto runs: one per file, or all files together.
    */
@@ -1210,6 +1636,38 @@ export interface ImageSummary1 {
    * Pages that were scanned. Large documents are sampled from the start.
    */
   scanned_pages: number;
+}
+/**
+ * What a person who opens a protected file may do. Everything is allowed by default.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Permissions2".
+ */
+export interface Permissions21 {
+  /**
+   * Add or change comments and annotations.
+   */
+  annotate?: boolean;
+  /**
+   * Insert, rotate, delete and reorder pages.
+   */
+  assemble?: boolean;
+  /**
+   * Copy text and images out of it.
+   */
+  copy?: boolean;
+  /**
+   * Fill in form fields.
+   */
+  fill_forms?: boolean;
+  /**
+   * Change the document.
+   */
+  modify?: boolean;
+  /**
+   * Print the document.
+   */
+  print?: boolean;
 }
 /**
  * Caps that bound what a hostile document can cost. Enforced in the worker.

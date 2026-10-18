@@ -26,8 +26,8 @@ pub enum Request {
     Run {
         /// Correlation id chosen by the app.
         id: u64,
-        /// The work.
-        unit: UnitRequest,
+        /// The work. Boxed: it is far larger than the other messages.
+        unit: Box<UnitRequest>,
     },
     /// Answer a read-only document query (inspect, thumbnail).
     Query {
@@ -146,13 +146,13 @@ mod tests {
         doc.password = Some(Password::new("pw"));
         Request::Run {
             id: 7,
-            unit: UnitRequest {
+            unit: Box::new(UnitRequest {
                 tool: ToolId::Rotate,
                 options: ToolOptions::defaults_for(ToolId::Rotate),
                 inputs: vec![doc],
                 output_dir: None,
                 naming_pattern: OutputNamingPattern::default(),
-            },
+            }),
         }
     }
 

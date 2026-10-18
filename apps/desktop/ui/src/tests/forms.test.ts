@@ -4,9 +4,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import {
   analysis,
   byTextSchema,
+  editMetadataSchema,
   everyNSchema,
+  flattenSchema,
   mergeSchema,
   organizeSchema,
+  protectSchema,
+  removeAnnotationsSchema,
   report,
   rotateSchema,
 } from './fixtures';
@@ -43,6 +47,16 @@ const list = [
   { id: 'rotate', group: 'organize', label: 'rotated', input_mode: 'per-file', options_schema: rotateSchema },
   { id: 'organize', group: 'organize', label: 'organized', input_mode: 'all-together', options_schema: organizeSchema },
   { id: 'split-by-text', group: 'organize', label: 'part', input_mode: 'per-file', options_schema: byTextSchema },
+  { id: 'protect', group: 'security', label: 'protected', input_mode: 'per-file', options_schema: protectSchema },
+  { id: 'edit-metadata', group: 'document', label: 'edited', input_mode: 'per-file', options_schema: editMetadataSchema },
+  {
+    id: 'remove-annotations',
+    group: 'document',
+    label: 'clean',
+    input_mode: 'per-file',
+    options_schema: removeAnnotationsSchema,
+  },
+  { id: 'flatten', group: 'document', label: 'flat', input_mode: 'per-file', options_schema: flattenSchema },
 ];
 
 beforeEach(() => {
@@ -122,6 +136,79 @@ describe('option forms generated from the schema', () => {
     // b.pdf moved first, and its setting went with it.
     expect(files.entries[0]?.id).toBe(b?.id);
     expect(options.per_file.map((p) => p.pages)).toEqual(['1', 'all']);
+  });
+});
+
+describe('forms for the optimize and security tools', () => {
+  it('hides passwords while typing, groups the permissions and sends them as typed', async () => {
+    await open('Protect with a password', ['C:\\a.pdf']);
+    const opening = (await screen.findByLabelText('Password to open the file')) as HTMLInputElement;
+    expect(opening.type).toBe('password');
+    expect((screen.getByLabelText('Password to change the restrictions') as HTMLInputElement).type).toBe('password');
+    const group = screen.getByRole('group', { name: 'What a reader may do' });
+    expect(group.querySelectorAll('input[type="checkbox"]')).toHaveLength(6);
+    expect(await violations()).toEqual([]);
+
+    await fireEvent.input(opening, { target: { value: 'open' } });
+    await fireEvent.input(screen.getByLabelText('Password to change the restrictions'), { target: { value: 'boss' } });
+    await fireEvent.click(screen.getByLabelText('Copy text and images'));
+    await fireEvent.click(screen.getByRole('button', { name: /Run Protect with a password on 1 file/ }));
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    expect(ipc.runBatch.mock.calls[0]?.[0].options).toMatchObject({
+      tool: 'protect',
+      user_password: 'open',
+      owner_password: 'boss',
+      cipher: 'aes256',
+      permissions: { copy: false, print: true, modify: true },
+    });
+  });
+
+  it('keeps a metadata field unless it is edited or removed, and hides the rest after remove all', async () => {
+    await open('Edit metadata', ['C:\\a.pdf']);
+    const title = (await screen.findByLabelText('Title')) as HTMLInputElement;
+    expect(title.value).toBe('');
+    expect(title.placeholder).toBe('Keep the current value');
+    expect(screen.getByRole('radio', { name: 'Keep as it is' })).toBeTruthy();
+    expect(await violations()).toEqual([]);
+
+    await fireEvent.click(screen.getByLabelText('Remove Author'));
+    expect((screen.getByLabelText('Author') as HTMLInputElement).disabled).toBe(true);
+    await fireEvent.input(title, { target: { value: 'Annual report' } });
+    await fireEvent.click(screen.getByRole('radio', { name: 'Unknown' }));
+    await fireEvent.click(screen.getByRole('button', { name: /Run Edit metadata on 1 file/ }));
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    expect(ipc.runBatch.mock.calls[0]?.[0].options).toMatchObject({
+      tool: 'edit-metadata',
+      title: 'Annual report',
+      author: ' ',
+      trapped: 'unknown',
+    });
+
+    await fireEvent.click(screen.getByLabelText('Remove all metadata'));
+    await waitFor(() => expect(screen.queryByLabelText('Title')).toBeNull());
+  });
+
+  it('lets several annotation kinds be ticked together', async () => {
+    await open('Remove annotations', ['C:\\a.pdf']);
+    const all = (await screen.findByLabelText('All except form fields and signatures')) as HTMLInputElement;
+    expect(all.checked).toBe(true);
+    await fireEvent.click(all);
+    await fireEvent.click(screen.getByLabelText('Highlights'));
+    await fireEvent.click(screen.getByLabelText('Links'));
+    await fireEvent.click(screen.getByRole('button', { name: /Run Remove annotations on 1 file/ }));
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    expect(ipc.runBatch.mock.calls[0]?.[0].options).toMatchObject({
+      tool: 'remove-annotations',
+      kinds: ['highlights', 'links'],
+    });
+  });
+
+  it('asks for a resolution only when everything becomes a picture', async () => {
+    await open('Flatten', ['C:\\a.pdf']);
+    await screen.findByLabelText('Form fields and annotations');
+    expect(screen.queryByRole('group', { name: 'Picture resolution' })).toBeNull();
+    await fireEvent.click(screen.getByLabelText('Everything (every page becomes a picture)'));
+    expect(await screen.findByRole('group', { name: 'Picture resolution' })).toBeTruthy();
   });
 });
 

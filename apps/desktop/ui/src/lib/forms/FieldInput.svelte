@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tDynamic } from '../i18n';
+  import { t, tDynamic } from '../i18n';
   import type { Field } from './schema';
 
   interface Props {
@@ -9,10 +9,14 @@
     /** Unique DOM id prefix. */
     id: string;
     limits?: { min?: number; max?: number };
+    /** Text that must be hidden while typing, such as a password. */
+    secret?: boolean;
+    /** Offer a "remove" switch next to the text, for fields where blank means "keep". */
+    clearable?: boolean;
     onchange: (value: unknown) => void;
   }
 
-  let { field, value, toolId, id, limits, onchange }: Props = $props();
+  let { field, value, toolId, id, limits, secret = false, clearable = false, onchange }: Props = $props();
 
   const label = $derived(
     tDynamic(`option.${toolId}.${field.key}`, tDynamic(`option.${field.key}`, field.key.replaceAll('_', ' '))),
@@ -20,7 +24,10 @@
   const hint = $derived(tDynamic(`option.${toolId}.${field.key}.hint`, tDynamic(`option.${field.key}.hint`, '')));
   const hintId = $derived(`${id}-hint`);
   // Few choices read best as a visible group; more become a menu.
-  const asRadios = $derived((field.choices?.length ?? 0) <= 4);
+  const asRadios = $derived((field.choices?.length ?? 0) + (field.nullable ? 1 : 0) <= 4);
+  // The remove switch stores a single space: not blank, so it is sent, and the core reads a
+  // blank text as "remove this field".
+  const removed = $derived(clearable && value === ' ');
 
   function choiceLabel(choice: string): string {
     return tDynamic(`choice.${field.key}.${choice}`, tDynamic(`choice.${choice}`, choice));
@@ -28,6 +35,11 @@
 
   function parseInteger(text: string): void {
     onchange(text.trim() === '' ? Number.NaN : Number.parseInt(text, 10));
+  }
+
+  function toggle(choice: string, on: boolean): void {
+    const current = Array.isArray(value) ? (value as string[]) : [];
+    onchange(on ? [...current.filter((c) => c !== choice), choice] : current.filter((c) => c !== choice));
   }
 </script>
 
@@ -44,10 +56,33 @@
     </label>
     {#if hint}<p id={hintId} class="hint">{hint}</p>{/if}
   </div>
+{:else if field.kind === 'multichoice'}
+  <fieldset class="field" aria-describedby={hint ? hintId : undefined}>
+    <legend>{label}</legend>
+    <div class="radios">
+      {#each field.choices ?? [] as choice (choice.value)}
+        <label class="check">
+          <input
+            type="checkbox"
+            checked={Array.isArray(value) && value.includes(choice.value)}
+            onchange={(e) => toggle(choice.value, e.currentTarget.checked)}
+          />
+          <span>{choiceLabel(choice.value)}</span>
+        </label>
+      {/each}
+    </div>
+    {#if hint}<p id={hintId} class="hint">{hint}</p>{/if}
+  </fieldset>
 {:else if field.kind === 'choice' && asRadios}
   <fieldset class="field" aria-describedby={hint ? hintId : undefined}>
     <legend>{label}</legend>
     <div class="radios">
+      {#if field.nullable}
+        <label class="check">
+          <input type="radio" name={id} value="" checked={value == null} onchange={() => onchange(null)} />
+          <span>{t('option.unchanged')}</span>
+        </label>
+      {/if}
       {#each field.choices ?? [] as choice (choice.value)}
         <label class="check">
           <input
@@ -66,7 +101,8 @@
 {:else if field.kind === 'choice'}
   <div class="field">
     <label for={id}>{label}</label>
-    <select {id} value={String(value)} onchange={(e) => onchange(e.currentTarget.value)}>
+    <select {id} value={value == null ? '' : String(value)} onchange={(e) => onchange(e.currentTarget.value === '' && field.nullable ? null : e.currentTarget.value)}>
+      {#if field.nullable}<option value="">{t('option.unchanged')}</option>{/if}
       {#each field.choices ?? [] as choice (choice.value)}
         <option value={choice.value}>{choiceLabel(choice.value)}</option>
       {/each}
@@ -84,6 +120,7 @@
       min={limits?.min ?? field.min}
       max={limits?.max ?? field.max}
       value={typeof value === 'number' && Number.isFinite(value) ? value : ''}
+      placeholder={field.nullable ? t('option.preset') : undefined}
       aria-describedby={hint ? hintId : undefined}
       oninput={(e) => parseInteger(e.currentTarget.value)}
     />
@@ -92,16 +129,30 @@
 {:else if field.kind === 'text'}
   <div class="field">
     <label for={id}>{label}</label>
-    <input
-      {id}
-      type="text"
-      autocomplete="off"
-      spellcheck="false"
-      value={typeof value === 'string' ? value : ''}
-      placeholder={field.nullable ? tDynamic('option.none', 'None') : undefined}
-      aria-describedby={hint ? hintId : undefined}
-      oninput={(e) => onchange(e.currentTarget.value)}
-    />
+    <div class="row">
+      <input
+        {id}
+        type={secret ? 'password' : 'text'}
+        autocomplete={secret ? 'new-password' : 'off'}
+        spellcheck="false"
+        disabled={removed}
+        value={removed ? '' : typeof value === 'string' ? value : ''}
+        placeholder={field.nullable ? t(clearable ? 'option.keep' : 'option.none') : undefined}
+        aria-describedby={hint ? hintId : undefined}
+        oninput={(e) => onchange(e.currentTarget.value)}
+      />
+      {#if clearable}
+        <label class="check">
+          <input
+            type="checkbox"
+            checked={removed}
+            aria-label={t('option.removeField', { field: label })}
+            onchange={(e) => onchange(e.currentTarget.checked ? ' ' : '')}
+          />
+          <span>{t('option.remove')}</span>
+        </label>
+      {/if}
+    </div>
     {#if hint}<p id={hintId} class="hint">{hint}</p>{/if}
   </div>
 {/if}
@@ -115,6 +166,15 @@
     padding: 0;
     border: 0;
     min-width: 0;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .row input[type='text'],
+  .row input[type='password'] {
+    flex: 1;
   }
   label,
   legend {
@@ -134,6 +194,7 @@
     gap: var(--space-2) var(--space-5);
   }
   input[type='text'],
+  input[type='password'],
   input[type='number'],
   select {
     min-height: 32px;
@@ -143,6 +204,10 @@
     background: var(--bg);
     color: var(--text);
     min-width: 0;
+  }
+  input:disabled {
+    color: var(--text-muted);
+    border-color: var(--border);
   }
   input[type='checkbox'],
   input[type='radio'] {

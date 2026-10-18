@@ -92,7 +92,7 @@ impl UnitRunner for WorkerSupervisor {
         };
         send(&Request::Run {
             id: UNIT_ID,
-            unit: request.clone(),
+            unit: Box::new(request.clone()),
         })?;
 
         let finished = AtomicBool::new(false);

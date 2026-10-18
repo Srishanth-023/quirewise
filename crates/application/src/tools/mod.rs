@@ -2,8 +2,11 @@
 
 mod combine;
 mod common;
+mod document;
 mod insert;
+mod optimize;
 mod rotate;
+mod secure;
 mod select;
 mod split;
 
@@ -34,6 +37,15 @@ pub fn register_all(
     registry.register(Arc::new(split::SplitByTextTool::new(deps.clone())))?;
     registry.register(Arc::new(rotate::RotateTool::new(deps.clone())))?;
     registry.register(Arc::new(insert::InsertPagesTool::new(deps.clone())))?;
+    registry.register(Arc::new(optimize::CompressTool::new(deps.clone())))?;
+    registry.register(Arc::new(optimize::RepairTool::new(deps.clone())))?;
+    registry.register(Arc::new(optimize::LinearizeTool::new(deps.clone())))?;
+    registry.register(Arc::new(document::RemoveAnnotationsTool::new(deps.clone())))?;
+    registry.register(Arc::new(document::EditMetadataTool::new(deps.clone())))?;
+    registry.register(Arc::new(document::FlattenTool::new(deps.clone())))?;
+    registry.register(Arc::new(secure::ProtectTool::new(deps.clone())))?;
+    registry.register(Arc::new(secure::UnlockTool::new(deps.clone())))?;
+    registry.register(Arc::new(secure::SanitizeTool::new(deps.clone())))?;
     Ok(())
 }
 
