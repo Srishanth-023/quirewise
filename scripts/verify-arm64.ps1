@@ -3,10 +3,14 @@
   Verifies that built binaries are native arm64 PE files (machine type 0xAA64).
 #>
 [CmdletBinding()]
-param([Parameter(Mandatory)][string[]]$Path)
+param(
+    [Parameter(Mandatory)][string[]]$Path,
+    # Build folders hold x86 and x64 helper DLLs for other targets, so scan the top level only by default.
+    [switch]$Recurse
+)
 $ErrorActionPreference = 'Stop'
 $bad = @()
-foreach ($f in Get-ChildItem -Path $Path -Recurse -Include *.exe, *.dll -File) {
+foreach ($f in Get-ChildItem -Path $Path -Recurse:$Recurse -Include *.exe, *.dll -File) {
     $fs = [IO.File]::OpenRead($f.FullName)
     try {
         $br = New-Object IO.BinaryReader($fs)

@@ -9,8 +9,16 @@ repository.workspace = true
 authors.workspace = true
 publish = false
 
-[lints]
-workspace = true
-
 [dependencies]
 domain.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
+thiserror.workspace = true
+zeroize = "1"
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

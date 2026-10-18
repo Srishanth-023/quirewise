@@ -1,6 +1,6 @@
 [package]
 name = "quirewise-cli"
-description = "Quirewise headless CLI for tests and power users."
+description = "Quirewise headless CLI (qw) for tests and power users."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,6 +9,10 @@ repository.workspace = true
 authors.workspace = true
 publish = false
 
+[lib]
+name = "quirewise_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "qw"
 path = "src/main.rs"
@@ -16,6 +20,10 @@ path = "src/main.rs"
 [dependencies]
 domain.workspace = true
 application.workspace = true
+infrastructure.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+clap = { version = "4", features = ["derive"] }
 
 [lints]
 workspace = true

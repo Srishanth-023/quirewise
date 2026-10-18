@@ -95,7 +95,7 @@ jobs:
       - name: Verify native arm64 binaries
         if: matrix.arch == 'aarch64'
         shell: pwsh
-        run: ./scripts/verify-arm64.ps1 -Path target/aarch64-pc-windows-msvc/release
+        run: ./scripts/verify-arm64.ps1 -Path "target/aarch64-pc-windows-msvc/release/*"
 
       - uses: actions/upload-artifact@v4
         with:

@@ -25,3 +25,21 @@ This file is generated from dependency audits (`cargo deny`, `pnpm licenses`) be
 | Ghostscript | AGPL-3.0 | Opt-in plugin, separate process |
 
 Ghostscript is never linked into Quirewise. MuPDF is not used.
+
+## Rust crates used directly (Phase 1)
+
+| Crate | License | Use |
+|---|---|---|
+| serde, serde_json | MIT or Apache-2.0 | Serialization |
+| schemars | MIT | Options JSON Schema |
+| thiserror | MIT or Apache-2.0 | Error types |
+| zeroize | MIT or Apache-2.0 | Clearing passwords from memory |
+| toml | MIT or Apache-2.0 | settings.toml |
+| sha2 | MIT or Apache-2.0 | Path hashing in logs |
+| time | MIT or Apache-2.0 | Local date and time |
+| tracing, tracing-subscriber, tracing-appender | MIT | JSON logging with rotation |
+| clap | MIT or Apache-2.0 | qw CLI |
+| windows | MIT or Apache-2.0 | Job Object confinement |
+| tauri, tauri-build | MIT or Apache-2.0 | Shell |
+| proptest, tempfile | MIT or Apache-2.0 | Tests only |
+| libfuzzer-sys | MIT or Apache-2.0, plus NCSA | Fuzz harness only, built in its own workspace, never shipped (see docs/open-questions.md) |

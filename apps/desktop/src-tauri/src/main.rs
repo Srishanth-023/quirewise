@@ -8,7 +8,7 @@ mod state;
 
 fn main() {
     let result = tauri::Builder::default()
-        .manage(state::AppState::default())
+        .manage(state::AppState)
         .invoke_handler(tauri::generate_handler![commands::app_version])
         .run(tauri::generate_context!());
     if let Err(err) = result {

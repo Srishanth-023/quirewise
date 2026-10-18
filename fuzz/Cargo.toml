@@ -1,0 +1,47 @@
+[package]
+name = "quirewise-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+domain = { path = "../crates/domain", package = "quirewise-domain" }
+application = { path = "../crates/application", package = "quirewise-application" }
+serde_json = "1"
+
+# Fuzzing is built with nightly in its own workspace and never part of the main build.
+[workspace]
+
+[[bin]]
+name = "page_range"
+path = "fuzz_targets/page_range.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "naming_pattern"
+path = "fuzz_targets/naming_pattern.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "options_json"
+path = "fuzz_targets/options_json.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "component_manifest"
+path = "fuzz_targets/component_manifest.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "pdf_load"
+path = "fuzz_targets/pdf_load.rs"
+test = false
+doc = false
