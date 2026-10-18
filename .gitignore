@@ -111,3 +111,5 @@ reports/
 fixtures/pdf/large/*.pdf
 !fixtures/pdf/large/README.md
 fixtures/**/actual/
+
+.cargo/
