@@ -15,7 +15,7 @@ application.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-toml = "0.9"
+toml = "1.1"
 sha2 = "0.10"
 time = { version = "0.3", features = ["local-offset"] }
 tracing = "0.1"
