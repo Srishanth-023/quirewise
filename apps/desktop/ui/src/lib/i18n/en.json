@@ -1,0 +1,20 @@
+{
+  "app.name": "Quirewise",
+  "nav.tools": "Tools",
+  "nav.about": "About",
+  "nav.license": "License",
+  "nav.privacy": "Privacy",
+  "nav.terms": "Terms",
+  "nav.home": "Home",
+  "tools.empty": "Tools appear here once the core registers them.",
+  "options.title": "Options",
+  "options.empty": "Options for the selected tool appear here.",
+  "options.reset": "Reset to defaults",
+  "drop.title": "Drop PDFs or images here",
+  "drop.hint": "Or press Ctrl+O to choose files. Files stay on this computer.",
+  "drop.browse": "Choose files",
+  "progress.pages": "Page {current, number} of {total, number}",
+  "progress.files": "{count, plural, one {# file} other {# files}}",
+  "about.version": "Version {version}",
+  "about.summary": "Offline-first PDF toolkit for Windows x64 and arm64. No accounts, no uploads, no telemetry."
+}

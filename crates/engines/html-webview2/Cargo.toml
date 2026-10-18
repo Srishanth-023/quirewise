@@ -1,0 +1,13 @@
+[package]
+name = "quirewise-engine-html-webview2"
+description = "Quirewise engine adapter: html-webview2."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lints]
+workspace = true

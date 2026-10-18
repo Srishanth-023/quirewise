@@ -1,0 +1,13 @@
+[package]
+name = "quirewise-engine-ai-llamacpp"
+description = "Quirewise engine adapter: ai-llamacpp."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lints]
+workspace = true

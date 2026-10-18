@@ -1,0 +1,113 @@
+# ---------- Rust ----------
+/target/
+**/target/
+**/*.rs.bk
+*.pdb
+
+# ---------- Node / frontend ----------
+node_modules/
+**/node_modules/
+apps/desktop/ui/dist/
+apps/desktop/ui/.svelte-kit/
+apps/desktop/ui/.vite/
+*.tsbuildinfo
+.eslintcache
+.npm/
+.pnpm-store/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- Tauri build outputs and installers ----------
+apps/desktop/src-tauri/gen/
+*.msi
+*.msix
+*.msixbundle
+*.appx
+*.exe
+*.nsis.zip
+*.sig
+bundle/
+release/
+out/
+
+# ---------- Downloaded native binaries, components, models ----------
+vendor/
+*.dll
+*.lib
+*.exp
+*.traineddata
+*.gguf
+*.onnx
+*.bin
+models/
+components/cache/
+
+# ---------- Test outputs and coverage ----------
+test-output/
+tests/**/output/
+coverage/
+lcov.info
+*.profraw
+*.profdata
+fuzz/artifacts/
+fuzz/corpus/
+fuzz/coverage/
+playwright-report/
+test-results/
+
+# ---------- Logs and crash dumps ----------
+*.log
+logs/
+*.dmp
+*.mdmp
+
+# ---------- Local config and secrets ----------
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+*.snk
+secrets/
+local.settings.*
+*.local.toml
+portable.flag
+data/
+
+# ---------- OS files ----------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# ---------- IDE / editors ----------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.iml
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+*.swp
+*~
+
+# ---------- Generated reports (published as CI artifacts) ----------
+sbom/
+reports/
+
+# ---------- Re-include rules (must stay at the end) ----------
+# Signed component manifest is committed
+!components/components.json.sig
+# Test fixtures are committed even if they match binary patterns above
+!fixtures/**
+# ...except large generated fixtures and actual outputs
+fixtures/pdf/large/*.pdf
+!fixtures/pdf/large/README.md
+fixtures/**/actual/

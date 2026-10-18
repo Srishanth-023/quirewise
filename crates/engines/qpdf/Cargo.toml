@@ -1,0 +1,13 @@
+[package]
+name = "quirewise-engine-qpdf"
+description = "Quirewise engine adapter: qpdf."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lints]
+workspace = true

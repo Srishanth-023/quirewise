@@ -1,0 +1,22 @@
+[package]
+name = "quirewise-desktop"
+description = "Quirewise Tauri shell: thin adapter from UI commands to application use cases."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+domain.workspace = true
+application.workspace = true
+infrastructure.workspace = true
+
+[lints]
+workspace = true

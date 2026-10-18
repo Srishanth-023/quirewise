@@ -1,0 +1,13 @@
+{
+  "_comment": "Pinned native binaries. A fetch script refuses to run while a sha256 is empty. Fill each hash from a reviewed first download and track it in docs/open-questions.md until then.",
+  "pdfium": {
+    "version": "chromium/7500",
+    "x64": { "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7500/pdfium-win-x64.tgz", "sha256": "" },
+    "arm64": { "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7500/pdfium-win-arm64.tgz", "sha256": "" }
+  },
+  "qpdf": {
+    "version": "12.4.2",
+    "x64": { "url": "https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2-msvc64.zip", "sha256": "" },
+    "arm64": { "url": "https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2-msvc-arm64.zip", "sha256": "" }
+  }
+}

@@ -1,0 +1,104 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  checks:
+    name: checks (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # windows-11-arm is the GitHub-hosted arm64 runner. If the plan lacks it, cross-compile
+          # on x64 and run arm64 tests on a self-hosted Windows on Arm machine (open-questions.md).
+          - { arch: x86_64, runner: windows-latest, target: x86_64-pc-windows-msvc }
+          - { arch: aarch64, runner: windows-11-arm, target: aarch64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install Rust toolchain from rust-toolchain.toml
+        shell: pwsh
+        run: |
+          rustup show active-toolchain
+          rustup target add ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/desktop/ui/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/desktop/ui/pnpm-lock.yaml
+
+      - name: Install UI dependencies
+        run: pnpm -C apps/desktop/ui install --frozen-lockfile
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked --target ${{ matrix.target }} -- -D warnings
+
+      - name: Rust tests
+        run: cargo test --workspace --locked --target ${{ matrix.target }}
+
+      - name: UI typecheck
+        run: pnpm -C apps/desktop/ui check
+
+      - name: UI lint and visual lint
+        run: pnpm -C apps/desktop/ui lint
+
+      - name: UI unit tests
+        run: pnpm -C apps/desktop/ui test
+
+      - name: Layer boundaries
+        shell: pwsh
+        run: ./scripts/check-deps.ps1
+
+      - name: cargo deny
+        run: cargo deny check
+
+      - name: Build NSIS installer
+        run: pnpm -C apps/desktop/ui tauri build --target ${{ matrix.target }} --bundles nsis
+
+      - name: Installer size budget (30 MB per architecture)
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Recurse -Filter '*-setup.exe' -Path target | Select-Object -First 1
+          if (-not $installer) { throw 'No installer found' }
+          $mb = [math]::Round($installer.Length / 1MB, 2)
+          Write-Host "Installer $($installer.Name): $mb MB"
+          if ($installer.Length -gt 30MB) { throw "Installer exceeds the 30 MB budget ($mb MB)" }
+
+      - name: Verify native arm64 binaries
+        if: matrix.arch == 'aarch64'
+        shell: pwsh
+        run: ./scripts/verify-arm64.ps1 -Path target/aarch64-pc-windows-msvc/release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.arch }}
+          path: target/${{ matrix.target }}/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error

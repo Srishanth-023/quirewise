@@ -1,0 +1,120 @@
+/* Ink and Paper design tokens. The only file allowed to contain raw hex colors. */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #f4f2ee;
+  --surface: #fbfaf7;
+  --surface-2: #ece9e3;
+  --border: #d6d1c7;
+  --border-strong: #a9a398;
+  --text: #1f2328;
+  --text-muted: #5a5f66;
+  --accent: #1f5f8b;
+  --accent-hover: #184c70;
+  --on-accent: #f7f9fb;
+  --focus: #b4530a;
+  --success: #2e6b3f;
+  --warning: #8a5a00;
+  --danger: #a3312a;
+  --selection: #d7e5f0;
+
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+
+  --radius-control: 2px;
+  --radius-panel: 4px;
+  --radius-thumbnail: 0;
+
+  --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Cascadia Mono', Consolas, monospace;
+
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+
+  --leading-body: 1.45;
+  --leading-heading: 1.25;
+
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
+  --ease: ease-out;
+
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --target-min: 24px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #16191c;
+    --surface: #1d2125;
+    --surface-2: #252a2f;
+    --border: #363c43;
+    --border-strong: #4e565f;
+    --text: #e6e3dd;
+    --text-muted: #a3a7ad;
+    --accent: #6fa8d6;
+    --accent-hover: #8dbbe0;
+    --on-accent: #10161b;
+    --focus: #e39a4f;
+    --success: #7bbf8e;
+    --warning: #e0b160;
+    --danger: #e58a80;
+    --selection: #24384a;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #16191c;
+  --surface: #1d2125;
+  --surface-2: #252a2f;
+  --border: #363c43;
+  --border-strong: #4e565f;
+  --text: #e6e3dd;
+  --text-muted: #a3a7ad;
+  --accent: #6fa8d6;
+  --accent-hover: #8dbbe0;
+  --on-accent: #10161b;
+  --focus: #e39a4f;
+  --success: #7bbf8e;
+  --warning: #e0b160;
+  --danger: #e58a80;
+  --selection: #24384a;
+}
+
+@media (forced-colors: active) {
+  :root {
+    --bg: Canvas;
+    --surface: Canvas;
+    --surface-2: Canvas;
+    --border: CanvasText;
+    --border-strong: CanvasText;
+    --text: CanvasText;
+    --text-muted: CanvasText;
+    --accent: Highlight;
+    --accent-hover: Highlight;
+    --on-accent: HighlightText;
+    --focus: Highlight;
+    --success: CanvasText;
+    --warning: CanvasText;
+    --danger: CanvasText;
+    --selection: Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+  }
+}

@@ -1,0 +1,44 @@
+name: audit
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/desktop/ui/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny,cargo-audit,cargo-cyclonedx
+      - name: Install UI dependencies
+        run: pnpm -C apps/desktop/ui install --frozen-lockfile
+      - name: Rust advisories, licenses, bans, sources
+        run: cargo deny check
+      - name: cargo audit
+        run: cargo audit
+      - name: npm audit
+        run: pnpm -C apps/desktop/ui audit --prod
+      - name: npm license report
+        run: pnpm -C apps/desktop/ui licenses list --prod > npm-licenses.txt
+      - name: SBOM
+        shell: pwsh
+        run: ./scripts/sbom.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audit-reports
+          path: |
+            sbom/
+            apps/desktop/ui/npm-licenses.txt

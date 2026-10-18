@@ -1,0 +1,16 @@
+[package]
+name = "quirewise-application"
+description = "Use cases and ports (traits) for Quirewise. Depends only on the domain crate."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+domain.workspace = true

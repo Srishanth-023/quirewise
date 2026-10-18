@@ -1,0 +1,21 @@
+[package]
+name = "quirewise-worker"
+description = "Quirewise worker process: the only process that parses untrusted PDF bytes, run inside a Job Object."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[[bin]]
+name = "quirewise-worker"
+path = "src/main.rs"
+
+[dependencies]
+domain.workspace = true
+application.workspace = true
+
+[lints]
+workspace = true

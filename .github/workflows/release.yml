@@ -1,0 +1,79 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { arch: x86_64, runner: windows-latest, target: x86_64-pc-windows-msvc }
+          - { arch: aarch64, runner: windows-11-arm, target: aarch64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - run: rustup target add ${{ matrix.target }}
+      - name: Set SOURCE_DATE_EPOCH from the tagged commit
+        shell: pwsh
+        run: |
+          "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" | Add-Content $env:GITHUB_ENV
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/desktop/ui/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm -C apps/desktop/ui install --frozen-lockfile
+      - name: Build NSIS installer
+        run: pnpm -C apps/desktop/ui tauri build --target ${{ matrix.target }} --bundles nsis -- --locked
+      - name: Authenticode sign
+        shell: pwsh
+        env:
+          QW_SIGN_PFX: ${{ secrets.QW_SIGN_PFX }}
+          QW_SIGN_PFX_PASSWORD: ${{ secrets.QW_SIGN_PFX_PASSWORD }}
+          QW_SIGN_TIMESTAMP_URL: ${{ vars.QW_SIGN_TIMESTAMP_URL }}
+        run: ./scripts/sign.ps1 -Path target/${{ matrix.target }}/release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.arch }}
+          path: target/${{ matrix.target }}/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/desktop/ui/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Generate SBOM and checksums
+        shell: pwsh
+        run: |
+          ./scripts/sbom.ps1
+          Get-ChildItem dist -Recurse -Filter '*-setup.exe' | ForEach-Object {
+            $h = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant()
+            "$h  $($_.Name)" | Add-Content dist/SHA256SUMS.txt
+          }
+      - name: Create draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = @(Get-ChildItem dist -Recurse -Filter '*-setup.exe').FullName + 'dist/SHA256SUMS.txt' + 'sbom/rust-sbom.json' + 'sbom/npm-sbom.json'
+          gh release create $env:GITHUB_REF_NAME --draft --generate-notes @files

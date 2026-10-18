@@ -1,0 +1,18 @@
+[package]
+name = "quirewise-engine-gs-plugin"
+description = "Quirewise engine adapter: gs-plugin."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[features]
+default = []
+# AGPL-3.0 Ghostscript runs as a separate opt-in process. Never enabled by default.
+agpl-ghostscript = []

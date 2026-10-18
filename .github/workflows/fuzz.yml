@@ -1,0 +1,35 @@
+name: fuzz
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: fuzz ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [page_range, naming_pattern, options_json, component_manifest, pdf_load]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Install nightly toolchain and cargo-fuzz
+        run: |
+          rustup toolchain install nightly --profile minimal
+          cargo install cargo-fuzz --locked
+      - name: Fuzz for 30 minutes
+        run: cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=1800
+        working-directory: fuzz
+      - name: Upload crashes
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}
