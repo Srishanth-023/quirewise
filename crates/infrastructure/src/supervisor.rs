@@ -151,7 +151,7 @@ fn read_outcome(
             Ok(Some(Response::Progress { event, .. })) => progress.report(event),
             Ok(Some(Response::Finished { outputs, .. })) => return Some(Ok(outputs)),
             Ok(Some(Response::Failed { error, .. })) => return Some(Err(error)),
-            Ok(Some(Response::Pong { .. })) => {}
+            Ok(Some(Response::Pong { .. } | Response::Answer { .. })) => {}
             Ok(None) | Err(_) => return None,
         }
     }

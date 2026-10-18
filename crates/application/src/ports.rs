@@ -9,6 +9,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use crate::error::AppError;
+use crate::inspect::{PdfiumFacts, StructureReport};
 use crate::runtime::Password;
 
 /// Basic facts about an opened PDF.
@@ -50,6 +51,37 @@ pub trait PdfReader: Send + Sync {
     -> Result<DocumentInfo, AppError>;
 }
 
+/// Document facts only PDFium can give reliably (it applies the page tree, fonts and objects).
+pub trait PdfFacts: Send + Sync {
+    /// Reads PDFium-derived facts. Errors: encryption, damage and limit codes as for
+    /// [`PdfReader::open_info`].
+    fn facts(&self, path: &Path, password: Option<&Password>) -> Result<PdfiumFacts, AppError>;
+}
+
+/// Raw structure facts read without rendering (Encrypt dictionary, JavaScript, XMP, sizes).
+pub trait StructureFacts: Send + Sync {
+    /// Reads structure facts. Works on encrypted files without a password for the facts that
+    /// are not themselves encrypted.
+    fn structure(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<StructureReport, AppError>;
+}
+
+/// Checks that a written PDF is sound before success is reported (AGENTS.md section 7).
+pub trait PdfVerifier: Send + Sync {
+    /// Reopens `path`, runs the structural check and, when given, compares the page count.
+    ///
+    /// Error: `QW-OUTPUT-VERIFY-FAILED`.
+    fn verify(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        expected_pages: Option<u32>,
+    ) -> Result<(), AppError>;
+}
+
 /// Writes PDF output.
 pub trait PdfWriter: Send + Sync {
     /// Copies `pages` (in order) from `source` into a new document written to `dest`.
@@ -72,6 +104,26 @@ pub trait Renderer: Send + Sync {
         page: PageIndex,
         dpi: Dpi,
     ) -> Result<RenderedImage, AppError>;
+
+    /// Renders one page so its longest edge is at most `max_edge` pixels and returns it as PNG.
+    fn render_png(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        page: PageIndex,
+        max_edge: u32,
+    ) -> Result<PngImage, AppError>;
+}
+
+/// A PNG-encoded image with its pixel size.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PngImage {
+    /// Width in pixels.
+    pub width: u32,
+    /// Height in pixels.
+    pub height: u32,
+    /// PNG file bytes.
+    pub png: Vec<u8>,
 }
 
 /// Extracts text.

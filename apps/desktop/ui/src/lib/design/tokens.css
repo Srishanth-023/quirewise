@@ -8,6 +8,8 @@
   --surface-2: #ece9e3;
   --border: #d6d1c7;
   --border-strong: #a9a398;
+  /* Boundary of controls. The spec border-strong is 2.2:1, below the 3:1 WCAG 1.4.11 asks for. */
+  --control-border: #857f74;
   --text: #1f2328;
   --text-muted: #5a5f66;
   --accent: #1f5f8b;
@@ -61,6 +63,7 @@
     --surface-2: #252a2f;
     --border: #363c43;
     --border-strong: #4e565f;
+    --control-border: #6f7882;
     --text: #e6e3dd;
     --text-muted: #a3a7ad;
     --accent: #6fa8d6;
@@ -80,6 +83,7 @@
   --surface-2: #252a2f;
   --border: #363c43;
   --border-strong: #4e565f;
+  --control-border: #6f7882;
   --text: #e6e3dd;
   --text-muted: #a3a7ad;
   --accent: #6fa8d6;
@@ -99,6 +103,7 @@
     --surface-2: Canvas;
     --border: CanvasText;
     --border-strong: CanvasText;
+    --control-border: CanvasText;
     --text: CanvasText;
     --text-muted: CanvasText;
     --accent: Highlight;

@@ -7,6 +7,7 @@ members = [
   "crates/infrastructure",
   "crates/worker",
   "crates/cli",
+  "crates/test-support",
   "crates/engines/pdfium",
   "crates/engines/qpdf",
   "crates/engines/lopdf-ops",
@@ -38,6 +39,7 @@ proptest = "1"
 domain = { path = "crates/domain", package = "quirewise-domain" }
 application = { path = "crates/application", package = "quirewise-application" }
 infrastructure = { path = "crates/infrastructure", package = "quirewise-infrastructure" }
+test-support = { path = "crates/test-support", package = "quirewise-test-support" }
 
 [workspace.lints.rust]
 missing_docs = "warn"

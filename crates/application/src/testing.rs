@@ -27,6 +27,10 @@ impl MemoryFiles {
         self.lock().insert(PathBuf::from(path), bytes.to_vec());
     }
 
+    pub fn remove(&self, path: &str) {
+        self.lock().remove(Path::new(path));
+    }
+
     pub fn get(&self, path: &str) -> Option<Vec<u8>> {
         self.lock().get(Path::new(path)).cloned()
     }
@@ -164,6 +168,10 @@ pub struct RotateLikeTool;
 impl Tool for RotateLikeTool {
     fn id(&self) -> ToolId {
         ToolId::Rotate
+    }
+
+    fn group(&self) -> domain::tools::ToolGroup {
+        domain::tools::ToolGroup::Edit
     }
 
     fn label(&self) -> &'static str {

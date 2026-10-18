@@ -1,7 +1,10 @@
-//! Typed commands exposed to the UI. Each maps a DTO to an application use case.
+//! Typed commands exposed to the UI. Each maps a DTO to an application use case; none contains
+//! PDF logic. Argument names are camelCase on the JavaScript side.
+//!
+//! The submodules are public because `generate_handler!` needs the full command paths.
 
-/// Returns the application version for the About dialog.
-#[tauri::command]
-pub fn app_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
-}
+pub mod documents;
+pub mod jobs;
+pub mod recent;
+pub mod settings;
+pub mod system;

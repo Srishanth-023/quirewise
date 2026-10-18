@@ -1,36 +1,255 @@
-//! Engine wiring for the worker. Real adapters (PDFium, qpdf, ...) are plugged in here as the
-//! phases add them; until then the PDF reader reports that no engine is available.
+//! Engine wiring for the worker: loads the native engines and composes them into the ports the
+//! use cases need. Engines never import each other, so any combination happens here.
 
-use application::AppError;
-use application::Password;
-use application::ports::{DocumentInfo, PdfReader};
+use application::inspect::InspectDocument;
+use application::ports::{Clock, FileStore, Logger, PdfReader, PdfVerifier};
+use application::query::QueryService;
+use application::{AppError, Password, RunTool, ToolRegistry};
 use domain::ErrorCode;
-use std::path::Path;
+use domain::limits::SafetyLimits;
+use infrastructure::NativePaths;
+use quirewise_engine_lopdf_ops::LopdfStructure;
+use quirewise_engine_pdfium::PdfiumEngine;
+use quirewise_engine_qpdf::QpdfCli;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
-/// Placeholder reader used until the PDFium adapter lands in Phase 2.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct NoEngine;
+use crate::Services;
 
-impl PdfReader for NoEngine {
-    fn open_info(
+/// The loaded native engines.
+#[derive(Clone)]
+pub struct Engines {
+    /// PDFium: rendering, text, facts.
+    pub pdfium: PdfiumEngine,
+    /// qpdf sidecar: checks and page copying.
+    pub qpdf: QpdfCli,
+}
+
+impl Engines {
+    /// Loads PDFium and points at the qpdf executable.
+    pub fn load(paths: &NativePaths) -> Result<Self, AppError> {
+        Ok(Self {
+            pdfium: PdfiumEngine::load(&paths.pdfium_dir)?,
+            qpdf: QpdfCli::new(paths.qpdf_exe.clone()),
+        })
+    }
+}
+
+/// Verifies written PDFs: reopen in PDFium, check the page count, then run `qpdf --check`.
+pub struct CompositeVerifier {
+    engines: Engines,
+}
+
+impl CompositeVerifier {
+    /// Creates a verifier over the loaded engines.
+    pub fn new(engines: Engines) -> Self {
+        Self { engines }
+    }
+}
+
+fn failed(why: &str) -> AppError {
+    AppError::new(
+        ErrorCode::OutputVerifyFailed,
+        format!(
+            "The result did not pass verification ({why}). Your original file was not changed."
+        ),
+    )
+}
+
+impl PdfVerifier for CompositeVerifier {
+    fn verify(
         &self,
-        _path: &Path,
-        _password: Option<&Password>,
-    ) -> Result<DocumentInfo, AppError> {
-        Err(AppError::new(
-            ErrorCode::ComponentMissing,
-            "The PDF engine is not part of this build yet. Update Quirewise to a version that includes it.",
-        ))
+        path: &Path,
+        password: Option<&Password>,
+        expected_pages: Option<u32>,
+    ) -> Result<(), AppError> {
+        let info = self
+            .engines
+            .pdfium
+            .open_info(path, password)
+            .map_err(|_| failed("it could not be reopened"))?;
+        if let Some(expected) = expected_pages
+            && info.page_count != expected
+        {
+            return Err(failed("the page count is wrong"));
+        }
+        self.engines
+            .qpdf
+            .check(path, password)
+            .map(|_| ())
+            .map_err(|_| failed("the structure check failed"))
+    }
+}
+
+/// Everything the worker serves with, built from loaded engines and shared ports.
+pub fn build_services(
+    engines: &Engines,
+    registry: ToolRegistry,
+    files: Arc<dyn FileStore>,
+    clock: Arc<dyn Clock>,
+    logger: Arc<dyn Logger>,
+    limits: SafetyLimits,
+    temp_dir: PathBuf,
+) -> Services {
+    let reader: Arc<dyn PdfReader> = Arc::new(engines.pdfium);
+    let inspect = InspectDocument::new(
+        Arc::clone(&files),
+        Arc::new(engines.pdfium),
+        Arc::new(LopdfStructure),
+        limits,
+    );
+    let queries = QueryService::new(
+        Arc::clone(&files),
+        Arc::clone(&reader),
+        Arc::new(engines.pdfium),
+        inspect,
+        limits,
+    );
+    let runner = RunTool::new(
+        Arc::new(registry),
+        reader,
+        files,
+        clock,
+        logger,
+        limits,
+        temp_dir,
+    );
+    Services {
+        runner: Arc::new(runner),
+        queries: Arc::new(queries),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use application::query::{DocumentQuery, QueryResult};
+    use application::{CancellationToken, DocumentReport};
+    use domain::ErrorCode;
+    use infrastructure::{AtomicFileStore, SystemClock, TracingLogger};
+    use test_support::{encrypt_pdf, minimal_pdf, pdfium_dir, qpdf_exe};
+
+    fn engines() -> Engines {
+        let paths = NativePaths {
+            pdfium_dir: pdfium_dir(),
+            qpdf_exe: qpdf_exe().expect("run scripts/fetch-qpdf.ps1 first"),
+        };
+        Engines::load(&paths).expect("run scripts/fetch-pdfium.ps1 first")
+    }
+
+    fn write(dir: &tempfile::TempDir, name: &str, bytes: &[u8]) -> PathBuf {
+        let path = dir.path().join(name);
+        std::fs::write(&path, bytes).unwrap();
+        path
+    }
 
     #[test]
-    fn reports_the_missing_engine_with_a_catalog_code() {
-        let err = NoEngine.open_info(Path::new("a.pdf"), None).unwrap_err();
-        assert_eq!(err.code, ErrorCode::ComponentMissing);
+    fn verifier_accepts_good_output_and_rejects_wrong_counts_and_damage() {
+        let dir = tempfile::tempdir().unwrap();
+        let good = write(&dir, "a.pdf", &minimal_pdf(3));
+        let v = CompositeVerifier::new(engines());
+        assert!(v.verify(&good, None, Some(3)).is_ok());
+        assert!(v.verify(&good, None, None).is_ok());
+        assert_eq!(
+            v.verify(&good, None, Some(4)).unwrap_err().code,
+            ErrorCode::OutputVerifyFailed
+        );
+        let bad = write(&dir, "b.pdf", b"%PDF-1.7 truncated");
+        assert_eq!(
+            v.verify(&bad, None, None).unwrap_err().code,
+            ErrorCode::OutputVerifyFailed
+        );
+    }
+
+    fn services() -> Services {
+        build_services(
+            &engines(),
+            ToolRegistry::new(),
+            Arc::new(AtomicFileStore),
+            Arc::new(SystemClock),
+            Arc::new(TracingLogger),
+            SafetyLimits::default(),
+            std::env::temp_dir(),
+        )
+    }
+
+    fn inspect(path: &Path, password: Option<Password>) -> Result<DocumentReport, AppError> {
+        let q = DocumentQuery::Inspect {
+            path: path.to_path_buf(),
+            password,
+        };
+        match services().queries.query(&q, &CancellationToken::new())? {
+            QueryResult::Inspect(r) => Ok(*r),
+            other => panic!("unexpected result {other:?}"),
+        }
+    }
+
+    #[test]
+    fn inspect_end_to_end_on_a_plain_pdf() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = write(&dir, "a.pdf", &minimal_pdf(4));
+        let r = inspect(&path, None).unwrap();
+        assert!(!r.locked);
+        assert_eq!((r.page_count, r.pdf_version.as_deref()), (4, Some("1.7")));
+        assert!(r.has_text_layer && r.encryption.is_none() && !r.has_javascript);
+        assert!(r.suggestions.is_empty());
+        assert!(r.file_size > 0 && r.size_breakdown.content > 0);
+    }
+
+    #[test]
+    fn inspect_end_to_end_on_a_locked_pdf_suggests_unlock() {
+        let dir = tempfile::tempdir().unwrap();
+        let plain = write(&dir, "a.pdf", &minimal_pdf(2));
+        let locked = dir.path().join("locked.pdf");
+        encrypt_pdf(&plain, &locked, "open");
+
+        let r = inspect(&locked, None).unwrap();
+        assert!(r.locked);
+        assert_eq!(
+            r.suggestions,
+            vec![application::inspect::Suggestion::Unlock]
+        );
+        assert_eq!(
+            r.encryption.as_ref().map(|e| e.method.as_str()),
+            Some("AES-256")
+        );
+
+        let unlocked = inspect(&locked, Some(Password::new("open"))).unwrap();
+        assert!(!unlocked.locked);
+        assert_eq!(unlocked.page_count, 2);
+
+        let wrong = inspect(&locked, Some(Password::new("nope"))).unwrap_err();
+        assert_eq!(wrong.code, ErrorCode::PdfWrongPassword);
+    }
+
+    #[test]
+    fn thumbnails_end_to_end() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = write(&dir, "a.pdf", &minimal_pdf(2));
+        let q = DocumentQuery::Thumbnail {
+            path,
+            password: None,
+            page: 1,
+            max_edge: 160,
+        };
+        let QueryResult::Thumbnail(t) = services()
+            .queries
+            .query(&q, &CancellationToken::new())
+            .unwrap()
+        else {
+            panic!("expected a thumbnail");
+        };
+        assert_eq!((t.page_count, t.height), (2, 160));
+        assert_eq!(&t.png.0[1..4], b"PNG");
+    }
+
+    #[test]
+    fn non_pdf_files_are_rejected_before_any_parser_runs() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = write(&dir, "x.pdf", b"PK\x03\x04 zip data");
+        assert_eq!(
+            inspect(&path, None).unwrap_err().code,
+            ErrorCode::InputNotPdf
+        );
     }
 }

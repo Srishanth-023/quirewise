@@ -1,44 +1,140 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { t } from '../lib/i18n';
-  import Icon from '../lib/components/Icon.svelte';
+  import { ipc, toAppError } from '../lib/ipc/client';
+  import { listenForDrops } from '../lib/dnd';
+  import { interpretKey, isInteractive } from '../lib/shortcuts';
+  import CommandPalette from '../lib/components/CommandPalette/CommandPalette.svelte';
+  import { buildCommands } from '../lib/components/CommandPalette/buildCommands';
+  import type { RecentFile } from '../lib/ipc/client';
+  import Toast from '../lib/components/Toast/Toast.svelte';
+  import Settings from '../lib/features/settings/View.svelte';
+  import Shortcuts from '../lib/features/shortcuts/View.svelte';
+  import { files } from '../lib/stores/files.svelte';
+  import { jobs } from '../lib/stores/jobs.svelte';
+  import { settings } from '../lib/stores/settings.svelte';
+  import { toasts } from '../lib/stores/toasts.svelte';
+  import { tools } from '../lib/stores/tools.svelte';
   import About from './shell/About.svelte';
+  import CancelDialog from './shell/CancelDialog.svelte';
   import Home from './shell/Home.svelte';
   import Legal from './shell/Legal.svelte';
+  import Nav from './shell/Nav.svelte';
+  import RightPanel from './shell/RightPanel.svelte';
+  import Workspace from './shell/Workspace.svelte';
   import licenseText from '../../../../../LICENSE?raw';
   import privacyText from '../../../../../PRIVACY.md?raw';
   import termsText from '../../../../../TERMS.md?raw';
 
-  type Route = 'home' | 'about' | 'license' | 'privacy' | 'terms';
+  type Route = 'home' | 'settings' | 'about' | 'license' | 'privacy' | 'terms';
 
   let route = $state<Route>('home');
+  let paletteOpen = $state(false);
+  let shortcutsOpen = $state(false);
+  let confirmCancel = $state(false);
+  let dragging = $state(false);
+  let recent = $state<RecentFile[]>([]);
 
-  const links: { route: Route; label: 'nav.home' | 'nav.about' | 'nav.license' | 'nav.privacy' | 'nav.terms' }[] = [
-    { route: 'home', label: 'nav.home' },
-    { route: 'about', label: 'nav.about' },
-    { route: 'license', label: 'nav.license' },
-    { route: 'privacy', label: 'nav.privacy' },
-    { route: 'terms', label: 'nav.terms' },
-  ];
+  const dialogOpen = $derived(paletteOpen || shortcutsOpen || confirmCancel);
+
+  async function pickAndAdd(): Promise<void> {
+    try {
+      const picked = await ipc.pickFiles();
+      route = 'home';
+      await files.add(picked);
+    } catch (error) {
+      toasts.error(toAppError(error));
+    }
+  }
+
+  async function openPalette(): Promise<void> {
+    recent = await ipc.recentList().catch(() => []);
+    paletteOpen = true;
+  }
+
+  function show(next: Route): void {
+    route = next;
+  }
+
+  const commands = $derived(
+    buildCommands(tools.items, recent, {
+      selectTool: (id) => {
+        show('home');
+        tools.select(id);
+      },
+      addFile: (path) => {
+        show('home');
+        void files.add([path]);
+      },
+      openFiles: () => void pickAndAdd(),
+      showShortcuts: () => (shortcutsOpen = true),
+      openSettings: () => show('settings'),
+      openAbout: () => show('about'),
+      clearFiles: () => files.clear(),
+    }),
+  );
+
+  function onkeydown(event: KeyboardEvent): void {
+    const action = interpretKey(event, {
+      dialogOpen,
+      jobRunning: jobs.running,
+      canRun: tools.selected !== undefined && files.entries.length > 0,
+      focusIsInteractive: isInteractive(document.activeElement),
+    });
+    if (!action) return;
+    event.preventDefault();
+    if (action === 'palette') void openPalette();
+    else if (action === 'open-files') void pickAndAdd();
+    else if (action === 'shortcuts') shortcutsOpen = true;
+    else if (action === 'confirm-cancel') confirmCancel = true;
+    else if (action === 'run' && tools.selected) void jobs.run(tools.selected);
+  }
+
+  async function cancelJob(): Promise<void> {
+    confirmCancel = false;
+    await jobs.cancel();
+  }
+
+  onMount(() => {
+    void tools.load();
+    void settings.load();
+    void jobs.listen();
+    let stop: (() => void) | undefined;
+    void listenForDrops({
+      onhover: (hovering) => (dragging = hovering),
+      ondrop: (paths) => {
+        route = 'home';
+        void files.add(paths);
+      },
+    })
+      .then((unlisten) => (stop = unlisten))
+      // Outside the desktop shell (plain browser during UI work) there is no webview to listen on.
+      .catch(() => undefined);
+    return () => {
+      stop?.();
+      jobs.stop();
+    };
+  });
 </script>
 
+<svelte:window {onkeydown} />
+
 <div class="shell">
-  <nav class="nav" aria-label={t('nav.tools')}>
-    <h2 class="brand"><Icon name="file-pdf" size={20} /> {t('app.name')}</h2>
-    <p class="empty">{t('tools.empty')}</p>
-    <ul class="links">
-      {#each links as link (link.route)}
-        <li>
-          <button class:current={route === link.route} onclick={() => (route = link.route)}>
-            {t(link.label)}
-          </button>
-        </li>
-      {/each}
-    </ul>
-  </nav>
+  <Nav {route} onroute={(next) => (route = next)} />
 
   <main class="workspace">
     {#if route === 'home'}
-      <Home />
+      {#if files.entries.length === 0}
+        <Home {dragging} onchoose={() => void pickAndAdd()} />
+      {:else}
+        <Workspace
+          onadd={() => void pickAndAdd()}
+          oncancel={() => (confirmCancel = true)}
+          onanother={() => void openPalette()}
+        />
+      {/if}
+    {:else if route === 'settings'}
+      <Settings />
     {:else if route === 'about'}
       <About />
     {:else if route === 'license'}
@@ -50,11 +146,17 @@
     {/if}
   </main>
 
-  <aside class="options" aria-label={t('options.title')}>
-    <h2>{t('options.title')}</h2>
-    <p class="empty">{t('options.empty')}</p>
-  </aside>
+  <RightPanel />
 </div>
+
+{#if dragging}
+  <div class="overlay" aria-hidden="true"><p>{t('drop.overlay')}</p></div>
+{/if}
+
+<CommandPalette open={paletteOpen} {commands} onclose={() => (paletteOpen = false)} />
+<Shortcuts open={shortcutsOpen} onclose={() => (shortcutsOpen = false)} />
+<CancelDialog open={confirmCancel} onclose={() => (confirmCancel = false)} onconfirm={() => void cancelJob()} />
+<Toast />
 
 <style>
   .shell {
@@ -62,63 +164,45 @@
     grid-template-columns: 240px minmax(0, 1fr) 320px;
     height: 100%;
   }
-  .nav,
-  .options {
-    padding: var(--space-5);
-    background: var(--surface);
-    overflow: auto;
-  }
-  .nav {
+  .shell > :global(.nav) {
     border-right: 1px solid var(--border);
   }
-  .options {
+  .shell > :global(.panel) {
     border-left: 1px solid var(--border);
   }
   .workspace {
     padding: var(--space-6);
     overflow: auto;
   }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin: 0 0 var(--space-5);
-  }
-  .empty {
-    color: var(--text-muted);
-  }
-  .links {
-    list-style: none;
-    margin: var(--space-6) 0 0;
-    padding: 0;
-  }
-  .links button {
-    width: 100%;
-    min-height: 32px;
-    padding: 0 var(--space-3);
-    border: 1px solid transparent;
-    border-radius: var(--radius-control);
-    background: transparent;
-    text-align: left;
-  }
-  .links button:hover {
-    background: var(--surface-2);
-  }
-  .links button.current {
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
     background: var(--selection);
-    border-color: var(--border);
-    font-weight: 600;
+    opacity: 0.92;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .overlay p {
+    margin: 0;
+    padding: var(--space-6) var(--space-8);
+    border: 2px dashed var(--accent);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
+    font-size: var(--text-lg);
   }
   @media (max-width: 1099px) {
     .shell {
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: auto;
     }
-    .nav {
+    .shell > :global(.nav) {
       border-right: 0;
       border-bottom: 1px solid var(--border);
     }
-    .options {
+    .shell > :global(.panel) {
       border-left: 0;
       border-top: 1px solid var(--border);
     }

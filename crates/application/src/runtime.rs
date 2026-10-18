@@ -90,6 +90,16 @@ impl Serialize for Password {
     }
 }
 
+impl schemars::JsonSchema for Password {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "Password".into()
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({ "type": "string" })
+    }
+}
+
 impl<'de> Deserialize<'de> for Password {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         String::deserialize(d).map(Self::new)

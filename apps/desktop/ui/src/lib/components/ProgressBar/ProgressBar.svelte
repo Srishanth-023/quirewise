@@ -31,7 +31,7 @@
 <style>
   .track {
     height: 8px;
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--control-border);
     border-radius: var(--radius-control);
     background: var(--surface-2);
     overflow: hidden;

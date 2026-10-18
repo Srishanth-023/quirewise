@@ -11,3 +11,11 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+domain.workspace = true
+application.workspace = true
+
+[dev-dependencies]
+test-support.workspace = true
+tempfile = "3"

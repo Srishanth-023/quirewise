@@ -1,13 +1,25 @@
 {
-  "_comment": "Pinned native binaries. A fetch script refuses to run while a sha256 is empty. Fill each hash from a reviewed first download and track it in docs/open-questions.md until then.",
+  "_comment": "Pinned native binaries. SHA-256 values come from the digests GitHub publishes for each release asset and are re-verified on every fetch.",
   "pdfium": {
-    "version": "chromium/7500",
-    "x64": { "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7500/pdfium-win-x64.tgz", "sha256": "" },
-    "arm64": { "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7500/pdfium-win-arm64.tgz", "sha256": "" }
+    "version": "chromium/8100",
+    "x64": {
+      "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8100/pdfium-win-x64.tgz",
+      "sha256": "51621bcc1d9be9ea448f4b84b0516862b928e3968d3fca899af1a6d6e2848d6d"
+    },
+    "arm64": {
+      "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8100/pdfium-win-arm64.tgz",
+      "sha256": "cca9b28d406ae2a902b0b710a92ab699c4c2931564ab6efe44630014d492a9ca"
+    }
   },
   "qpdf": {
     "version": "12.4.2",
-    "x64": { "url": "https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2-msvc64.zip", "sha256": "" },
-    "arm64": { "url": "https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2-msvc-arm64.zip", "sha256": "" }
+    "x64": {
+      "url": "https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2-msvc64.zip",
+      "sha256": "db87077e683630c1217e0e8f9a20a9749d952ab676e881c3689187763a5de25d"
+    },
+    "arm64": {
+      "url": "https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2-msvc-arm64.zip",
+      "sha256": "2b5d7740a2513d8a841116692dc2cf7efe83f35262386ebab18bed35fbf15ab1"
+    }
   }
 }

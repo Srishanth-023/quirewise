@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { t } from '../../lib/i18n';
-  import { appVersion } from '../../lib/ipc/client';
+  import { ipc } from '../../lib/ipc/client';
 
   let version = $state('');
 
   onMount(async () => {
     try {
-      version = await appVersion();
+      version = await ipc.appVersion();
     } catch {
       version = '';
     }

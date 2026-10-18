@@ -43,3 +43,18 @@ Ghostscript is never linked into Quirewise. MuPDF is not used.
 | tauri, tauri-build | MIT or Apache-2.0 | Shell |
 | proptest, tempfile | MIT or Apache-2.0 | Tests only |
 | libfuzzer-sys | MIT or Apache-2.0, plus NCSA | Fuzz harness only, built in its own workspace, never shipped (see docs/open-questions.md) |
+
+## Added in Phase 2
+
+| Component | License | Use |
+|---|---|---|
+| PDFium (bblanchon/pdfium-binaries chromium/8100) | BSD-3-Clause and Apache-2.0 | Rendering, text, document facts. Fetched by script, not committed |
+| qpdf 12.4.2 | Apache-2.0 | Structural check and page copy sidecar. Fetched by script, not committed |
+| pdfium-render | MIT or Apache-2.0 | Rust bindings for PDFium |
+| lopdf | MIT | Raw structure facts |
+| image | MIT or Apache-2.0 | PNG encoding of previews |
+| base64 | MIT or Apache-2.0 | Binary data in IPC messages |
+| tauri-plugin-dialog, tauri-plugin-opener | MIT or Apache-2.0 | File picker, open result |
+| intl-messageformat | BSD-3-Clause | ICU message formatting in the UI |
+| @tauri-apps/api | MIT or Apache-2.0 | Tauri bridge in the UI |
+| axe-core, json-schema-to-typescript | MPL-2.0, MIT | Development only: accessibility tests, type generation |

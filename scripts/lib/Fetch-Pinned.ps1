@@ -29,7 +29,8 @@ function Invoke-PinnedFetch {
         New-Item -ItemType Directory -Path $dest | Out-Null
         if ($archive -like '*.zip') { Expand-Archive -Path $archive -DestinationPath $dest -Force }
         else {
-            tar -xzf $archive -C $dest
+            # Use the Windows tar explicitly: a Git for Windows tar earlier on PATH misreads drive letters.
+            & (Join-Path $env:SystemRoot 'System32\tar.exe') -xzf $archive -C $dest
             if ($LASTEXITCODE -ne 0) { throw 'tar extraction failed' }
         }
         Write-Host "$Name $($pins.$Name.version) ($Arch) installed to $dest"

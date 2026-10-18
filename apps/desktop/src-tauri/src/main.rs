@@ -6,10 +6,39 @@ mod commands;
 mod events;
 mod state;
 
+use events::TauriSink;
+use state::AppState;
+use std::sync::Arc;
+use tauri::Manager;
+
 fn main() {
     let result = tauri::Builder::default()
-        .manage(state::AppState)
-        .invoke_handler(tauri::generate_handler![commands::app_version])
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            let sink = Arc::new(TauriSink::new(app.handle().clone()));
+            let state = AppState::build(sink).map_err(|e| e.to_string())?;
+            app.manage(state);
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            commands::system::app_version,
+            commands::system::list_tools,
+            commands::system::pick_files,
+            commands::documents::classify_inputs,
+            commands::documents::inspect_document,
+            commands::documents::render_thumbnail,
+            commands::recent::recent_list,
+            commands::recent::recent_add,
+            commands::recent::recent_clear,
+            commands::settings::get_settings,
+            commands::settings::save_settings,
+            commands::jobs::run_batch,
+            commands::jobs::cancel_job,
+            commands::jobs::retry_failed,
+            commands::system::open_output,
+            commands::system::reveal_output,
+        ])
         .run(tauri::generate_context!());
     if let Err(err) = result {
         eprintln!("Quirewise failed to start: {err}");

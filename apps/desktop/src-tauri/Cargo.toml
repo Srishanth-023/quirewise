@@ -17,6 +17,10 @@ tauri = { version = "2", features = ["protocol-asset"] }
 domain.workspace = true
 application.workspace = true
 infrastructure.workspace = true
+tauri-plugin-dialog = "2.8.3"
+tauri-plugin-opener = "2.7.2"
+serde.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true

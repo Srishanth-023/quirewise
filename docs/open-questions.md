@@ -4,8 +4,8 @@ Questions are recorded here and work continues with the safest default (AGENTS.m
 
 | # | Question | Default taken | Needs |
 |---|---|---|---|
-| 1 | SHA-256 pins for PDFium and qpdf in `scripts/native-pins.json` are empty | Fetch scripts refuse to run until a reviewed hash is recorded | One reviewed download per architecture |
-| 2 | Exact qpdf arm64 release asset name and PDFium release tag | URLs in `native-pins.json` are provisional | Confirm against the upstream release pages |
+| 1 | SHA-256 pins for PDFium and qpdf | Resolved in Phase 2: pins in `scripts/native-pins.json` come from the digests GitHub publishes per release asset and are re-verified on every fetch | None |
+| 2 | qpdf arm64 asset name and PDFium tag | Resolved in Phase 2: msvc-arm64 zip and chromium/8100 confirmed | None |
 | 3 | Code signing: Azure Trusted Signing or a certificate | `scripts/sign.ps1` supports both through environment variables | Owner decision |
 | 4 | Git LFS for fixtures over 1 MB | `.gitattributes` routes fixture binaries to LFS | `git lfs install` on dev machines and CI |
 | 5 | Windows Job Object CPU-time cap default | 10 minutes per job, configurable | Measure on large fixture in Phase 1 |
@@ -17,3 +17,7 @@ Questions are recorded here and work continues with the safest default (AGENTS.m
 | 11 | cargo-deny and cargo-audit are not installed on the dev machine | CI runs them; install locally with cargo install --locked | Owner approval to install |
 | 12 | libfuzzer-sys carries an NCSA license part, outside the allowed list | Used only by fuzz targets in a separate workspace, never distributed | ADR if it ever ships |
 | 13 | A stray .cargo/config.toml (GNU linker experiment) exists untracked in the repo root | Left untouched and not committed | Owner to delete or keep |
+| 14 | The spec token `--border-strong` is 2.2:1 on the page background, below the 3:1 that WCAG 1.4.11 asks for control boundaries | Added an extra token `--control-border` (light #857f74, dark #6f7882, 3.3:1 or better) for control boundaries; spec tokens are unchanged. `contrast.test.ts` enforces AA for all text pairs | Owner to approve the extra token or change the spec value |
+| 15 | Installed layout for native files: native/pdfium/pdfium.dll, native/qpdf/qpdf.exe, and quirewise-worker.exe next to the app | The locator and tests assume it; the installer must lay files out this way | Phase 13 NSIS packaging |
+| 16 | Inspect scans fonts and images on the first 500 pages only | Report says how many pages were scanned | Revisit with the performance pass |
+| 17 | Dev mock for the Tauri IPC (`src/dev/mockTauri.ts`) lets the UI run in a browser; it uses a real PDFium render as the page image | Compiled out of production builds (checked) | None |

@@ -3,13 +3,14 @@
 //! Tool subcommands are added per phase through the registry; nothing here hardcodes tools.
 #![forbid(unsafe_code)]
 
-use application::ports::Clock;
-use application::{AppError, ToolRegistry};
+use application::ports::{Clock, FileStore};
+use application::query::{DocumentQuery, QueryResult, QueryRunner};
+use application::{AppError, CancellationToken, Password, ToolRegistry};
 use clap::{Parser, Subcommand};
 use domain::naming::{NameContext, OutputNamingPattern};
 use domain::path_rules::{UncPolicy, check_path_text};
 use domain::{Duplicates, PageRange, ToolId};
-use infrastructure::SystemClock;
+use infrastructure::{AtomicFileStore, SystemClock, WorkerSession};
 use std::path::PathBuf;
 
 /// Command line of `qw`.
@@ -70,6 +71,33 @@ pub enum Command {
         #[arg(long)]
         bookmark: Option<String>,
     },
+    /// Print the JSON Schema of the types the UI exchanges with the core.
+    Schema,
+    /// Inspect a PDF through the worker and print the report as JSON.
+    Inspect {
+        /// PDF to inspect.
+        path: PathBuf,
+        /// Read the password from the first line of standard input.
+        #[arg(long)]
+        password_stdin: bool,
+    },
+    /// Render one page through the worker and write it as a PNG.
+    Thumbnail {
+        /// PDF to render.
+        path: PathBuf,
+        /// Zero-based page index.
+        #[arg(long, default_value_t = 0)]
+        page: u32,
+        /// Longest edge in pixels.
+        #[arg(long, default_value_t = 256)]
+        edge: u32,
+        /// Output PNG path. An existing file is never overwritten.
+        #[arg(long)]
+        out: PathBuf,
+        /// Read the password from the first line of standard input.
+        #[arg(long)]
+        password_stdin: bool,
+    },
     /// Check a path against the path policy.
     Path {
         /// Path to check.
@@ -96,8 +124,29 @@ fn json(value: &impl serde::Serialize) -> Result<String, AppError> {
     serde_json::to_string_pretty(value).map_err(|_| AppError::internal("formatting the output"))
 }
 
+/// Everything a command may use, injected so tests can fake the worker.
+pub struct Env<'a> {
+    /// Tool registry.
+    pub registry: &'a ToolRegistry,
+    /// Clock for naming previews.
+    pub clock: &'a dyn Clock,
+    /// Document queries (inspect, thumbnails).
+    pub queries: &'a dyn QueryRunner,
+    /// File store for outputs.
+    pub files: &'a dyn FileStore,
+    /// Password read from standard input, when requested.
+    pub password: Option<Password>,
+}
+
 /// Runs a command and returns the text to print.
-pub fn execute(cli: Cli, registry: &ToolRegistry, clock: &dyn Clock) -> Result<String, AppError> {
+pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
+    let Env {
+        registry,
+        clock,
+        queries,
+        files,
+        password,
+    } = env;
     match cli.command {
         Command::Version => Ok(format!("qw {}", env!("CARGO_PKG_VERSION"))),
         Command::Tools { action } => match action {
@@ -154,6 +203,42 @@ pub fn execute(cli: Cli, registry: &ToolRegistry, clock: &dyn Clock) -> Result<S
             };
             Ok(pattern.render(&ctx)?)
         }
+        Command::Schema => Ok(application::dto::ipc_schema_json()),
+        Command::Inspect { path, .. } => {
+            let query = DocumentQuery::Inspect { path, password };
+            match queries.query(&query, &CancellationToken::new())? {
+                QueryResult::Inspect(report) => json(&*report),
+                QueryResult::Thumbnail(_) => Err(AppError::internal("inspecting the file")),
+            }
+        }
+        Command::Thumbnail {
+            path,
+            page,
+            edge,
+            out,
+            ..
+        } => {
+            let query = DocumentQuery::Thumbnail {
+                path,
+                password,
+                page,
+                max_edge: edge,
+            };
+            let QueryResult::Thumbnail(thumb) = queries.query(&query, &CancellationToken::new())?
+            else {
+                return Err(AppError::internal("rendering the page"));
+            };
+            let written =
+                files.write_atomic(&out, &mut |w| w.write_all(&thumb.png.0), &|_| Ok(()))?;
+            Ok(format!(
+                "{} ({}x{}, page {} of {})",
+                written.display(),
+                thumb.width,
+                thumb.height,
+                page + 1,
+                thumb.page_count
+            ))
+        }
         Command::Path { path, user_picked } => {
             let policy = if user_picked {
                 UncPolicy::UserPicked
@@ -173,6 +258,21 @@ pub fn default_registry() -> ToolRegistry {
     registry
 }
 
+/// The worker executable next to the running one.
+fn worker_exe() -> PathBuf {
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join("quirewise-worker.exe")))
+        .unwrap_or_else(|| PathBuf::from("quirewise-worker.exe"))
+}
+
+fn read_password_line() -> Option<Password> {
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line).ok()?;
+    let trimmed = line.trim_end_matches(&['\r', '\n'][..]);
+    (!trimmed.is_empty()).then(|| Password::new(trimmed))
+}
+
 /// Entry point shared by `main` and tests. Returns the text and the process exit code.
 pub fn run<I, T>(args: I) -> (String, i32)
 where
@@ -183,7 +283,26 @@ where
         Ok(cli) => cli,
         Err(e) => return (e.to_string(), if e.use_stderr() { 2 } else { 0 }),
     };
-    match execute(cli, &default_registry(), &SystemClock) {
+    let password = match &cli.command {
+        Command::Inspect {
+            password_stdin: true,
+            ..
+        }
+        | Command::Thumbnail {
+            password_stdin: true,
+            ..
+        } => read_password_line(),
+        _ => None,
+    };
+    let session = WorkerSession::new(worker_exe(), domain::limits::SafetyLimits::default());
+    let env = Env {
+        registry: &default_registry(),
+        clock: &SystemClock,
+        queries: &session,
+        files: &AtomicFileStore,
+        password,
+    };
+    match execute(cli, env) {
         Ok(out) => (out, 0),
         Err(e) => (e.to_string(), 1),
     }

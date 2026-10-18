@@ -5,17 +5,25 @@
 pub mod clock;
 pub mod components;
 pub mod file_store;
+pub mod jobs;
 pub mod logging;
+pub mod native;
 pub mod paths;
 pub mod queue;
+pub mod recent;
+pub mod session;
 pub mod settings;
 pub mod supervisor;
 
 pub use clock::SystemClock;
 pub use components::FsComponentStore;
 pub use file_store::AtomicFileStore;
+pub use jobs::{EventSink, JobManager};
 pub use logging::{TracingLogger, init_logging};
+pub use native::NativePaths;
 pub use paths::{AppPaths, TempSession};
 pub use queue::{BatchObserver, BatchRequest, JobQueue};
+pub use recent::{JsonRecentStore, SystemUnixClock};
+pub use session::WorkerSession;
 pub use settings::TomlSettingsStore;
 pub use supervisor::WorkerSupervisor;

@@ -10,6 +10,32 @@ use serde::{Deserialize, Serialize};
 use crate::error::DomainError;
 pub use rotate::RotateOptions;
 
+/// Navigation group a tool belongs to (MASTER_PROMPT.md section 3.1).
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
+#[serde(rename_all = "kebab-case")]
+pub enum ToolGroup {
+    /// Merge, split, extract and reorder pages.
+    Organize,
+    /// Compress, repair, OCR and deskew.
+    Optimize,
+    /// Images, Office files and web pages to PDF.
+    ConvertToPdf,
+    /// PDF to images, Office files, text and PDF/A.
+    ConvertFromPdf,
+    /// Rotate, stamp, crop, annotate and edit.
+    Edit,
+    /// Fill, create and flatten forms.
+    Forms,
+    /// Protect, unlock, sign, redact and compare.
+    Security,
+    /// Optional local AI tools.
+    Intelligence,
+    /// PDF/A and accessibility validation.
+    Validation,
+}
+
 /// Identifier of a tool, kebab-case on the wire (`split-by-size`).
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,

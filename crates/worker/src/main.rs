@@ -1,10 +1,10 @@
 //! `quirewise-worker.exe`: parses untrusted PDFs inside a Job Object and serves the app over stdio.
 #![forbid(unsafe_code)]
 
-use application::{RunTool, ToolRegistry};
+use application::ToolRegistry;
 use domain::limits::SafetyLimits;
-use infrastructure::{AtomicFileStore, SystemClock, TracingLogger};
-use quirewise_worker::engine::NoEngine;
+use infrastructure::{AtomicFileStore, NativePaths, SystemClock, TracingLogger};
+use quirewise_worker::engine::{Engines, build_services};
 use quirewise_worker::job_object::{JobLimits, confine_current_process, is_confined};
 use std::process::ExitCode;
 use std::sync::Arc;
@@ -41,19 +41,27 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
+    let engines = match NativePaths::from_environment().and_then(|paths| Engines::load(&paths)) {
+        Ok(engines) => engines,
+        Err(error) => {
+            eprintln!("quirewise-worker: {error}");
+            return ExitCode::from(3);
+        }
+    };
+
     let mut registry = ToolRegistry::new();
     application::tools::register_all(&mut registry);
-    let runner = Arc::new(RunTool::new(
-        Arc::new(registry),
-        Arc::new(NoEngine),
+    let services = build_services(
+        &engines,
+        registry,
         Arc::new(AtomicFileStore),
         Arc::new(SystemClock),
         Arc::new(TracingLogger),
         defaults,
         std::env::temp_dir().join("Quirewise"),
-    ));
+    );
 
-    match quirewise_worker::serve(std::io::stdin().lock(), std::io::stdout(), runner) {
+    match quirewise_worker::serve(std::io::stdin().lock(), std::io::stdout(), services) {
         Ok(()) => ExitCode::SUCCESS,
         Err(_) => ExitCode::from(1),
     }

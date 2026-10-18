@@ -20,7 +20,8 @@ pub enum InputKind {
 }
 
 /// How a batch maps onto tool runs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "kebab-case")]
 pub enum InputMode {
     /// Each file runs on its own, with its own status (compress, rotate, split).
     PerFile,
@@ -85,7 +86,7 @@ pub struct Plan {
 }
 
 /// A finished, verified output file.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct OutputArtifact {
     /// Where the output was written.
     pub path: PathBuf,
@@ -154,6 +155,9 @@ impl JobContext<'_> {
 pub trait Tool: Send + Sync {
     /// Stable identifier.
     fn id(&self) -> ToolId;
+
+    /// Navigation group.
+    fn group(&self) -> domain::tools::ToolGroup;
 
     /// Short label used for the `{tool}` naming token, for example `rotated`.
     fn label(&self) -> &'static str;

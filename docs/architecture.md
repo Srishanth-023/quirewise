@@ -39,3 +39,7 @@ Every tool implements `Tool` (id, options schema, validate, execute) and is regi
 5. Progress and completion events return to the UI through the event bridge.
 
 See `docs/adr/` for decisions and `docs/tools/<tool-id>.md` for per-tool details.
+
+## Queries and typed IPC (Phase 2)
+
+Read-only questions (inspect, thumbnails) travel as `DocumentQuery` to a persistent worker session (ADR-0007). The UI talks to the shell through typed commands whose DTOs are generated from Rust JSON Schema (ADR-0006). Native engines are located by `NativePaths` (the installed `native/` folder, or `vendor/` in development).

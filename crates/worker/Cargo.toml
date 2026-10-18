@@ -21,6 +21,13 @@ path = "src/main.rs"
 domain.workspace = true
 application.workspace = true
 infrastructure.workspace = true
+quirewise-engine-pdfium = { path = "../engines/pdfium" }
+quirewise-engine-qpdf = { path = "../engines/qpdf" }
+quirewise-engine-lopdf-ops = { path = "../engines/lopdf-ops" }
+
+[dev-dependencies]
+test-support.workspace = true
+tempfile = "3"
 
 [lints]
 workspace = true

@@ -9,12 +9,16 @@ use crate::error::AppError;
 use crate::tool::Tool;
 
 /// What the UI needs to show one tool and build its option form.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
 pub struct ToolDescriptor {
     /// Tool id.
     pub id: ToolId,
+    /// Navigation group.
+    pub group: domain::tools::ToolGroup,
     /// Label used in names, for example `rotated`.
     pub label: String,
+    /// How a batch maps onto runs: one per file, or all files together.
+    pub input_mode: crate::tool::InputMode,
     /// JSON Schema of the options.
     pub options_schema: schemars::Schema,
 }
@@ -54,7 +58,9 @@ impl ToolRegistry {
             .values()
             .map(|t| ToolDescriptor {
                 id: t.id(),
+                group: t.group(),
                 label: t.label().to_owned(),
+                input_mode: t.input_mode(),
                 options_schema: t.options_schema(),
             })
             .collect()

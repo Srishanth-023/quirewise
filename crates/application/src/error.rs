@@ -7,7 +7,7 @@ use std::io;
 use thiserror::Error;
 
 /// Error returned by use cases and ports.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Error)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Error)]
 #[error("{code}: {message}")]
 pub struct AppError {
     /// Stable code from the catalog.

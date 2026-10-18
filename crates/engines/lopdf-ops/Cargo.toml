@@ -11,3 +11,12 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+domain.workspace = true
+application.workspace = true
+lopdf = { version = "0.45.0", default-features = false }
+
+[dev-dependencies]
+test-support.workspace = true
+tempfile = "3"

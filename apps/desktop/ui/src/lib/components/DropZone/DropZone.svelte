@@ -26,7 +26,7 @@
     align-items: center;
     gap: var(--space-4);
     padding: var(--space-8) var(--space-6);
-    border: 1px dashed var(--border-strong);
+    border: 1px dashed var(--control-border);
     border-radius: var(--radius-panel);
     background: var(--surface);
     text-align: center;

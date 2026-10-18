@@ -11,3 +11,13 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+domain.workspace = true
+application.workspace = true
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+pdfium-render = "0.9.4"
+
+[dev-dependencies]
+test-support.workspace = true
+tempfile = "3"

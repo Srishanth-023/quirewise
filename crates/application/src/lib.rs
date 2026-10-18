@@ -6,11 +6,15 @@
 
 pub mod batch;
 pub mod components;
+pub mod dto;
 pub mod error;
 pub mod input;
+pub mod inspect;
 pub mod ipc;
 pub mod naming_service;
 pub mod ports;
+pub mod query;
+pub mod recent;
 pub mod registry;
 pub mod run_tool;
 pub mod runtime;
@@ -21,6 +25,9 @@ pub mod tools;
 mod testing;
 
 pub use error::AppError;
+pub use inspect::{DocumentReport, InspectDocument};
+pub use query::{DocumentQuery, QueryResult, QueryRunner, QueryService};
+pub use recent::{RecentFile, RecentFiles};
 pub use registry::ToolRegistry;
 pub use run_tool::{RunTool, UnitRequest, UnitRunner};
 pub use runtime::{CancellationToken, NoProgress, Password, ProgressEvent, ProgressSink};

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::io::{self, Read, Write};
 
 use crate::error::AppError;
+use crate::query::{DocumentQuery, QueryResult};
 use crate::run_tool::UnitRequest;
 use crate::runtime::ProgressEvent;
 use crate::tool::OutputArtifact;
@@ -28,9 +29,16 @@ pub enum Request {
         /// The work.
         unit: UnitRequest,
     },
-    /// Cancel a running unit.
+    /// Answer a read-only document query (inspect, thumbnail).
+    Query {
+        /// Correlation id chosen by the app.
+        id: u64,
+        /// The question.
+        query: DocumentQuery,
+    },
+    /// Cancel a running unit or query.
     Cancel {
-        /// Id of the unit to cancel.
+        /// Id of the unit or query to cancel.
         id: u64,
     },
     /// Exit cleanly.
@@ -60,7 +68,14 @@ pub enum Response {
         /// Outputs.
         outputs: Vec<OutputArtifact>,
     },
-    /// The unit failed.
+    /// A query was answered.
+    Answer {
+        /// Query id.
+        id: u64,
+        /// The result.
+        result: Box<QueryResult>,
+    },
+    /// The unit or query failed.
     Failed {
         /// Unit id.
         id: u64,

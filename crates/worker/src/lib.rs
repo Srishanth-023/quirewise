@@ -9,6 +9,7 @@ pub mod engine;
 pub mod job_object;
 
 use application::ipc::{Request, Response, read_frame, write_frame};
+use application::query::QueryRunner;
 use application::{AppError, CancellationToken, ProgressEvent, ProgressSink, UnitRunner};
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -33,8 +34,17 @@ impl<W: Write + Send> ProgressSink for FrameProgress<'_, W> {
     }
 }
 
+/// What the worker answers requests with.
+#[derive(Clone)]
+pub struct Services {
+    /// Runs tool units.
+    pub runner: Arc<dyn UnitRunner>,
+    /// Answers read-only document queries.
+    pub queries: Arc<dyn QueryRunner>,
+}
+
 /// Serves requests until `Shutdown` or end of input. Running units are cancelled on exit.
-pub fn serve<R, W>(mut input: R, output: W, runner: Arc<dyn UnitRunner>) -> Result<(), AppError>
+pub fn serve<R, W>(mut input: R, output: W, services: Services) -> Result<(), AppError>
 where
     R: Read,
     W: Write + Send,
@@ -56,11 +66,27 @@ where
                 Ok(Some(Request::Run { id, unit })) => {
                     let token = CancellationToken::new();
                     lock(&running).insert(id, token.clone());
-                    let (out, running, runner) = (&out, &running, Arc::clone(&runner));
+                    let (out, running, runner) = (&out, &running, Arc::clone(&services.runner));
                     scope.spawn(move || {
                         let progress = FrameProgress { id, out };
                         let reply = match runner.run_unit(&unit, &token, &progress) {
                             Ok(outputs) => Response::Finished { id, outputs },
+                            Err(error) => Response::Failed { id, error },
+                        };
+                        lock(running).remove(&id);
+                        let _ = write_frame(&mut *lock(out), &reply);
+                    });
+                }
+                Ok(Some(Request::Query { id, query })) => {
+                    let token = CancellationToken::new();
+                    lock(&running).insert(id, token.clone());
+                    let (out, running, queries) = (&out, &running, Arc::clone(&services.queries));
+                    scope.spawn(move || {
+                        let reply = match queries.query(&query, &token) {
+                            Ok(result) => Response::Answer {
+                                id,
+                                result: Box::new(result),
+                            },
                             Err(error) => Response::Failed { id, error },
                         };
                         lock(running).remove(&id);
@@ -86,6 +112,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use application::query::{Base64Bytes, DocumentQuery, QueryResult, Thumbnail};
     use application::{OutputArtifact, UnitRequest};
     use domain::naming::OutputNamingPattern;
     use domain::{ErrorCode, ToolId, ToolOptions};
@@ -116,6 +143,30 @@ mod tests {
                 pages: Some(2),
                 bytes: 10,
             }])
+        }
+    }
+
+    struct FakeQueries;
+
+    impl QueryRunner for FakeQueries {
+        fn query(
+            &self,
+            _query: &DocumentQuery,
+            _cancel: &CancellationToken,
+        ) -> Result<QueryResult, AppError> {
+            Ok(QueryResult::Thumbnail(Thumbnail {
+                width: 2,
+                height: 3,
+                page_count: 4,
+                png: Base64Bytes(vec![1, 2, 3]),
+            }))
+        }
+    }
+
+    fn services() -> Services {
+        Services {
+            runner: Arc::new(FakeRunner),
+            queries: Arc::new(FakeQueries),
         }
     }
 
@@ -171,7 +222,7 @@ mod tests {
             Request::Shutdown,
         ]);
         let out = SharedBuf::default();
-        serve(input, out.clone(), Arc::new(FakeRunner)).unwrap();
+        serve(input, out.clone(), services()).unwrap();
         let replies = responses(lock(&out.0).clone());
 
         assert!(matches!(replies[0], Response::Pong { .. }));
@@ -200,7 +251,7 @@ mod tests {
             Request::Shutdown,
         ]);
         let out = SharedBuf::default();
-        serve(input, out.clone(), Arc::new(FakeRunner)).unwrap();
+        serve(input, out.clone(), services()).unwrap();
         let replies = responses(lock(&out.0).clone());
         let cancelled = replies.iter().any(|r| {
             matches!(r, Response::Failed { id: 9, error } if error.code == ErrorCode::JobCancelled)
@@ -215,7 +266,7 @@ mod tests {
             unit: unit("wait.pdf"),
         }]);
         let out = SharedBuf::default();
-        assert!(serve(input, out.clone(), Arc::new(FakeRunner)).is_ok());
+        assert!(serve(input, out.clone(), services()).is_ok());
         let replies = responses(lock(&out.0).clone());
         assert!(
             replies
@@ -225,8 +276,26 @@ mod tests {
     }
 
     #[test]
+    fn answers_queries_by_correlation_id() {
+        let query = DocumentQuery::Thumbnail {
+            path: PathBuf::from("a.pdf"),
+            password: None,
+            page: 0,
+            max_edge: 64,
+        };
+        let input = frames(&[Request::Query { id: 11, query }, Request::Shutdown]);
+        let out = SharedBuf::default();
+        serve(input, out.clone(), services()).unwrap();
+        let replies = responses(lock(&out.0).clone());
+        assert!(replies.iter().any(|r| matches!(
+            r,
+            Response::Answer { id: 11, result } if matches!(**result, QueryResult::Thumbnail(_))
+        )));
+    }
+
+    #[test]
     fn malformed_input_is_an_error_not_a_panic() {
         let garbage = Cursor::new(vec![3, 0, 0, 0, b'{', b'x', b'}']);
-        assert!(serve(garbage, SharedBuf::default(), Arc::new(FakeRunner)).is_err());
+        assert!(serve(garbage, SharedBuf::default(), services()).is_err());
     }
 }
