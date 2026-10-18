@@ -4,6 +4,7 @@
 use domain::components::ComponentEntry;
 use domain::naming::DateTimeParts;
 use domain::settings::Settings;
+use domain::tools::common::{FractionBox, Region, RightAngle};
 use domain::{Dpi, PageIndex};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -49,6 +50,22 @@ pub trait PdfReader: Send + Sync {
     /// `QW-PDF-LIMIT-EXCEEDED`.
     fn open_info(&self, path: &Path, password: Option<&Password>)
     -> Result<DocumentInfo, AppError>;
+
+    /// Width and height in points of every page, in order, before rotation is applied.
+    fn page_sizes(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<Vec<PageSize>, AppError>;
+}
+
+/// The size of one page in PDF points (1/72 inch).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PageSize {
+    /// Width in points.
+    pub width_pt: f32,
+    /// Height in points.
+    pub height_pt: f32,
 }
 
 /// Document facts only PDFium can give reliably (it applies the page tree, fonts and objects).
@@ -82,14 +99,162 @@ pub trait PdfVerifier: Send + Sync {
     ) -> Result<(), AppError>;
 }
 
+/// One input of an [`AssemblyPlan`].
+#[derive(Debug, Clone)]
+pub struct SourceDoc {
+    /// The PDF file.
+    pub path: PathBuf,
+    /// Its password, when it is encrypted.
+    pub password: Option<Password>,
+}
+
+/// One page of an assembled document.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PlannedPage {
+    /// A page of one of the plan's sources, optionally turned.
+    Source {
+        /// Index into [`AssemblyPlan::sources`].
+        source: usize,
+        /// Zero-based page of that source.
+        page: PageIndex,
+        /// Rotation added to the page.
+        rotate: RightAngle,
+    },
+    /// A new blank page.
+    Blank {
+        /// Width in points.
+        width_pt: f32,
+        /// Height in points.
+        height_pt: f32,
+    },
+}
+
+/// A new document built from pages of several sources and blank pages.
+#[derive(Debug, Clone)]
+pub struct AssemblyPlan {
+    /// Input documents.
+    pub sources: Vec<SourceDoc>,
+    /// The pages of the result, in order. Pages may repeat.
+    pub pages: Vec<PlannedPage>,
+}
+
 /// Writes PDF output.
 pub trait PdfWriter: Send + Sync {
-    /// Copies `pages` (in order) from `source` into a new document written to `dest`.
+    /// Copies `pages` (in order) from `source` into a new, unencrypted document at `dest`.
+    /// Document-level features of `source` such as outlines and forms are kept where possible.
     fn copy_pages(
         &self,
         source: &Path,
         password: Option<&Password>,
         pages: &[PageIndex],
+        dest: &Path,
+    ) -> Result<(), AppError>;
+
+    /// Writes `source` to `dest` with the given pages turned further. Everything else is kept.
+    fn rotate(
+        &self,
+        source: &Path,
+        password: Option<&Password>,
+        rotations: &[(PageIndex, RightAngle)],
+        dest: &Path,
+    ) -> Result<(), AppError>;
+
+    /// Builds a new, unencrypted document from `plan`. Scratch files go into `temp_dir` and are
+    /// removed before returning.
+    fn assemble(&self, plan: &AssemblyPlan, temp_dir: &Path, dest: &Path) -> Result<(), AppError>;
+}
+
+/// A bookmark to write into a document.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OutlineEntry {
+    /// Text shown in the bookmark panel.
+    pub title: String,
+    /// The page it jumps to.
+    pub page: PageIndex,
+    /// Nesting depth, 0 for the top level.
+    pub level: u32,
+}
+
+/// An edit applied to a finished, unencrypted PDF.
+#[derive(Debug, Clone, PartialEq)]
+pub enum PdfEdit {
+    /// Replaces the document outline with these bookmarks.
+    SetOutline(Vec<OutlineEntry>),
+    /// Sets the crop box of pages to a fraction of their current visible area.
+    CropFractions(Vec<(PageIndex, FractionBox)>),
+    /// Scales every page's content to fit pages of this size, centered.
+    ScalePagesTo {
+        /// Target width in points.
+        width_pt: f32,
+        /// Target height in points.
+        height_pt: f32,
+    },
+}
+
+/// Applies structural edits to PDFs.
+pub trait PdfEditor: Send + Sync {
+    /// Writes `source` with `edit` applied to `dest`.
+    fn apply(&self, source: &Path, edit: &PdfEdit, dest: &Path) -> Result<(), AppError>;
+}
+
+/// One line of a generated table of contents.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TocLine {
+    /// Text of the line, usually a file name.
+    pub title: String,
+    /// One-based page number the line points to.
+    pub page_number: u32,
+}
+
+/// Builds a table of contents document.
+pub trait TocBuilder: Send + Sync {
+    /// Returns the number of pages a table of contents with `lines` lines needs.
+    fn page_count(&self, lines: usize) -> u32;
+
+    /// Writes a table of contents document with pages of the given size to `dest`.
+    fn build(
+        &self,
+        lines: &[TocLine],
+        width_pt: f32,
+        height_pt: f32,
+        dest: &Path,
+    ) -> Result<(), AppError>;
+}
+
+/// Turns an image file into a one-page PDF.
+pub trait ImageConverter: Send + Sync {
+    /// Writes a PDF with the image filling one page of the image's own proportions.
+    fn image_to_pdf(&self, image: &Path, dest: &Path) -> Result<(), AppError>;
+}
+
+/// A bookmark read from a document.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OutlineItem {
+    /// Bookmark title.
+    pub title: String,
+    /// Target page when the bookmark points at one.
+    pub page: Option<PageIndex>,
+    /// Nesting depth, 1 for the top level.
+    pub level: u32,
+}
+
+/// Reads document outlines (bookmarks).
+pub trait OutlineReader: Send + Sync {
+    /// All bookmarks in reading order.
+    fn outline(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<Vec<OutlineItem>, AppError>;
+}
+
+/// Flattens interactive form fields and annotations into page content.
+pub trait FormFlattener: Send + Sync {
+    /// Writes `source` to `dest` with fields flattened.
+    fn flatten_forms(
+        &self,
+        source: &Path,
+        password: Option<&Password>,
         dest: &Path,
     ) -> Result<(), AppError>;
 }
@@ -134,6 +299,15 @@ pub trait TextExtractor: Send + Sync {
         path: &Path,
         password: Option<&Password>,
         page: PageIndex,
+    ) -> Result<String, AppError>;
+
+    /// Returns the text inside `region` of one page.
+    fn text_in_region(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        page: PageIndex,
+        region: &Region,
     ) -> Result<String, AppError>;
 }
 
@@ -186,6 +360,23 @@ pub trait FileStore: Send + Sync {
 
     /// Reads up to `max` bytes from the start of a file, for magic-byte checks.
     fn read_head(&self, path: &Path, max: usize) -> Result<Vec<u8>, AppError>;
+
+    /// Removes a scratch file. Failure is ignored: leftovers are wiped with the session folder.
+    fn remove_file(&self, path: &Path);
+
+    /// Last modification time in seconds since the Unix epoch, when known.
+    fn modified_unix(&self, path: &Path) -> Option<u64>;
+
+    /// Like [`FileStore::write_atomic`], for engines that write to a path instead of a stream.
+    ///
+    /// `produce` receives a temp path in the destination folder and must create the file there.
+    /// After `verify` passes, the file is published at `dest` without replacing anything.
+    fn publish(
+        &self,
+        dest: &Path,
+        produce: &mut dyn FnMut(&Path) -> Result<(), AppError>,
+        verify: &dyn Fn(&Path) -> Result<(), AppError>,
+    ) -> Result<PathBuf, AppError>;
 
     /// Writes `dest` atomically: temp file in the destination folder, flush, `verify`, rename.
     ///

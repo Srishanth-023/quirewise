@@ -52,7 +52,8 @@ Ghostscript is never linked into Quirewise. MuPDF is not used.
 | qpdf 12.4.2 | Apache-2.0 | Structural check and page copy sidecar. Fetched by script, not committed |
 | pdfium-render | MIT or Apache-2.0 | Rust bindings for PDFium |
 | lopdf | MIT | Raw structure facts |
-| image | MIT or Apache-2.0 | PNG encoding of previews |
+| image (JPEG, PNG, GIF, BMP, TIFF, WebP decoders) and its decoders gif, tiff, image-webp, weezl, half, fax, color_quant, quick-error, crunchy, zerocopy | MIT or Apache-2.0 (zerocopy also BSD-2-Clause) | PNG encoding of previews; image to PDF page conversion in Merge |
+| flate2 | MIT or Apache-2.0 | Deflate for converted image streams |
 | base64 | MIT or Apache-2.0 | Binary data in IPC messages |
 | tauri-plugin-dialog, tauri-plugin-opener | MIT or Apache-2.0 | File picker, open result |
 | intl-messageformat | BSD-3-Clause | ICU message formatting in the UI |

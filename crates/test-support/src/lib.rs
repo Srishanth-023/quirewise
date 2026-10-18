@@ -3,6 +3,8 @@
 // Helpers panic on a broken test environment by design.
 #![allow(clippy::expect_used)]
 
+pub mod pdfs;
+
 use std::path::{Path, PathBuf};
 
 /// Repository root, found from this crate's manifest folder.

@@ -24,10 +24,13 @@ infrastructure.workspace = true
 quirewise-engine-pdfium = { path = "../engines/pdfium" }
 quirewise-engine-qpdf = { path = "../engines/qpdf" }
 quirewise-engine-lopdf-ops = { path = "../engines/lopdf-ops" }
+quirewise-engine-raster = { path = "../engines/raster" }
 
 [dev-dependencies]
 test-support.workspace = true
+quirewise-cli = { path = "../cli" }
 tempfile = "3"
+image = { version = "0.25", default-features = false, features = ["png"] }
 
 [lints]
 workspace = true

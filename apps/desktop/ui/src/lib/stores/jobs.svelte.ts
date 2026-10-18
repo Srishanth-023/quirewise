@@ -1,21 +1,10 @@
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import { ipc, onBatchEvent, toAppError, type BatchEvent } from '../ipc/client';
-import type {
-  JobStatus,
-  OutputArtifact,
-  RunBatchRequest,
-  ToolDescriptor,
-} from '../ipc/generated';
+import type { JobStatus, OutputArtifact, ToolDescriptor } from '../ipc/generated';
 import { files } from './files.svelte';
+import { organizer } from '../features/organize/organizer.svelte';
+import { toolOptions } from './options.svelte';
 import { toasts } from './toasts.svelte';
-
-/**
- * Options a tool runs with. The core fills every missing field from the Appendix A defaults, so
- * sending only the tool tag runs with defaults. Schema-generated forms replace this in Phase 3.
- */
-function defaultOptions(tool: ToolDescriptor): RunBatchRequest['options'] {
-  return { tool: tool.id } as RunBatchRequest['options'];
-}
 
 /**
  * Batch job state. A job's units map to files: one unit per file for per-file tools, or a single
@@ -46,6 +35,8 @@ class Jobs {
     const entries = files.entries;
     this.#unitFiles =
       tool.input_mode === 'per-file' ? entries.map((e) => [e.id]) : [entries.map((e) => e.id)];
+    // The organizer names files by their place in the list, which may have changed since the last edit.
+    if (tool.id === 'organize') organizer.publish();
     files.resetStatuses();
     this.results = [];
     this.status = 'running';
@@ -53,7 +44,10 @@ class Jobs {
     try {
       this.current = await ipc.runBatch({
         tool: tool.id,
-        options: defaultOptions(tool),
+        options: toolOptions.request(
+          tool,
+          entries.map((e) => e.id),
+        ),
         inputs: entries.map((e) => ({ path: e.path, password: files.passwordFor(e.id) })),
         output_dir: null,
         naming_pattern: null,

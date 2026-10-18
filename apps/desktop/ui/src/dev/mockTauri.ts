@@ -3,6 +3,13 @@
 // Page images are a real PDFium render (made with `qw thumbnail`), not drawn art.
 import samplePage from './sample-page.png?inline';
 import type { BatchEvent } from '../lib/ipc/generated';
+import {
+  byTextSchema,
+  everyNSchema,
+  mergeSchema,
+  organizeSchema,
+  rotateSchema,
+} from '../tests/fixtures';
 
 type Handler = (message: { event: string; id: number; payload: unknown }) => void;
 
@@ -41,13 +48,14 @@ const report = (name: string, locked: boolean) => ({
   suggestions: locked ? ['unlock'] : [],
 });
 
-const rotate = {
-  id: 'rotate',
-  group: 'edit',
-  label: 'rotated',
-  input_mode: 'per-file',
-  options_schema: {},
-};
+/** Tool list for the browser preview, with the same schema shapes the core produces. */
+const previewTools = [
+  { id: 'merge', label: 'merged', input_mode: 'all-together', options_schema: mergeSchema },
+  { id: 'split-every-n', label: 'part', input_mode: 'per-file', options_schema: everyNSchema },
+  { id: 'rotate', label: 'rotated', input_mode: 'per-file', options_schema: rotateSchema },
+  { id: 'organize', label: 'organized', input_mode: 'all-together', options_schema: organizeSchema },
+  { id: 'split-by-text', label: 'part', input_mode: 'per-file', options_schema: byTextSchema },
+].map((tool) => ({ group: 'organize', ...tool }));
 
 /** Handles every command the UI sends. Unknown commands fail loudly so gaps are noticed. */
 async function invoke(cmd: string, args: Record<string, unknown> = {}): Promise<unknown> {
@@ -55,7 +63,7 @@ async function invoke(cmd: string, args: Record<string, unknown> = {}): Promise<
     case 'app_version':
       return '0.1.0';
     case 'list_tools':
-      return new URLSearchParams(location.search).has('tools') ? [rotate] : [];
+      return new URLSearchParams(location.search).has('tools') ? previewTools : [];
     case 'pick_files':
       return ['C:\\Docs\\report.pdf', 'C:\\Docs\\locked.pdf'];
     case 'classify_inputs':
@@ -65,6 +73,7 @@ async function invoke(cmd: string, args: Record<string, unknown> = {}): Promise<
           name: path.split('\\').pop(),
           kind: 'pdf',
           error: null,
+          modified: 1_700_000_000 + path.length,
         })),
         suggestions: (args.paths as string[]).length > 1 ? ['merge'] : [],
       };

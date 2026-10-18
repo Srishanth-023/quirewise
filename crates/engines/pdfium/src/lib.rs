@@ -6,13 +6,16 @@
 
 mod errors;
 mod facts;
+mod region;
 
 use application::AppError;
 use application::Password;
 use application::inspect::PdfiumFacts;
 use application::ports::{
-    DocumentInfo, PdfFacts, PdfReader, PngImage, RenderedImage, Renderer, TextExtractor,
+    DocumentInfo, FormFlattener, OutlineItem, OutlineReader, PageSize, PdfFacts, PdfReader,
+    PngImage, RenderedImage, Renderer, TextExtractor,
 };
+use domain::tools::common::Region;
 use domain::{Dpi, ErrorCode, PageIndex};
 use errors::map_error;
 use image::ImageFormat;
@@ -70,6 +73,73 @@ impl PdfReader for PdfiumEngine {
             encrypted: password.is_some() && facts::is_encrypted(&doc),
         })
     }
+
+    fn page_sizes(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<Vec<PageSize>, AppError> {
+        let doc = self.open(path, password)?;
+        Ok(doc
+            .pages()
+            .iter()
+            .map(|page| PageSize {
+                width_pt: page.width().value,
+                height_pt: page.height().value,
+            })
+            .collect())
+    }
+}
+
+impl OutlineReader for PdfiumEngine {
+    fn outline(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<Vec<OutlineItem>, AppError> {
+        let doc = self.open(path, password)?;
+        let mut items = Vec::new();
+        for bookmark in doc.bookmarks().iter() {
+            let mut level = 1u32;
+            let mut ancestor = bookmark.parent();
+            // A cap keeps a malformed, cyclic parent chain from looping forever.
+            while let Some(parent) = ancestor {
+                level += 1;
+                if level > 64 {
+                    break;
+                }
+                ancestor = parent.parent();
+            }
+            let page = bookmark
+                .destination()
+                .and_then(|d| d.page_index().ok())
+                .and_then(|i| u32::try_from(i).ok())
+                .map(PageIndex::new);
+            items.push(OutlineItem {
+                title: bookmark.title().unwrap_or_default(),
+                page,
+                level,
+            });
+        }
+        Ok(items)
+    }
+}
+
+impl FormFlattener for PdfiumEngine {
+    fn flatten_forms(
+        &self,
+        source: &Path,
+        password: Option<&Password>,
+        dest: &Path,
+    ) -> Result<(), AppError> {
+        let doc = self.open(source, password)?;
+        for mut page in doc.pages().iter() {
+            page.flatten()
+                .map_err(|e| map_error(&e, password.is_some()))?;
+        }
+        doc.save_to_file(dest)
+            .map_err(|e| map_error(&e, password.is_some()))
+    }
 }
 
 impl PdfFacts for PdfiumEngine {
@@ -92,7 +162,48 @@ impl TextExtractor for PdfiumEngine {
             .get(i32::try_from(page.get()).map_err(|_| out_of_range(page))?)
             .map_err(|e| map_error(&e, password.is_some()))?;
         let text = page.text().map_err(|e| map_error(&e, password.is_some()))?;
-        Ok(text.all())
+        Ok(facts::all_text(&text))
+    }
+
+    fn text_in_region(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        page: PageIndex,
+        region: &Region,
+    ) -> Result<String, AppError> {
+        let doc = self.open(path, password)?;
+        let index = i32::try_from(page.get()).map_err(|_| out_of_range(page))?;
+        let page = doc
+            .pages()
+            .get(index)
+            .map_err(|e| map_error(&e, password.is_some()))?;
+        let rotation = match page.rotation() {
+            Ok(PdfPageRenderRotation::Degrees90) => 90,
+            Ok(PdfPageRenderRotation::Degrees180) => 180,
+            Ok(PdfPageRenderRotation::Degrees270) => 270,
+            _ => 0,
+        };
+        // The unrotated box: text lives in user space, while page_size() is the displayed size.
+        let bounds = page
+            .boundaries()
+            .crop()
+            .or_else(|_| page.boundaries().media())
+            .map(|b| b.bounds)
+            .unwrap_or_else(|_| page.page_size());
+        let user = region::to_user_space(
+            region,
+            rotation,
+            region::Bounds {
+                left: bounds.left().value,
+                bottom: bounds.bottom().value,
+                width: bounds.width().value,
+                height: bounds.height().value,
+            },
+        );
+        let rect = PdfRect::new_from_values(user.bottom, user.left, user.top, user.right);
+        let text = page.text().map_err(|e| map_error(&e, password.is_some()))?;
+        Ok(text.inside_rect(rect))
     }
 }
 
@@ -336,5 +447,142 @@ mod tests {
             .page_text(&locked, Some(&right), PageIndex::new(0))
             .unwrap();
         assert!(text.contains("Page 1 of 3"));
+    }
+
+    #[test]
+    fn page_sizes_follow_rotation() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = test_support::pdfs::pdf_with_geometry(&[(300, 400, 0), (300, 400, 90)]);
+        let path = write(&dir, "g.pdf", &pdf);
+        let sizes = engine().page_sizes(&path, None).unwrap();
+        assert_eq!((sizes[0].width_pt, sizes[0].height_pt), (300.0, 400.0));
+        assert_eq!(
+            (sizes[1].width_pt, sizes[1].height_pt),
+            (400.0, 300.0),
+            "displayed size"
+        );
+    }
+
+    #[test]
+    fn outline_lists_bookmarks_with_levels_and_pages() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = test_support::pdfs::pdf_with_outline(
+            5,
+            &[("Intro", 0, 1), ("Background", 1, 2), ("Method", 3, 1)],
+        );
+        let path = write(&dir, "o.pdf", &pdf);
+        let items = engine().outline(&path, None).unwrap();
+        let rows: Vec<(String, Option<u32>, u32)> = items
+            .into_iter()
+            .map(|i| (i.title, i.page.map(|p| p.get()), i.level))
+            .collect();
+        assert_eq!(
+            rows,
+            vec![
+                ("Intro".to_owned(), Some(0), 1),
+                ("Background".to_owned(), Some(1), 2),
+                ("Method".to_owned(), Some(3), 1),
+            ]
+        );
+        let none = write(&dir, "n.pdf", &minimal_pdf(2));
+        assert!(engine().outline(&none, None).unwrap().is_empty());
+    }
+
+    #[test]
+    fn text_in_region_reads_only_the_drawn_area() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = test_support::pdfs::pdf_with_texts(&["INV-1001", "INV-1002"]);
+        let path = write(&dir, "t.pdf", &pdf);
+        // The text is drawn near the top-left of a Letter page.
+        let top_left = Region {
+            x: 0.0,
+            y: 0.0,
+            width: 0.6,
+            height: 0.15,
+        };
+        let text = engine()
+            .text_in_region(&path, None, PageIndex::new(1), &top_left)
+            .unwrap();
+        assert!(text.contains("INV-1002"), "got {text:?}");
+        let bottom = Region {
+            x: 0.0,
+            y: 0.8,
+            width: 1.0,
+            height: 0.2,
+        };
+        let none = engine()
+            .text_in_region(&path, None, PageIndex::new(1), &bottom)
+            .unwrap();
+        assert!(none.trim().is_empty(), "got {none:?}");
+    }
+
+    #[test]
+    fn text_regions_follow_page_rotation() {
+        let dir = tempfile::tempdir().unwrap();
+        // The page is stored upright with the label top-left, then rotated a quarter turn
+        // clockwise, so on screen the label sits at the top-right.
+        let pdf = test_support::pdfs::pdf_with_geometry(&[(612, 792, 90)]);
+        let path = write(&dir, "r.pdf", &pdf);
+        let top_right = Region {
+            x: 0.7,
+            y: 0.0,
+            width: 0.3,
+            height: 0.3,
+        };
+        let hit = engine()
+            .text_in_region(&path, None, PageIndex::new(0), &top_right)
+            .unwrap();
+        assert!(hit.contains("Page 1"), "got {hit:?}");
+        let top_left = Region {
+            x: 0.0,
+            y: 0.0,
+            width: 0.3,
+            height: 0.3,
+        };
+        let miss = engine()
+            .text_in_region(&path, None, PageIndex::new(0), &top_left)
+            .unwrap();
+        assert!(!miss.contains("Page"), "got {miss:?}");
+    }
+
+    #[test]
+    fn flattening_turns_form_fields_into_page_content() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = test_support::pdfs::pdf_with_form_field("name", "Ada Lovelace");
+        let source = write(&dir, "f.pdf", &pdf);
+        let dest = dir.path().join("flat.pdf");
+        engine().flatten_forms(&source, None, &dest).unwrap();
+        let before = engine().facts(&source, None).unwrap();
+        let after = engine().facts(&dest, None).unwrap();
+        assert!(before.has_forms, "the fixture has a form");
+        assert!(!after.has_forms, "no interactive form is left");
+        let text = engine().page_text(&dest, None, PageIndex::new(0)).unwrap();
+        assert!(
+            text.contains("Ada Lovelace"),
+            "the value is now page text: {text:?}"
+        );
+    }
+
+    #[test]
+    fn regression_text_of_rotated_pages_is_extracted() {
+        // PdfPageText::all() looked only inside the displayed page size and returned nothing for
+        // pages turned a quarter, because their text lives in the unrotated user space.
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = test_support::pdfs::pdf_with_geometry(&[
+            (612, 792, 90),
+            (612, 792, 180),
+            (612, 792, 270),
+        ]);
+        let path = write(&dir, "rot.pdf", &pdf);
+        for page in 0..3 {
+            let text = engine()
+                .page_text(&path, None, PageIndex::new(page))
+                .unwrap();
+            assert!(
+                text.contains(&format!("Page {}", page + 1)),
+                "page {page}: {text:?}"
+            );
+        }
+        assert!(engine().facts(&path, None).unwrap().has_text_layer);
     }
 }

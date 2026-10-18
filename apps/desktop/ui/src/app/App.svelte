@@ -193,10 +193,21 @@
     font-size: var(--text-lg);
   }
   @media (max-width: 1099px) {
+    /* Stacked: every part takes the height of its content and the whole shell scrolls, so the
+       tool list is never squeezed under the next block. */
     .shell {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: auto auto auto;
+      align-content: start;
       overflow: auto;
+    }
+    .shell > :global(.nav),
+    .shell > :global(.panel),
+    .workspace {
+      overflow: visible;
+    }
+    .shell :global(.nav .tools) {
+      flex: none;
     }
     .shell > :global(.nav) {
       border-right: 0;

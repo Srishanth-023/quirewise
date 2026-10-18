@@ -4,13 +4,19 @@
 //! runs inside the worker, with a cap on how far any stream may expand.
 #![forbid(unsafe_code)]
 
+mod boxes;
+mod edit;
 mod encryption;
+mod outline;
 mod scan;
+mod toc;
+
+pub use toc::LopdfToc;
 
 use application::AppError;
 use application::Password;
 use application::inspect::StructureReport;
-use application::ports::StructureFacts;
+use application::ports::{PdfEdit, PdfEditor, StructureFacts};
 use domain::ErrorCode;
 use lopdf::{Document, LoadOptions};
 use std::fs;
@@ -28,6 +34,21 @@ fn damaged() -> AppError {
         ErrorCode::PdfDamaged,
         "This file is damaged or uses an unsupported format. Try the Repair tool.",
     )
+}
+
+/// [`PdfEditor`] over lopdf. It rewrites the whole file, so it is used on finished, unencrypted
+/// outputs, never on user files directly.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct LopdfEditor;
+
+impl PdfEditor for LopdfEditor {
+    fn apply(&self, source: &Path, edit: &PdfEdit, dest: &Path) -> Result<(), AppError> {
+        let mut doc = LopdfStructure::load(source, None)?;
+        edit::apply(&mut doc, edit)?;
+        doc.save(dest)
+            .map_err(|e| AppError::from_io("write the edited document", &e))?;
+        Ok(())
+    }
 }
 
 impl LopdfStructure {
@@ -192,5 +213,182 @@ mod tests {
         );
         let bomb_guard = write(&dir, "t.pdf", b"%PDF-1.7\n1 0 obj\n<< /Type /Catalog");
         assert!(LopdfStructure.structure(&bomb_guard, None).is_err());
+    }
+
+    // ---- editor ----
+
+    use application::ports::{OutlineEntry, PdfEdit, PdfEditor};
+    use domain::PageIndex;
+    use domain::tools::common::FractionBox;
+
+    fn edit_file(dir: &tempfile::TempDir, pdf: &[u8], edit: &PdfEdit) -> Document {
+        let source = write(dir, "in.pdf", pdf);
+        let dest = dir.path().join("out.pdf");
+        LopdfEditor.apply(&source, edit, &dest).unwrap();
+        Document::load(&dest).unwrap()
+    }
+
+    fn page_ids(doc: &Document) -> Vec<lopdf::ObjectId> {
+        doc.get_pages().values().copied().collect()
+    }
+
+    #[test]
+    fn crop_fractions_set_the_crop_box_to_the_chosen_half() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = test_support::pdfs::pdf_with_geometry(&[(600, 800, 0), (600, 800, 0)]);
+        let left = FractionBox {
+            left: 0.0,
+            bottom: 0.0,
+            right: 0.5,
+            top: 1.0,
+        };
+        let right = FractionBox {
+            left: 0.5,
+            bottom: 0.0,
+            right: 1.0,
+            top: 1.0,
+        };
+        let doc = edit_file(
+            &dir,
+            &pdf,
+            &PdfEdit::CropFractions(vec![(PageIndex::new(0), left), (PageIndex::new(1), right)]),
+        );
+        let ids = page_ids(&doc);
+        assert_eq!(
+            crate::boxes::visible_box(&doc, ids[0]),
+            [0.0, 0.0, 300.0, 800.0]
+        );
+        assert_eq!(
+            crate::boxes::visible_box(&doc, ids[1]),
+            [300.0, 0.0, 600.0, 800.0]
+        );
+    }
+
+    #[test]
+    fn crop_fractions_respect_page_rotation() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = test_support::pdfs::pdf_with_geometry(&[(600, 800, 90)]);
+        let left = FractionBox {
+            left: 0.0,
+            bottom: 0.0,
+            right: 0.5,
+            top: 1.0,
+        };
+        let doc = edit_file(
+            &dir,
+            &pdf,
+            &PdfEdit::CropFractions(vec![(PageIndex::new(0), left)]),
+        );
+        // Turned a quarter clockwise, the displayed left half is the bottom of the stored page.
+        assert_eq!(
+            crate::boxes::visible_box(&doc, page_ids(&doc)[0]),
+            [0.0, 0.0, 600.0, 400.0]
+        );
+    }
+
+    #[test]
+    fn scaling_gives_every_page_the_target_size_and_wraps_its_content() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf =
+            test_support::pdfs::pdf_with_geometry(&[(300, 400, 0), (612, 792, 0), (400, 300, 90)]);
+        let doc = edit_file(
+            &dir,
+            &pdf,
+            &PdfEdit::ScalePagesTo {
+                width_pt: 612.0,
+                height_pt: 792.0,
+            },
+        );
+        for id in page_ids(&doc) {
+            let [x0, y0, x1, y1] = crate::boxes::visible_box(&doc, id);
+            let (w, h) = (x1 - x0, y1 - y0);
+            let turned = crate::boxes::rotation(&doc, id) % 180 == 90;
+            let (dw, dh) = if turned { (h, w) } else { (w, h) };
+            assert_eq!((dw.round(), dh.round()), (612.0, 792.0));
+        }
+        let first = page_ids(&doc)[0];
+        let contents = doc
+            .get_dictionary(first)
+            .unwrap()
+            .get(b"Contents")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len();
+        assert_eq!(
+            contents, 3,
+            "a prefix stream, the original content, and a suffix stream"
+        );
+        // The 300x400 page is scaled by 1.98 (limited by height), centered horizontally.
+        let prefix = doc
+            .get_object(
+                doc.get_dictionary(first)
+                    .unwrap()
+                    .get(b"Contents")
+                    .unwrap()
+                    .as_array()
+                    .unwrap()[0]
+                    .as_reference()
+                    .unwrap(),
+            )
+            .unwrap();
+        let text = String::from_utf8_lossy(&prefix.as_stream().unwrap().content).into_owned();
+        assert!(text.contains("1.98000 0 0 1.98000"), "got {text:?}");
+    }
+
+    #[test]
+    fn outlines_nest_and_point_at_pages() {
+        let dir = tempfile::tempdir().unwrap();
+        let entry = |title: &str, page: u32, level: u32| OutlineEntry {
+            title: title.to_owned(),
+            page: PageIndex::new(page),
+            level,
+        };
+        let doc = edit_file(
+            &dir,
+            &test_support::pdfs::pdf_with_texts(&["a", "b", "c", "d"]),
+            &PdfEdit::SetOutline(vec![
+                entry("Part one", 0, 0),
+                entry("Chapter A", 1, 1),
+                entry("Part two", 2, 0),
+                entry("Beyond the end", 99, 0),
+            ]),
+        );
+        let catalog = doc.catalog().unwrap();
+        let root = doc
+            .get_dictionary(catalog.get(b"Outlines").unwrap().as_reference().unwrap())
+            .unwrap();
+        assert_eq!(
+            root.get(b"Count").unwrap().as_i64().unwrap(),
+            3,
+            "out-of-range bookmarks are dropped"
+        );
+        let first = doc
+            .get_dictionary(root.get(b"First").unwrap().as_reference().unwrap())
+            .unwrap();
+        assert_eq!(first.get(b"Title").unwrap().as_str().unwrap(), b"Part one");
+        assert_eq!(
+            first.get(b"Count").unwrap().as_i64().unwrap(),
+            1,
+            "one nested child"
+        );
+        let child = doc
+            .get_dictionary(first.get(b"First").unwrap().as_reference().unwrap())
+            .unwrap();
+        assert_eq!(child.get(b"Title").unwrap().as_str().unwrap(), b"Chapter A");
+        let second = doc
+            .get_dictionary(first.get(b"Next").unwrap().as_reference().unwrap())
+            .unwrap();
+        assert_eq!(second.get(b"Title").unwrap().as_str().unwrap(), b"Part two");
+        let dest = second.get(b"Dest").unwrap().as_array().unwrap();
+        assert_eq!(dest[0].as_reference().unwrap(), page_ids(&doc)[2]);
+    }
+
+    #[test]
+    fn an_empty_outline_removes_existing_bookmarks() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = test_support::pdfs::pdf_with_outline(2, &[("Only", 0, 1)]);
+        let doc = edit_file(&dir, &pdf, &PdfEdit::SetOutline(Vec::new()));
+        assert!(doc.catalog().unwrap().get(b"Outlines").is_err());
     }
 }

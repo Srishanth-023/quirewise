@@ -1,3 +1,11 @@
+import arrowCounterClockwise from '@phosphor-icons/core/assets/regular/arrow-counter-clockwise.svg?raw';
+import arrowLeft from '@phosphor-icons/core/assets/regular/arrow-left.svg?raw';
+import arrowRight from '@phosphor-icons/core/assets/regular/arrow-right.svg?raw';
+import arrowUUpLeft from '@phosphor-icons/core/assets/regular/arrow-u-up-left.svg?raw';
+import arrowUUpRight from '@phosphor-icons/core/assets/regular/arrow-u-up-right.svg?raw';
+import copy from '@phosphor-icons/core/assets/regular/copy.svg?raw';
+import filePlus from '@phosphor-icons/core/assets/regular/file-plus.svg?raw';
+import plus from '@phosphor-icons/core/assets/regular/plus.svg?raw';
 import arrowClockwise from '@phosphor-icons/core/assets/regular/arrow-clockwise.svg?raw';
 import arrowDown from '@phosphor-icons/core/assets/regular/arrow-down.svg?raw';
 import arrowUp from '@phosphor-icons/core/assets/regular/arrow-up.svg?raw';
@@ -20,6 +28,14 @@ import x from '@phosphor-icons/core/assets/regular/x.svg?raw';
 
 /** Phosphor Regular icons used by the app, imported one by one so unused icons are tree-shaken. */
 export const icons = {
+  plus,
+  'file-plus': filePlus,
+  copy,
+  'arrow-u-up-right': arrowUUpRight,
+  'arrow-u-up-left': arrowUUpLeft,
+  'arrow-right': arrowRight,
+  'arrow-left': arrowLeft,
+  'arrow-counter-clockwise': arrowCounterClockwise,
   'arrow-clockwise': arrowClockwise,
   'arrow-down': arrowDown,
   'arrow-up': arrowUp,

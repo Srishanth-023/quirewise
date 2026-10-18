@@ -10,6 +10,7 @@ pub mod limits;
 pub mod naming;
 pub mod page_range;
 pub mod path_rules;
+pub mod planners;
 pub mod settings;
 pub mod tools;
 pub mod units;

@@ -3,6 +3,7 @@
 //! Tool subcommands are added per phase through the registry; nothing here hardcodes tools.
 #![forbid(unsafe_code)]
 
+use application::UnitRunner;
 use application::ports::{Clock, FileStore};
 use application::query::{DocumentQuery, QueryResult, QueryRunner};
 use application::{AppError, CancellationToken, Password, ToolRegistry};
@@ -10,8 +11,11 @@ use clap::{Parser, Subcommand};
 use domain::naming::{NameContext, OutputNamingPattern};
 use domain::path_rules::{UncPolicy, check_path_text};
 use domain::{Duplicates, PageRange, ToolId};
-use infrastructure::{AtomicFileStore, SystemClock, WorkerSession};
+use infrastructure::{AtomicFileStore, SystemClock, WorkerSession, WorkerSupervisor};
 use std::path::PathBuf;
+use std::sync::Arc;
+
+mod run_cmd;
 
 /// Command line of `qw`.
 #[derive(Debug, Parser)]
@@ -70,6 +74,23 @@ pub enum Command {
         /// Bookmark for `{bookmark}`.
         #[arg(long)]
         bookmark: Option<String>,
+    },
+    /// Run a registered tool on files through the worker.
+    Run {
+        /// Tool id, for example `rotate` or `split-every-n`. See `qw tools list`.
+        tool: String,
+        /// Input files.
+        #[arg(required = true)]
+        files: Vec<PathBuf>,
+        /// Tool options as JSON; missing fields use the defaults, for example `{"angle":"180"}`.
+        #[arg(long)]
+        options: Option<String>,
+        /// Output folder. Default: next to each source file.
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// Read a password from the first line of standard input and use it for every file.
+        #[arg(long)]
+        password_stdin: bool,
     },
     /// Print the JSON Schema of the types the UI exchanges with the core.
     Schema,
@@ -136,6 +157,8 @@ pub struct Env<'a> {
     pub files: &'a dyn FileStore,
     /// Password read from standard input, when requested.
     pub password: Option<Password>,
+    /// Runs tool units, normally through the worker process.
+    pub runner: Arc<dyn UnitRunner>,
 }
 
 /// Runs a command and returns the text to print.
@@ -146,6 +169,7 @@ pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
         queries,
         files,
         password,
+        runner,
     } = env;
     match cli.command {
         Command::Version => Ok(format!("qw {}", env!("CARGO_PKG_VERSION"))),
@@ -203,6 +227,23 @@ pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
             };
             Ok(pattern.render(&ctx)?)
         }
+        Command::Run {
+            tool,
+            files: inputs,
+            options,
+            out,
+            ..
+        } => run_cmd::run_tool(
+            registry,
+            runner,
+            run_cmd::RunArgs {
+                tool: &tool,
+                files: &inputs,
+                options: options.as_deref(),
+                out,
+                password,
+            },
+        ),
         Command::Schema => Ok(application::dto::ipc_schema_json()),
         Command::Inspect { path, .. } => {
             let query = DocumentQuery::Inspect { path, password };
@@ -251,11 +292,11 @@ pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
     }
 }
 
-/// Builds the registry the CLI uses: the same one the worker uses.
-pub fn default_registry() -> ToolRegistry {
+/// Builds the registry the CLI describes tools from: the same tools the worker runs.
+pub fn default_registry() -> Result<ToolRegistry, AppError> {
     let mut registry = ToolRegistry::new();
-    application::tools::register_all(&mut registry);
-    registry
+    application::tools::register_all(&mut registry, &application::tools::ToolDeps::unavailable())?;
+    Ok(registry)
 }
 
 /// The worker executable next to the running one.
@@ -279,6 +320,16 @@ where
     I: IntoIterator<Item = T>,
     T: Into<std::ffi::OsString> + Clone,
 {
+    run_with(args, worker_exe())
+}
+
+/// Like [`run`], with an explicit worker executable. Tests use it to run against a freshly built
+/// worker.
+pub fn run_with<I, T>(args: I, worker: PathBuf) -> (String, i32)
+where
+    I: IntoIterator<Item = T>,
+    T: Into<std::ffi::OsString> + Clone,
+{
     let cli = match Cli::try_parse_from(args) {
         Ok(cli) => cli,
         Err(e) => return (e.to_string(), if e.use_stderr() { 2 } else { 0 }),
@@ -288,19 +339,30 @@ where
             password_stdin: true,
             ..
         }
+        | Command::Run {
+            password_stdin: true,
+            ..
+        }
         | Command::Thumbnail {
             password_stdin: true,
             ..
         } => read_password_line(),
         _ => None,
     };
-    let session = WorkerSession::new(worker_exe(), domain::limits::SafetyLimits::default());
+    let limits = domain::limits::SafetyLimits::default();
+    let session = WorkerSession::new(worker.clone(), limits);
+    let supervisor: Arc<dyn UnitRunner> = Arc::new(WorkerSupervisor::new(worker, limits));
+    let registry = match default_registry() {
+        Ok(registry) => registry,
+        Err(e) => return (e.to_string(), 1),
+    };
     let env = Env {
-        registry: &default_registry(),
+        registry: &registry,
         clock: &SystemClock,
         queries: &session,
         files: &AtomicFileStore,
         password,
+        runner: supervisor,
     };
     match execute(cli, env) {
         Ok(out) => (out, 0),
@@ -371,11 +433,17 @@ mod tests {
     }
 
     #[test]
-    fn empty_registry_lists_no_tools_and_unknown_schema_fails() {
-        assert_eq!(qw(&["tools", "list"]).0, "[]");
-        let (out, code) = qw(&["tools", "schema", "rotate"]);
-        assert_eq!(code, 1);
-        assert!(out.starts_with("QW-COMPONENT-MISSING"));
+    fn the_registry_lists_every_tool_and_unknown_schemas_fail() {
+        let (list, code) = qw(&["tools", "list"]);
+        assert_eq!(code, 0);
+        let tools: serde_json::Value = serde_json::from_str(&list).unwrap();
+        assert_eq!(
+            tools.as_array().map(Vec::len),
+            Some(domain::ToolId::ALL.len())
+        );
+        let (schema, code) = qw(&["tools", "schema", "rotate"]);
+        assert_eq!(code, 0);
+        assert!(schema.contains("angle"));
         let (out, code) = qw(&["tools", "schema", "nope"]);
         assert_eq!(code, 1);
         assert!(out.starts_with("QW-OPTION-INVALID"));

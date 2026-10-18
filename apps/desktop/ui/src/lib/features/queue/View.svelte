@@ -5,18 +5,26 @@
   import ProgressBar from '../../components/ProgressBar/ProgressBar.svelte';
   import { files } from '../../stores/files.svelte';
   import { jobs } from '../../stores/jobs.svelte';
+  import { tools } from '../../stores/tools.svelte';
 
   interface Props {
     onadd: () => void;
   }
 
   let { onadd }: Props = $props();
+
+  // The order of the list is the merge order, so tools that combine files offer sorting.
+  const sortable = $derived(tools.selected?.input_mode === 'all-together' && files.entries.length > 1);
 </script>
 
 <section aria-labelledby="queue-title">
   <div class="head">
     <h2 id="queue-title">{t('files.title')} <span class="mono count">{t('files.count', { count: files.entries.length })}</span></h2>
     <div class="actions">
+      {#if sortable}
+        <Button onclick={() => files.sort('name')} disabled={jobs.running}>{t('files.sortName')}</Button>
+        <Button onclick={() => files.sort('modified')} disabled={jobs.running}>{t('files.sortDate')}</Button>
+      {/if}
       <Button onclick={onadd} disabled={jobs.running}>{t('files.add')}</Button>
       <Button onclick={() => files.clear()} disabled={jobs.running || files.entries.length === 0}>
         {t('files.clear')}

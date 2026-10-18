@@ -81,6 +81,39 @@ export type InputKindDto = 'pdf' | 'image';
  */
 export type Password = string;
 /**
+ * One page of the organized result.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "OrganizedPage".
+ */
+export type OrganizedPage =
+  | {
+      kind: 'page';
+      /**
+       * Zero-based page of that file.
+       */
+      page: number;
+      /**
+       * Rotation added to the page.
+       */
+      rotate?: '0' | '90' | '180' | '270';
+      /**
+       * Index of the input file.
+       */
+      source: number;
+    }
+  | {
+      /**
+       * Height in points.
+       */
+      height_pt: number;
+      kind: 'blank';
+      /**
+       * Width in points.
+       */
+      width_pt: number;
+    };
+/**
  * JSON Schema of the options.
  */
 export type Schema = {} | boolean;
@@ -128,12 +161,33 @@ export type ErrorCode =
 export type FileStatus =
   'pending' | 'running' | 'done' | 'wrong-password' | 'damaged' | 'out-of-range' | 'cancelled' | 'failed';
 /**
+ * What to do with form fields while merging.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FormHandling".
+ */
+export type FormHandling = 'keep' | 'flatten';
+/**
  * How a batch maps onto tool runs.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "InputMode".
  */
 export type InputMode = 'per-file' | 'all-together';
+/**
+ * What Insert pages adds.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "InsertMode".
+ */
+export type InsertMode = 'blank' | 'duplicate';
+/**
+ * Where blank pages go relative to the selected page.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "InsertWhere".
+ */
+export type InsertWhere = 'before' | 'after';
 /**
  * Overall state of a job.
  *
@@ -156,17 +210,31 @@ export type OutputNamingPattern = string;
  */
 export type PageRange = string;
 /**
- * Clockwise rotation applied to the selected pages.
+ * Page size for pages the app creates.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "Rotation".
+ * via the `definition` "PageSizeChoice".
  */
-export type Rotation = '90' | '180' | '270';
+export type PageSizeChoice = 'same-as-neighbor' | 'a4' | 'letter' | 'legal' | 'a3';
+/**
+ * A rotation in quarter turns, clockwise.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "RightAngle".
+ */
+export type RightAngle = '0' | '90' | '180' | '270';
 /**
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "Schema".
  */
 export type Schema1 = {} | boolean;
+/**
+ * Orientation of the cut for Split in half.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SplitDirection".
+ */
+export type SplitDirection = 'vertical' | 'horizontal';
 /**
  * Theme choice. `System` follows the Windows app theme.
  *
@@ -196,24 +264,186 @@ export type ToolGroup =
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "ToolId".
  */
-export type ToolId = 'rotate';
+export type ToolId =
+  | 'merge'
+  | 'alternate-mix'
+  | 'organize'
+  | 'split-ranges'
+  | 'split-every-n'
+  | 'extract-pages'
+  | 'remove-pages'
+  | 'split-by-bookmarks'
+  | 'split-in-half'
+  | 'split-by-size'
+  | 'split-by-text'
+  | 'rotate'
+  | 'insert-pages';
 /**
  * Options for any tool. The tag is the tool id.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "ToolOptions".
  */
-export type ToolOptions = {
-  /**
-   * Rotation angle. Default 90.
-   */
-  angle?: '90' | '180' | '270';
-  /**
-   * Pages to rotate: `all`, `even`, `odd` or a range such as `1,3-5`. Default `all`.
-   */
-  pages?: string;
-  tool: 'rotate';
-};
+export type ToolOptions =
+  | {
+      /**
+       * Add a bookmark for each file. Default on.
+       */
+      bookmark_per_file?: boolean;
+      /**
+       * Keep or flatten form fields. Default keep.
+       */
+      forms?: 'keep' | 'flatten';
+      /**
+       * Scale all pages to the size of the first page. Default off.
+       */
+      normalize_page_size?: boolean;
+      /**
+       * Per-file settings, matching the input order. Missing entries use the defaults.
+       */
+      per_file?: MergeFileOptions[];
+      /**
+       * Insert a table of contents page listing the files. Default off.
+       */
+      table_of_contents?: boolean;
+      tool: 'merge';
+    }
+  | {
+      /**
+       * Pages taken from each file per turn, 1 to 1000. Default 1.
+       */
+      pages_per_turn?: number;
+      /**
+       * Per-file settings, matching the input order.
+       */
+      per_file?: AlternateFileOptions[];
+      tool: 'alternate-mix';
+    }
+  | {
+      /**
+       * The pages of the result, in order. Empty means keep the first file as it is.
+       */
+      pages?: OrganizedPage[];
+      tool: 'organize';
+    }
+  | {
+      /**
+       * Put all selected ranges into a single file instead. Default off.
+       */
+      merge_into_one?: boolean;
+      /**
+       * Ranges, each comma-separated element becoming one file: `1-3,4-6,7-`. Default `all`.
+       */
+      ranges?: string;
+      tool: 'split-ranges';
+    }
+  | {
+      /**
+       * Pages per file, at least 1. Default 1.
+       */
+      n?: number;
+      tool: 'split-every-n';
+    }
+  | {
+      /**
+       * One output file with all selected pages (default), or one file per page.
+       */
+      one_file?: boolean;
+      /**
+       * Pages to extract: a range such as `1,3-5,last`. Default `all`.
+       */
+      pages?: string;
+      tool: 'extract-pages';
+    }
+  | {
+      /**
+       * Pages to remove: a range such as `2,4-6`. Default `1`.
+       */
+      pages?: string;
+      tool: 'remove-pages';
+    }
+  | {
+      /**
+       * Outline level to split at, where 1 is the top level. Default 1.
+       */
+      level?: number;
+      /**
+       * Name each file after its bookmark title. Default on.
+       */
+      name_from_bookmark?: boolean;
+      tool: 'split-by-bookmarks';
+    }
+  | {
+      /**
+       * Direction of the cut. Default vertical.
+       */
+      direction?: 'vertical' | 'horizontal';
+      /**
+       * Put the right half before the left half, for right-to-left scans. Default off.
+       */
+      right_to_left?: boolean;
+      /**
+       * Leave the first page whole. Default off.
+       */
+      skip_first?: boolean;
+      /**
+       * Leave the last page whole. Default off.
+       */
+      skip_last?: boolean;
+      tool: 'split-in-half';
+    }
+  | {
+      /**
+       * Largest output file in megabytes (1 MB is 1,048,576 bytes). Default 10.
+       */
+      max_size_mb?: number;
+      tool: 'split-by-size';
+    }
+  | {
+      /**
+       * The region to read on every page, drawn on a page preview. Required.
+       */
+      region?: Region | null;
+      /**
+       * Start a new file only on pages whose region text starts with this. Default none.
+       */
+      starts_with?: string | null;
+      tool: 'split-by-text';
+    }
+  | {
+      /**
+       * Rotation angle, clockwise. Default 90.
+       */
+      angle?: '0' | '90' | '180' | '270';
+      /**
+       * Pages to rotate: `all`, `even`, `odd` or a range such as `1,3-5`. Default `all`.
+       */
+      pages?: string;
+      tool: 'rotate';
+    }
+  | {
+      /**
+       * How many to insert at each place, 1 to 100. Default 1.
+       */
+      count?: number;
+      /**
+       * Blank pages or copies. Default blank.
+       */
+      mode?: 'blank' | 'duplicate';
+      /**
+       * Size of blank pages. Default the same as the neighboring page.
+       */
+      page_size?: 'same-as-neighbor' | 'a4' | 'letter' | 'legal' | 'a3';
+      /**
+       * The pages to insert around: a range such as `1,5`. Default `1`.
+       */
+      pages?: string;
+      /**
+       * Before or after each selected page. Default after.
+       */
+      position?: 'before' | 'after';
+      tool: 'insert-pages';
+    };
 
 /**
  * Every type the UI needs, so one schema export generates all TypeScript types.
@@ -521,6 +751,11 @@ export interface InputSummary {
    */
   kind?: InputKindDto | null;
   /**
+   * Last modified time in seconds since 1970, when the file system reports one. The UI sorts
+   * by it.
+   */
+  modified?: number | null;
+  /**
    * File name for display.
    */
   name: string;
@@ -567,17 +802,166 @@ export interface RunBatchRequest {
   /**
    * Options for the tool.
    */
-  options: {
-    /**
-     * Rotation angle. Default 90.
-     */
-    angle?: '90' | '180' | '270';
-    /**
-     * Pages to rotate: `all`, `even`, `odd` or a range such as `1,3-5`. Default `all`.
-     */
-    pages?: string;
-    tool: 'rotate';
-  };
+  options:
+    | {
+        /**
+         * Add a bookmark for each file. Default on.
+         */
+        bookmark_per_file?: boolean;
+        /**
+         * Keep or flatten form fields. Default keep.
+         */
+        forms?: 'keep' | 'flatten';
+        /**
+         * Scale all pages to the size of the first page. Default off.
+         */
+        normalize_page_size?: boolean;
+        /**
+         * Per-file settings, matching the input order. Missing entries use the defaults.
+         */
+        per_file?: MergeFileOptions[];
+        /**
+         * Insert a table of contents page listing the files. Default off.
+         */
+        table_of_contents?: boolean;
+        tool: 'merge';
+      }
+    | {
+        /**
+         * Pages taken from each file per turn, 1 to 1000. Default 1.
+         */
+        pages_per_turn?: number;
+        /**
+         * Per-file settings, matching the input order.
+         */
+        per_file?: AlternateFileOptions[];
+        tool: 'alternate-mix';
+      }
+    | {
+        /**
+         * The pages of the result, in order. Empty means keep the first file as it is.
+         */
+        pages?: OrganizedPage[];
+        tool: 'organize';
+      }
+    | {
+        /**
+         * Put all selected ranges into a single file instead. Default off.
+         */
+        merge_into_one?: boolean;
+        /**
+         * Ranges, each comma-separated element becoming one file: `1-3,4-6,7-`. Default `all`.
+         */
+        ranges?: string;
+        tool: 'split-ranges';
+      }
+    | {
+        /**
+         * Pages per file, at least 1. Default 1.
+         */
+        n?: number;
+        tool: 'split-every-n';
+      }
+    | {
+        /**
+         * One output file with all selected pages (default), or one file per page.
+         */
+        one_file?: boolean;
+        /**
+         * Pages to extract: a range such as `1,3-5,last`. Default `all`.
+         */
+        pages?: string;
+        tool: 'extract-pages';
+      }
+    | {
+        /**
+         * Pages to remove: a range such as `2,4-6`. Default `1`.
+         */
+        pages?: string;
+        tool: 'remove-pages';
+      }
+    | {
+        /**
+         * Outline level to split at, where 1 is the top level. Default 1.
+         */
+        level?: number;
+        /**
+         * Name each file after its bookmark title. Default on.
+         */
+        name_from_bookmark?: boolean;
+        tool: 'split-by-bookmarks';
+      }
+    | {
+        /**
+         * Direction of the cut. Default vertical.
+         */
+        direction?: 'vertical' | 'horizontal';
+        /**
+         * Put the right half before the left half, for right-to-left scans. Default off.
+         */
+        right_to_left?: boolean;
+        /**
+         * Leave the first page whole. Default off.
+         */
+        skip_first?: boolean;
+        /**
+         * Leave the last page whole. Default off.
+         */
+        skip_last?: boolean;
+        tool: 'split-in-half';
+      }
+    | {
+        /**
+         * Largest output file in megabytes (1 MB is 1,048,576 bytes). Default 10.
+         */
+        max_size_mb?: number;
+        tool: 'split-by-size';
+      }
+    | {
+        /**
+         * The region to read on every page, drawn on a page preview. Required.
+         */
+        region?: Region | null;
+        /**
+         * Start a new file only on pages whose region text starts with this. Default none.
+         */
+        starts_with?: string | null;
+        tool: 'split-by-text';
+      }
+    | {
+        /**
+         * Rotation angle, clockwise. Default 90.
+         */
+        angle?: '0' | '90' | '180' | '270';
+        /**
+         * Pages to rotate: `all`, `even`, `odd` or a range such as `1,3-5`. Default `all`.
+         */
+        pages?: string;
+        tool: 'rotate';
+      }
+    | {
+        /**
+         * How many to insert at each place, 1 to 100. Default 1.
+         */
+        count?: number;
+        /**
+         * Blank pages or copies. Default blank.
+         */
+        mode?: 'blank' | 'duplicate';
+        /**
+         * Size of blank pages. Default the same as the neighboring page.
+         */
+        page_size?: 'same-as-neighbor' | 'a4' | 'letter' | 'legal' | 'a3';
+        /**
+         * The pages to insert around: a range such as `1,5`. Default `1`.
+         */
+        pages?: string;
+        /**
+         * Before or after each selected page. Default after.
+         */
+        position?: 'before' | 'after';
+        tool: 'insert-pages';
+      };
   /**
    * Output folder, or `None` for next to each source.
    */
@@ -585,7 +969,20 @@ export interface RunBatchRequest {
   /**
    * Tool id.
    */
-  tool: 'rotate';
+  tool:
+    | 'merge'
+    | 'alternate-mix'
+    | 'organize'
+    | 'split-ranges'
+    | 'split-every-n'
+    | 'extract-pages'
+    | 'remove-pages'
+    | 'split-by-bookmarks'
+    | 'split-in-half'
+    | 'split-by-size'
+    | 'split-by-text'
+    | 'rotate'
+    | 'insert-pages';
 }
 /**
  * One file the user added, with an optional password for this session.
@@ -602,6 +999,60 @@ export interface InputRef {
    * Path of the file.
    */
   path: string;
+}
+/**
+ * Settings for one input of a merge. Entry `i` applies to input `i`.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "MergeFileOptions".
+ */
+export interface MergeFileOptions {
+  /**
+   * Pages to take from this file. Default `all`.
+   */
+  pages?: string;
+  /**
+   * Extra rotation applied to every page taken from this file. Default none.
+   */
+  rotation?: '0' | '90' | '180' | '270';
+}
+/**
+ * Settings for one input of alternate and mix.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "AlternateFileOptions".
+ */
+export interface AlternateFileOptions {
+  /**
+   * Read this file from its last page backwards, to merge the two passes of a duplex scan.
+   * Default off.
+   */
+  reverse?: boolean;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Region".
+ */
+export interface Region {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
 }
 /**
  * User preferences stored in `settings.toml`. Never holds passwords or keys.
@@ -712,7 +1163,20 @@ export interface ToolDescriptor {
   /**
    * Tool id.
    */
-  id: 'rotate';
+  id:
+    | 'merge'
+    | 'alternate-mix'
+    | 'organize'
+    | 'split-ranges'
+    | 'split-every-n'
+    | 'extract-pages'
+    | 'remove-pages'
+    | 'split-by-bookmarks'
+    | 'split-in-half'
+    | 'split-by-size'
+    | 'split-by-text'
+    | 'rotate'
+    | 'insert-pages';
   /**
    * How a batch maps onto runs: one per file, or all files together.
    */

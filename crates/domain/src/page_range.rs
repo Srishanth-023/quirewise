@@ -65,6 +65,11 @@ impl PageRange {
         }
     }
 
+    /// Builds a range from already parsed items, for example one element of a split list.
+    pub fn from_items(items: Vec<RangeItem>) -> Self {
+        Self { items }
+    }
+
     /// The parsed elements, in the order written.
     pub fn items(&self) -> &[RangeItem] {
         &self.items

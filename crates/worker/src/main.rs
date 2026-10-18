@@ -1,7 +1,6 @@
 //! `quirewise-worker.exe`: parses untrusted PDFs inside a Job Object and serves the app over stdio.
 #![forbid(unsafe_code)]
 
-use application::ToolRegistry;
 use domain::limits::SafetyLimits;
 use infrastructure::{AtomicFileStore, NativePaths, SystemClock, TracingLogger};
 use quirewise_worker::engine::{Engines, build_services};
@@ -49,17 +48,20 @@ fn main() -> ExitCode {
         }
     };
 
-    let mut registry = ToolRegistry::new();
-    application::tools::register_all(&mut registry);
-    let services = build_services(
+    let services = match build_services(
         &engines,
-        registry,
         Arc::new(AtomicFileStore),
         Arc::new(SystemClock),
         Arc::new(TracingLogger),
         defaults,
         std::env::temp_dir().join("Quirewise"),
-    );
+    ) {
+        Ok(services) => services,
+        Err(error) => {
+            eprintln!("quirewise-worker: {error}");
+            return ExitCode::from(1);
+        }
+    };
 
     match quirewise_worker::serve(std::io::stdin().lock(), std::io::stdout(), services) {
         Ok(()) => ExitCode::SUCCESS,

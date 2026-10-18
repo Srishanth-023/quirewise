@@ -11,3 +11,13 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+domain.workspace = true
+application.workspace = true
+flate2 = "1.1.10"
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "gif", "bmp", "tiff", "webp"] }
+lopdf = { version = "0.45.0", default-features = false }
+
+[dev-dependencies]
+tempfile = "3"

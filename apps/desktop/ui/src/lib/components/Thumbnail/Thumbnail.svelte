@@ -12,9 +12,13 @@
     /** Longest edge in pixels. */
     edge?: number;
     onloaded?: (thumb: Thumb) => void;
+    /** Extra clockwise turn shown on the picture, for previews of a rotation not yet applied. */
+    turn?: number;
+    /** Show the page number under the picture. */
+    caption?: boolean;
   }
 
-  let { path, password = null, page, edge = 160, onloaded }: Props = $props();
+  let { path, password = null, page, edge = 160, onloaded, turn = 0, caption = true }: Props = $props();
 
   let host: HTMLElement | undefined = $state();
   let thumb = $state<Thumb | null>(null);
@@ -55,13 +59,19 @@
 
 <figure class="thumb" bind:this={host}>
   {#if thumb}
-    <img src={thumb.url} width={thumb.width} height={thumb.height} alt={t('viewer.page', { n: page + 1 })} />
+    <img
+      src={thumb.url}
+      width={thumb.width}
+      height={thumb.height}
+      alt={t('viewer.page', { n: page + 1 })}
+      style:transform={turn ? `rotate(${turn}deg)` : undefined}
+    />
   {:else}
     <div class="blank" class:failed role="img" aria-label={t('viewer.page', { n: page + 1 })}>
       {#if failed}{t('viewer.failed')}{/if}
     </div>
   {/if}
-  <figcaption class="mono">{page + 1}</figcaption>
+  {#if caption}<figcaption class="mono">{page + 1}</figcaption>{/if}
 </figure>
 
 <style>

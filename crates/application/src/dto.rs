@@ -53,6 +53,9 @@ pub struct InputSummary {
     pub kind: Option<InputKindDto>,
     /// Why the file cannot be used, when it cannot.
     pub error: Option<AppError>,
+    /// Last modified time in seconds since 1970, when the file system reports one. The UI sorts
+    /// by it.
+    pub modified: Option<u64>,
 }
 
 /// Wire form of [`InputKind`].
@@ -105,6 +108,7 @@ pub fn classify_inputs(files: &dyn FileStore, paths: &[PathBuf]) -> DropAnalysis
             name,
             kind,
             error,
+            modified: files.modified_unix(path),
         });
     }
     DropAnalysis {
@@ -214,6 +218,13 @@ mod tests {
         let a = classify_inputs(&files(), &[p("C:\\a.pdf"), p("C:\\b.pdf")]);
         assert_eq!(a.suggestions, vec![Suggestion::Merge]);
         assert!(a.files.iter().all(|f| f.kind == Some(InputKindDto::Pdf)));
+    }
+
+    #[test]
+    fn the_modified_time_is_reported_when_known() {
+        let a = classify_inputs(&files(), &[p("C:\\a.pdf"), p("C:\\missing.pdf")]);
+        assert_eq!(a.files[0].modified, Some(1_700_000_000));
+        assert_eq!(a.files[1].modified, None);
     }
 
     #[test]

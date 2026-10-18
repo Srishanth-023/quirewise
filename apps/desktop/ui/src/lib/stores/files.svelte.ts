@@ -12,6 +12,8 @@ export interface FileEntry {
   path: string;
   name: string;
   kind: InputKindDto;
+  /** Last modified time in seconds since 1970, when known. */
+  modified?: number | null;
   report?: DocumentReport;
   /** Why the file cannot be inspected, such as a wrong password. */
   problem?: AppError;
@@ -65,6 +67,7 @@ class FileSet {
         path: file.path,
         name: file.name,
         kind: file.kind,
+        modified: file.modified,
         status: 'pending',
         outputs: [],
       });
@@ -125,6 +128,19 @@ class FileSet {
     const [item] = next.splice(from, 1);
     if (item) next.splice(to, 0, item);
     this.entries = next;
+  }
+
+  /**
+   * Orders the list by name (natural order, so "part 2" comes before "part 10") or by last
+   * modified time, oldest first. Files without a time go last. The sort is stable.
+   */
+  sort(by: 'name' | 'modified'): void {
+    const time = (e: FileEntry): number => e.modified ?? Number.POSITIVE_INFINITY;
+    this.entries = [...this.entries].sort((a, b) =>
+      by === 'name'
+        ? a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+        : time(a) - time(b),
+    );
   }
 
   select(id: number): void {

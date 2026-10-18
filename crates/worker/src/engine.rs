@@ -4,13 +4,15 @@
 use application::inspect::InspectDocument;
 use application::ports::{Clock, FileStore, Logger, PdfReader, PdfVerifier};
 use application::query::QueryService;
+use application::tools::{ToolDeps, register_all};
 use application::{AppError, Password, RunTool, ToolRegistry};
 use domain::ErrorCode;
 use domain::limits::SafetyLimits;
 use infrastructure::NativePaths;
-use quirewise_engine_lopdf_ops::LopdfStructure;
+use quirewise_engine_lopdf_ops::{LopdfEditor, LopdfStructure, LopdfToc};
 use quirewise_engine_pdfium::PdfiumEngine;
 use quirewise_engine_qpdf::QpdfCli;
+use quirewise_engine_raster::RasterConverter;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -81,16 +83,35 @@ impl PdfVerifier for CompositeVerifier {
     }
 }
 
-/// Everything the worker serves with, built from loaded engines and shared ports.
+/// The ports every tool is built on, backed by the loaded engines.
+pub fn tool_deps(engines: &Engines) -> ToolDeps {
+    ToolDeps {
+        reader: Arc::new(engines.pdfium),
+        writer: Arc::new(engines.qpdf.clone()),
+        editor: Arc::new(LopdfEditor),
+        toc: Arc::new(LopdfToc),
+        images: Arc::new(RasterConverter),
+        outlines: Arc::new(engines.pdfium),
+        text: Arc::new(engines.pdfium),
+        flattener: Arc::new(engines.pdfium),
+        verifier: Arc::new(CompositeVerifier::new(engines.clone())),
+    }
+}
+
+/// Everything the worker serves with: every tool registered over the loaded engines, plus the
+/// read-only queries. Creates the scratch folder.
 pub fn build_services(
     engines: &Engines,
-    registry: ToolRegistry,
     files: Arc<dyn FileStore>,
     clock: Arc<dyn Clock>,
     logger: Arc<dyn Logger>,
     limits: SafetyLimits,
     temp_dir: PathBuf,
-) -> Services {
+) -> Result<Services, AppError> {
+    std::fs::create_dir_all(&temp_dir)
+        .map_err(|e| AppError::from_io("create the scratch folder", &e))?;
+    let mut registry = ToolRegistry::new();
+    register_all(&mut registry, &tool_deps(engines))?;
     let reader: Arc<dyn PdfReader> = Arc::new(engines.pdfium);
     let inspect = InspectDocument::new(
         Arc::clone(&files),
@@ -114,10 +135,10 @@ pub fn build_services(
         limits,
         temp_dir,
     );
-    Services {
+    Ok(Services {
         runner: Arc::new(runner),
         queries: Arc::new(queries),
-    }
+    })
 }
 
 #[cfg(test)]
@@ -164,13 +185,13 @@ mod tests {
     fn services() -> Services {
         build_services(
             &engines(),
-            ToolRegistry::new(),
             Arc::new(AtomicFileStore),
             Arc::new(SystemClock),
             Arc::new(TracingLogger),
             SafetyLimits::default(),
-            std::env::temp_dir(),
+            std::env::temp_dir().join("quirewise-tests"),
         )
+        .unwrap()
     }
 
     fn inspect(path: &Path, password: Option<Password>) -> Result<DocumentReport, AppError> {

@@ -5,11 +5,14 @@
 //! process list or on disk.
 #![forbid(unsafe_code)]
 
+mod assemble;
+mod blank;
 mod process;
 
 use application::AppError;
 use application::Password;
-use application::ports::PdfWriter;
+use application::ports::{AssemblyPlan, PdfWriter};
+use domain::tools::common::RightAngle;
 use domain::{ErrorCode, PageIndex};
 use process::{Output, run};
 use std::ffi::OsString;
@@ -18,6 +21,12 @@ use std::time::Duration;
 
 /// Default time limit for one qpdf run.
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(600);
+
+/// Makes a path absolute without touching the file system. qpdf runs with its own folder as the
+/// working directory, so relative paths would point at the wrong place.
+pub(crate) fn absolute(path: &Path) -> PathBuf {
+    std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf())
+}
 
 /// How a qpdf run ended when it did not fail.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,7 +60,7 @@ impl QpdfCli {
         self
     }
 
-    fn execute(
+    pub(crate) fn execute(
         &self,
         args: Vec<OsString>,
         password: Option<&Password>,
@@ -77,7 +86,7 @@ impl QpdfCli {
             args.push("--password-file=-".into());
         }
         args.push("--check".into());
-        args.push(path.into());
+        args.push(absolute(path).into_os_string());
         self.execute(args, password, password.is_some())
             .map(|(_, outcome)| outcome)
     }
@@ -104,13 +113,46 @@ impl PdfWriter for QpdfCli {
             args.push("--password-file=-".into());
         }
         args.push("--decrypt".into());
-        args.push(source.into());
+        args.push(absolute(source).into_os_string());
         args.push("--pages".into());
         args.push(".".into());
         args.push(list.join(",").into());
         args.push("--".into());
-        args.push(dest.into());
+        args.push(absolute(dest).into_os_string());
         self.execute(args, password, password.is_some()).map(|_| ())
+    }
+
+    /// Turns the given pages further and writes everything else unchanged. The output is
+    /// unencrypted.
+    fn rotate(
+        &self,
+        source: &Path,
+        password: Option<&Password>,
+        rotations: &[(PageIndex, RightAngle)],
+        dest: &Path,
+    ) -> Result<(), AppError> {
+        let numbered: Vec<(u32, RightAngle)> = rotations
+            .iter()
+            .map(|(page, angle)| (page.get() + 1, *angle))
+            .collect();
+        let mut args: Vec<OsString> = Vec::new();
+        if password.is_some() {
+            args.push("--password-file=-".into());
+        }
+        args.push("--decrypt".into());
+        args.push(absolute(source).into_os_string());
+        args.push(absolute(dest).into_os_string());
+        args.extend(
+            assemble::rotate_args(&numbered)
+                .into_iter()
+                .map(OsString::from),
+        );
+        self.execute(args, password, password.is_some()).map(|_| ())
+    }
+
+    /// Builds a document from several sources and blank pages in one run.
+    fn assemble(&self, plan: &AssemblyPlan, temp_dir: &Path, dest: &Path) -> Result<(), AppError> {
+        assemble::assemble(self, plan, temp_dir, dest)
     }
 }
 
@@ -307,5 +349,245 @@ mod tests {
             map_failure("something unexpected", false).code,
             ErrorCode::Internal
         );
+    }
+
+    fn npages(path: &Path) -> usize {
+        let out = std::process::Command::new(qpdf_exe().unwrap())
+            .arg("--show-npages")
+            .arg(path)
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&out.stdout).trim().parse().unwrap()
+    }
+
+    /// The document with object streams expanded, so page content can be searched as text.
+    fn expanded(dir: &tempfile::TempDir, path: &Path) -> String {
+        let out = dir.path().join(format!(
+            "expanded-{}.pdf",
+            path.file_name().unwrap().to_string_lossy()
+        ));
+        let status = std::process::Command::new(qpdf_exe().unwrap())
+            .args(["--qdf", "--object-streams=disable"])
+            .arg(path)
+            .arg(&out)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        String::from_utf8_lossy(&std::fs::read(out).unwrap()).into_owned()
+    }
+
+    fn source(path: &Path) -> application::ports::SourceDoc {
+        application::ports::SourceDoc {
+            path: path.to_path_buf(),
+            password: None,
+        }
+    }
+
+    fn src_page(source: usize, page: u32, rotate: RightAngle) -> application::ports::PlannedPage {
+        application::ports::PlannedPage::Source {
+            source,
+            page: PageIndex::new(page),
+            rotate,
+        }
+    }
+
+    #[test]
+    fn assemble_interleaves_sources_and_rotates_output_pages() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = write(
+            &dir,
+            "a.pdf",
+            &test_support::pdfs::pdf_with_texts(&["A1", "A2", "A3"]),
+        );
+        let b = write(
+            &dir,
+            "b.pdf",
+            &test_support::pdfs::pdf_with_texts(&["B1", "B2"]),
+        );
+        let dest = dir.path().join("mixed.pdf");
+        let plan = application::ports::AssemblyPlan {
+            sources: vec![source(&a), source(&b)],
+            pages: vec![
+                src_page(0, 0, RightAngle::Deg0),
+                src_page(1, 0, RightAngle::Deg0),
+                src_page(0, 1, RightAngle::Deg90),
+                src_page(1, 1, RightAngle::Deg0),
+            ],
+        };
+        qpdf().assemble(&plan, dir.path(), &dest).unwrap();
+        assert_eq!(npages(&dest), 4);
+        assert_eq!(qpdf().check(&dest, None).unwrap(), CheckOutcome::Clean);
+        let text = expanded(&dir, &dest);
+        let order: Vec<usize> = ["(A1)", "(B1)", "(A2)", "(B2)"]
+            .iter()
+            .map(|t| text.find(t).unwrap())
+            .collect();
+        assert!(
+            order.windows(2).all(|w| w[0] < w[1]),
+            "pages are interleaved: {order:?}"
+        );
+        assert!(!text.contains("(A3)"));
+        assert_eq!(
+            text.matches("/Rotate 90").count(),
+            1,
+            "only the third page is turned"
+        );
+    }
+
+    #[test]
+    fn assemble_inserts_blank_pages_and_duplicates_pages() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = write(
+            &dir,
+            "a.pdf",
+            &test_support::pdfs::pdf_with_texts(&["A1", "A2"]),
+        );
+        let dest = dir.path().join("out.pdf");
+        let plan = application::ports::AssemblyPlan {
+            sources: vec![source(&a)],
+            pages: vec![
+                src_page(0, 0, RightAngle::Deg0),
+                application::ports::PlannedPage::Blank {
+                    width_pt: 300.0,
+                    height_pt: 400.0,
+                },
+                src_page(0, 0, RightAngle::Deg0),
+                application::ports::PlannedPage::Blank {
+                    width_pt: 300.0,
+                    height_pt: 400.0,
+                },
+                src_page(0, 1, RightAngle::Deg0),
+            ],
+        };
+        qpdf().assemble(&plan, dir.path(), &dest).unwrap();
+        assert_eq!(npages(&dest), 5);
+        let text = expanded(&dir, &dest);
+        // A duplicated page is a second page object over the same content stream.
+        let pages = text.matches("/Type /Page").count() - text.matches("/Type /Pages").count();
+        assert_eq!(pages, 5);
+        assert!(text.contains("(A1)") && text.contains("(A2)"));
+        let compact = text
+            .split_whitespace()
+            .collect::<String>()
+            .replace(".00", "");
+        assert_eq!(
+            compact.matches("/MediaBox[00300400]").count(),
+            2,
+            "two blank pages"
+        );
+    }
+
+    #[test]
+    fn assemble_reads_password_protected_sources_without_a_password_on_the_command_line() {
+        let dir = tempfile::tempdir().unwrap();
+        let plain = write(
+            &dir,
+            "p.pdf",
+            &test_support::pdfs::pdf_with_texts(&["P1", "P2"]),
+        );
+        let locked = dir.path().join("locked.pdf");
+        test_support::encrypt_pdf(&plain, &locked, "open");
+        let other = write(&dir, "o.pdf", &test_support::pdfs::pdf_with_texts(&["O1"]));
+        let dest = dir.path().join("out.pdf");
+        let plan = application::ports::AssemblyPlan {
+            sources: vec![
+                application::ports::SourceDoc {
+                    path: locked.clone(),
+                    password: Some(Password::new("open")),
+                },
+                source(&other),
+            ],
+            pages: vec![
+                src_page(0, 1, RightAngle::Deg0),
+                src_page(1, 0, RightAngle::Deg0),
+            ],
+        };
+        qpdf().assemble(&plan, dir.path(), &dest).unwrap();
+        assert_eq!(npages(&dest), 2);
+        assert_eq!(
+            qpdf().check(&dest, None).unwrap(),
+            CheckOutcome::Clean,
+            "output is not encrypted"
+        );
+
+        let wrong = application::ports::AssemblyPlan {
+            sources: vec![application::ports::SourceDoc {
+                path: locked,
+                password: Some(Password::new("bad")),
+            }],
+            pages: vec![src_page(0, 0, RightAngle::Deg0)],
+        };
+        let err = qpdf()
+            .assemble(&wrong, dir.path(), &dir.path().join("x.pdf"))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::PdfWrongPassword);
+    }
+
+    #[test]
+    fn assemble_cleans_up_scratch_files_and_handles_spaces_in_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let folder = dir.path().join("my files (copy)");
+        std::fs::create_dir_all(&folder).unwrap();
+        let a = folder.join("in put.pdf");
+        std::fs::write(&a, test_support::pdfs::pdf_with_texts(&["A1"])).unwrap();
+        let scratch = dir.path().join("scratch");
+        let dest = folder.join("out (merged).pdf");
+        let plan = application::ports::AssemblyPlan {
+            sources: vec![source(&a)],
+            pages: vec![
+                src_page(0, 0, RightAngle::Deg0),
+                application::ports::PlannedPage::Blank {
+                    width_pt: 100.0,
+                    height_pt: 100.0,
+                },
+            ],
+        };
+        qpdf().assemble(&plan, &scratch, &dest).unwrap();
+        assert_eq!(npages(&dest), 2);
+        assert_eq!(
+            std::fs::read_dir(&scratch).unwrap().count(),
+            0,
+            "no scratch files remain"
+        );
+    }
+
+    #[test]
+    fn assemble_refuses_an_empty_plan() {
+        let dir = tempfile::tempdir().unwrap();
+        let plan = application::ports::AssemblyPlan {
+            sources: vec![],
+            pages: vec![],
+        };
+        let err = qpdf()
+            .assemble(&plan, dir.path(), &dir.path().join("x.pdf"))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::OptionInvalid);
+    }
+
+    #[test]
+    fn rotate_turns_chosen_pages_and_keeps_the_rest() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = write(
+            &dir,
+            "a.pdf",
+            &test_support::pdfs::pdf_with_texts(&["A1", "A2", "A3"]),
+        );
+        let dest = dir.path().join("r.pdf");
+        qpdf()
+            .rotate(
+                &a,
+                None,
+                &[
+                    (PageIndex::new(1), RightAngle::Deg90),
+                    (PageIndex::new(2), RightAngle::Deg180),
+                ],
+                &dest,
+            )
+            .unwrap();
+        assert_eq!(npages(&dest), 3);
+        let text = expanded(&dir, &dest);
+        assert_eq!(text.matches("/Rotate 90").count(), 1);
+        assert_eq!(text.matches("/Rotate 180").count(), 1);
+        assert_eq!(text.matches("/Rotate 0").count(), 1);
     }
 }

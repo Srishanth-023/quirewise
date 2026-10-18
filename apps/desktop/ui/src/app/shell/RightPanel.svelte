@@ -1,6 +1,8 @@
 <script lang="ts">
   import { t, tDynamic } from '../../lib/i18n';
   import Inspect from '../../lib/features/inspect/View.svelte';
+  import RegionPicker from '../../lib/features/split-by-text/RegionPicker.svelte';
+  import SchemaForm from '../../lib/forms/SchemaForm.svelte';
   import { files } from '../../lib/stores/files.svelte';
   import { tools, toolName } from '../../lib/stores/tools.svelte';
   import type { Suggestion } from '../../lib/ipc/generated';
@@ -37,7 +39,13 @@
   <section aria-labelledby="options-title">
     <h2 id="options-title">{t('options.title')}</h2>
     {#if tools.selected}
-      <p class="muted">{toolName(tools.selected)}</p>
+      <p class="tool">{toolName(tools.selected)}</p>
+      {#key tools.selected.id}
+        <SchemaForm tool={tools.selected} />
+        {#if tools.selected.id === 'split-by-text'}
+          <RegionPicker tool={tools.selected} />
+        {/if}
+      {/key}
     {:else}
       <p class="muted">{t('options.empty')}</p>
     {/if}
@@ -59,6 +67,10 @@
   }
   h2 {
     margin: 0 0 var(--space-3);
+  }
+  .tool {
+    margin: 0 0 var(--space-4);
+    font-weight: 500;
   }
   .muted {
     margin: 0;

@@ -11,6 +11,13 @@ pub const OBJECT_SCAN_PAGES: usize = 500;
 /// Pages checked for a text layer.
 const TEXT_PROBE_PAGES: usize = 5;
 
+/// All text on a page. `PdfPageText::all()` only looks inside the displayed page size, which misses
+/// text on rotated pages and on pages whose box does not start at the origin, so this reads a
+/// rectangle that covers any page.
+pub fn all_text(text: &PdfPageText<'_>) -> String {
+    text.inside_rect(PdfRect::new_from_values(-1.0e6, -1.0e6, 1.0e6, 1.0e6))
+}
+
 /// True when the document is encrypted. PDFium cannot name AES-256 handler revisions, which
 /// surfaces as an unknown revision, so anything but "unprotected" counts as encrypted.
 pub fn is_encrypted(doc: &PdfDocument<'_>) -> bool {
@@ -63,7 +70,7 @@ pub fn collect(doc: &PdfDocument<'_>) -> PdfiumFacts {
         if index < TEXT_PROBE_PAGES && !has_text_layer {
             has_text_layer = page
                 .text()
-                .map(|t| !t.all().trim().is_empty())
+                .map(|t| !all_text(&t).trim().is_empty())
                 .unwrap_or(false);
         }
         if index < OBJECT_SCAN_PAGES {

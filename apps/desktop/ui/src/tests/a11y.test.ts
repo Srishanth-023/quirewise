@@ -1,7 +1,7 @@
 import axe from 'axe-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
-import { analysis, report } from './fixtures';
+import { analysis, report, rotateSchema } from './fixtures';
 
 const ipc = vi.hoisted(() => ({
   appVersion: vi.fn(),
@@ -36,7 +36,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   ipc.appVersion.mockResolvedValue('0.1.0');
   ipc.listTools.mockResolvedValue([
-    { id: 'rotate', group: 'edit', label: 'rotated', input_mode: 'per-file', options_schema: {} },
+    { id: 'rotate', group: 'edit', label: 'rotated', input_mode: 'per-file', options_schema: rotateSchema },
   ]);
   ipc.recentList.mockResolvedValue([{ path: 'C:\\old.pdf', name: 'old.pdf', opened_at: 1 }]);
   ipc.renderThumbnail.mockResolvedValue(png);
@@ -63,10 +63,10 @@ describe('accessibility', () => {
 
   it('workspace with a file, selected tool and inspect panel is clean', async () => {
     render(App);
-    await screen.findByRole('button', { name: 'rotated' });
+    await screen.findByRole('button', { name: 'Rotate' });
     await files.add(['C:\\a.pdf', 'C:\\b.pdf']);
-    await fireEvent.click(screen.getByRole('button', { name: 'rotated' }));
-    await screen.findByRole('button', { name: /Run rotated on 2 files/ });
+    await fireEvent.click(screen.getByRole('button', { name: 'Rotate' }));
+    await screen.findByRole('button', { name: /Run Rotate on 2 files/ });
     await waitFor(() => expect(screen.getAllByRole('img').length).toBeGreaterThan(0));
     expect(await violations()).toEqual([]);
   });

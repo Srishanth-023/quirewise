@@ -21,3 +21,8 @@ Questions are recorded here and work continues with the safest default (AGENTS.m
 | 15 | Installed layout for native files: native/pdfium/pdfium.dll, native/qpdf/qpdf.exe, and quirewise-worker.exe next to the app | The locator and tests assume it; the installer must lay files out this way | Phase 13 NSIS packaging |
 | 16 | Inspect scans fonts and images on the first 500 pages only | Report says how many pages were scanned | Revisit with the performance pass |
 | 17 | Dev mock for the Tauri IPC (`src/dev/mockTauri.ts`) lets the UI run in a browser; it uses a real PDFium render as the page image | Compiled out of production builds (checked) | None |
+| 18 | Split by size packs with measured page sizes (up to 300 pages, the average beyond) and then verifies and halves any file over the limit | Output files can be somewhat under the limit; a single oversize page becomes its own file with a warning | Revisit with the performance pass |
+| 19 | Scaling pages (Merge, normalize page size) does not move annotations | Documented in docs/tools/merge.md; flatten forms first for exact results | Handle annotations in the Edit phase |
+| 20 | The Merge contents page has no clickable links | Plain list, 35 lines per page | Add link annotations with the Edit tools |
+| 21 | Images converted by Merge are sized at 150 dpi, so small images give small pages | Normalize page size is available | Offer a page size choice for images |
+| 22 | Per-file options of multi-input tools use one `per_file` array matching the input order; missing entries use defaults | Same convention in Merge and Alternate and Mix; the UI shows one group per file | None |

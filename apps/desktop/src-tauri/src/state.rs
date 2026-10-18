@@ -2,6 +2,7 @@
 
 use application::ports::{FileStore, SettingsStore};
 use application::query::QueryRunner;
+use application::tools::ToolDeps;
 use application::{AppError, RecentFiles, ToolRegistry};
 use infrastructure::logging::LogGuard;
 use infrastructure::{
@@ -61,7 +62,8 @@ impl AppState {
         let worker = worker_exe()?;
 
         let mut registry = ToolRegistry::new();
-        application::tools::register_all(&mut registry);
+        // The app process only needs the tool descriptions; units run in the worker.
+        application::tools::register_all(&mut registry, &ToolDeps::unavailable())?;
 
         let cores = std::thread::available_parallelism().map_or(2, usize::from);
         let jobs = JobManager::new(

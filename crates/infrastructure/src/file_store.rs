@@ -80,10 +80,25 @@ impl FileStore for AtomicFileStore {
         Ok(head)
     }
 
-    fn write_atomic(
+    fn remove_file(&self, path: &Path) {
+        // Best effort: leftovers are wiped with the session scratch folder.
+        let _ = fs::remove_file(path);
+    }
+
+    fn modified_unix(&self, path: &Path) -> Option<u64> {
+        fs::metadata(path)
+            .ok()?
+            .modified()
+            .ok()?
+            .duration_since(UNIX_EPOCH)
+            .ok()
+            .map(|d| d.as_secs())
+    }
+
+    fn publish(
         &self,
         dest: &Path,
-        write: &mut dyn FnMut(&mut dyn Write) -> io::Result<()>,
+        produce: &mut dyn FnMut(&Path) -> Result<(), AppError>,
         verify: &dyn Fn(&Path) -> Result<(), AppError>,
     ) -> Result<PathBuf, AppError> {
         let denied = || {
@@ -99,26 +114,22 @@ impl FileStore for AtomicFileStore {
             .parent()
             .filter(|d| !d.as_os_str().is_empty())
             .ok_or_else(|| AppError::internal("choosing the output folder"))?;
+        // A chosen output folder may not exist yet (`qw run --out`, a new folder in the app).
+        fs::create_dir_all(dir).map_err(|e| AppError::from_io("create the output folder", &e))?;
         let temp = dir.join(temp_name(dest));
-
-        let file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&temp)
-            .map_err(|e| AppError::from_io("create the output file", &e))?;
         let mut guard = TempGuard {
             path: &temp,
             armed: true,
         };
 
-        let mut writer = BufWriter::new(file);
-        write(&mut writer).map_err(|e| AppError::from_io("write the output", &e))?;
-        let file = writer
-            .into_inner()
-            .map_err(|e| AppError::from_io("write the output", e.error()))?;
-        file.sync_all()
+        produce(&temp)?;
+        // The engine wrote the file; make sure it reached the disk before it is verified.
+        // Windows needs write access to flush file buffers.
+        OpenOptions::new()
+            .write(true)
+            .open(&temp)
+            .and_then(|f| f.sync_all())
             .map_err(|e| AppError::from_io("save the output", &e))?;
-        drop(file);
 
         verify(&temp)?;
 
@@ -138,6 +149,30 @@ impl FileStore for AtomicFileStore {
         }
         // `guard` still armed: it removes the now-redundant temp name.
         Ok(dest.to_path_buf())
+    }
+
+    fn write_atomic(
+        &self,
+        dest: &Path,
+        write: &mut dyn FnMut(&mut dyn Write) -> io::Result<()>,
+        verify: &dyn Fn(&Path) -> Result<(), AppError>,
+    ) -> Result<PathBuf, AppError> {
+        self.publish(
+            dest,
+            &mut |temp| {
+                let file = OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(temp)
+                    .map_err(|e| AppError::from_io("create the output file", &e))?;
+                let mut writer = BufWriter::new(file);
+                write(&mut writer).map_err(|e| AppError::from_io("write the output", &e))?;
+                writer
+                    .flush()
+                    .map_err(|e| AppError::from_io("write the output", &e))
+            },
+            verify,
+        )
     }
 }
 
@@ -238,6 +273,17 @@ mod tests {
     }
 
     #[test]
+    fn creates_a_missing_output_folder() {
+        let dir = tempdir().unwrap();
+        let dest = dir.path().join("new").join("deeper").join("out.pdf");
+        AtomicFileStore
+            .write_atomic(&dest, &mut |w| w.write_all(b"data"), &|_| Ok(()))
+            .unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), b"data");
+        assert!(leftovers(dest.parent().unwrap()).is_empty());
+    }
+
+    #[test]
     fn read_head_and_len_and_canonicalize() {
         let dir = tempdir().unwrap();
         let file = dir.path().join("a.bin");
@@ -277,5 +323,81 @@ mod tests {
         replace_own_file(&file, b"a = 2").unwrap();
         assert_eq!(fs::read(&file).unwrap(), b"a = 2");
         assert!(leftovers(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn publish_lets_an_engine_write_to_a_temp_path_then_publishes_it() {
+        let dir = tempdir().unwrap();
+        let dest = dir.path().join("engine out.pdf");
+        let seen = std::cell::RefCell::new(None);
+        let path = AtomicFileStore
+            .publish(
+                &dest,
+                &mut |temp| {
+                    assert_eq!(
+                        temp.parent(),
+                        dest.parent(),
+                        "temp lives next to the destination"
+                    );
+                    assert!(!dest.exists());
+                    fs::write(temp, b"engine output").map_err(|e| AppError::from_io("write", &e))
+                },
+                &|temp| {
+                    *seen.borrow_mut() = Some(fs::read(temp).unwrap());
+                    Ok(())
+                },
+            )
+            .unwrap();
+        assert_eq!(fs::read(&path).unwrap(), b"engine output");
+        assert_eq!(seen.borrow().as_deref(), Some(&b"engine output"[..]));
+        assert!(leftovers(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn publish_failures_leave_no_output_and_no_temp() {
+        let dir = tempdir().unwrap();
+        let dest = dir.path().join("a.pdf");
+        let failing = AtomicFileStore.publish(
+            &dest,
+            &mut |temp| {
+                fs::write(temp, b"partial").unwrap();
+                Err(AppError::new(ErrorCode::PdfDamaged, "engine failed"))
+            },
+            &|_| Ok(()),
+        );
+        assert_eq!(failing.unwrap_err().code, ErrorCode::PdfDamaged);
+        assert!(!dest.exists());
+        assert!(leftovers(dir.path()).is_empty());
+
+        // An engine that reports success without writing anything fails verification of a missing file.
+        let silent = AtomicFileStore.publish(&dest, &mut |_| Ok(()), &|_| Ok(()));
+        assert!(silent.is_err());
+        assert!(!dest.exists());
+    }
+
+    #[test]
+    fn publish_never_overwrites() {
+        let dir = tempdir().unwrap();
+        let dest = dir.path().join("keep.pdf");
+        fs::write(&dest, b"original").unwrap();
+        let result = AtomicFileStore.publish(
+            &dest,
+            &mut |t| fs::write(t, b"new").map_err(|e| AppError::from_io("w", &e)),
+            &|_| Ok(()),
+        );
+        assert_eq!(result.unwrap_err().code, ErrorCode::PathDenied);
+        assert_eq!(fs::read(&dest).unwrap(), b"original");
+    }
+
+    #[test]
+    fn remove_file_and_modified_time() {
+        let dir = tempdir().unwrap();
+        let file = dir.path().join("x.tmp");
+        fs::write(&file, b"x").unwrap();
+        assert!(AtomicFileStore.modified_unix(&file).unwrap() > 1_767_225_600);
+        AtomicFileStore.remove_file(&file);
+        assert!(!file.exists());
+        AtomicFileStore.remove_file(&file);
+        assert_eq!(AtomicFileStore.modified_unix(&file), None);
     }
 }

@@ -18,7 +18,7 @@ fn unit() -> UnitRequest {
 }
 
 #[test]
-fn worker_round_trip_reports_unregistered_tools_as_a_failed_unit() {
+fn worker_round_trip_reports_a_missing_input_as_a_failed_unit() {
     let supervisor = WorkerSupervisor::new(
         PathBuf::from(env!("CARGO_BIN_EXE_quirewise-worker")),
         SafetyLimits::default(),
@@ -26,8 +26,8 @@ fn worker_round_trip_reports_unregistered_tools_as_a_failed_unit() {
     let err = supervisor
         .run_unit(&unit(), &CancellationToken::new(), &NoProgress)
         .unwrap_err();
-    // Phase 1 registers no tools, so the worker answers with a catalog error, not a crash.
-    assert_eq!(err.code, ErrorCode::Internal);
+    // The worker answers with a catalog error for the file, not a crash.
+    assert_eq!(err.code, ErrorCode::PathDenied);
 }
 
 #[test]

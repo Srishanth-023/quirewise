@@ -1,7 +1,7 @@
 //! The tool contract (MASTER_PROMPT.md section 4) and the types it exchanges.
 
 use domain::naming::{NameContext, OutputNamingPattern};
-use domain::{PageSelection, ToolId, ToolOptions};
+use domain::{ToolId, ToolOptions};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -59,17 +59,6 @@ impl InputDoc {
     }
 }
 
-/// One output a validated plan will produce.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PlannedOutput {
-    /// Index into the plan's inputs this output derives from.
-    pub input_index: usize,
-    /// Pages carried into the output, when the tool selects pages.
-    pub pages: Option<PageSelection>,
-    /// File extension without the dot.
-    pub extension: String,
-}
-
 /// The validated work a tool will do. Built by [`Tool::validate`], consumed by [`Tool::execute`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct Plan {
@@ -79,8 +68,6 @@ pub struct Plan {
     pub inputs: Vec<InputDoc>,
     /// Validated options.
     pub options: ToolOptions,
-    /// Outputs to produce.
-    pub outputs: Vec<PlannedOutput>,
     /// Total progress units (usually pages), so progress is determinate.
     pub total_units: u64,
 }

@@ -9,11 +9,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 
 use crate::error::AppError;
-use crate::ports::{Clock, DocumentInfo, FileStore, LogLevel, Logger, PdfReader};
+use crate::ports::{Clock, DocumentInfo, FileStore, LogLevel, Logger, PageSize, PdfReader};
 use crate::runtime::Password;
 use crate::tool::{
-    InputDoc, InputKind, JobContext, OutputArtifact, Plan, PlannedOutput, Tool, ToolError,
-    ValidationError,
+    InputDoc, InputKind, JobContext, OutputArtifact, Plan, Tool, ToolError, ValidationError,
 };
 
 /// A file store backed by a map. Paths are used verbatim.
@@ -72,6 +71,27 @@ impl FileStore for MemoryFiles {
             .ok_or_else(|| {
                 AppError::from_io("read the file", &io::Error::from(io::ErrorKind::NotFound))
             })
+    }
+
+    fn remove_file(&self, path: &Path) {
+        self.lock().remove(path);
+    }
+
+    fn modified_unix(&self, path: &Path) -> Option<u64> {
+        self.exists(path).then_some(1_700_000_000)
+    }
+
+    fn publish(
+        &self,
+        dest: &Path,
+        produce: &mut dyn FnMut(&Path) -> Result<(), AppError>,
+        verify: &dyn Fn(&Path) -> Result<(), AppError>,
+    ) -> Result<PathBuf, AppError> {
+        // The memory store has no real temp files; engines that write paths are faked elsewhere.
+        produce(dest)?;
+        verify(dest)?;
+        self.lock().entry(dest.to_path_buf()).or_default();
+        Ok(dest.to_path_buf())
     }
 
     fn write_atomic(
@@ -137,6 +157,21 @@ impl StubReader {
 }
 
 impl PdfReader for StubReader {
+    fn page_sizes(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<Vec<PageSize>, AppError> {
+        let info = self.open_info(path, password)?;
+        Ok(vec![
+            PageSize {
+                width_pt: 612.0,
+                height_pt: 792.0
+            };
+            info.page_count as usize
+        ])
+    }
+
     fn open_info(
         &self,
         path: &Path,
@@ -187,50 +222,42 @@ impl Tool for RotateLikeTool {
     }
 
     fn validate(&self, inputs: &[InputDoc], opts: &ToolOptions) -> Result<Plan, ValidationError> {
-        let ToolOptions::Rotate(rotate) = opts;
+        let ToolOptions::Rotate(rotate) = opts else {
+            return Err(AppError::internal("validating the rotate plan"));
+        };
         let input = inputs
             .first()
             .ok_or_else(|| AppError::internal("validating the rotate plan"))?;
         let count = input.page_count.unwrap_or(0);
-        let selection = rotate.select_pages(count)?;
+        rotate.select_pages(count)?;
         Ok(Plan {
             tool: ToolId::Rotate,
             inputs: inputs.to_vec(),
             options: opts.clone(),
-            outputs: vec![PlannedOutput {
-                input_index: 0,
-                pages: Some(selection),
-                extension: "pdf".to_owned(),
-            }],
             total_units: u64::from(count),
         })
     }
 
     fn execute(&self, ctx: &JobContext<'_>, plan: Plan) -> Result<Vec<OutputArtifact>, ToolError> {
-        let mut artifacts = Vec::new();
-        for planned in &plan.outputs {
-            let input = &plan.inputs[planned.input_index];
-            let pages = planned.pages.as_ref().map_or(0, |p| p.len());
-            for done in 0..pages {
-                ctx.cancel.check()?;
-                ctx.progress.report(crate::runtime::ProgressEvent {
-                    done: done as u64,
-                    total: pages as u64,
-                });
-            }
-            let path = ctx.output_path(input, self.label(), &planned.extension, |_| {})?;
-            let page_count = input.page_count.unwrap_or(0);
-            let written = ctx.files.write_atomic(
-                &path,
-                &mut |w| w.write_all(b"%PDF-1.7 rotated"),
-                &|_| Ok(()),
-            )?;
-            artifacts.push(OutputArtifact {
-                path: written,
-                pages: Some(page_count),
-                bytes: 16,
+        let input = &plan.inputs[0];
+        let page_count = input.page_count.unwrap_or(0);
+        for done in 0..page_count {
+            ctx.cancel.check()?;
+            ctx.progress.report(crate::runtime::ProgressEvent {
+                done: u64::from(done),
+                total: u64::from(page_count),
             });
         }
-        Ok(artifacts)
+        let path = ctx.output_path(input, self.label(), "pdf", |_| {})?;
+        let written = ctx.files.write_atomic(
+            &path,
+            &mut |w| w.write_all(b"%PDF-1.7 rotated"),
+            &|_| Ok(()),
+        )?;
+        Ok(vec![OutputArtifact {
+            path: written,
+            pages: Some(page_count),
+            bytes: 16,
+        }])
     }
 }
