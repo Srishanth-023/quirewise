@@ -1,10 +1,14 @@
 //! Shared application state managed by Tauri, built once at startup.
 
-use application::ports::{ComponentInstaller, ComponentStore, FileStore, SettingsStore};
+use application::ports::{
+    ComponentInstaller, ComponentStore, FileStore, SettingsStore, SignatureStore,
+};
 use application::query::QueryRunner;
 use application::tools::ToolDeps;
 use application::{AppError, RecentFiles, ToolRegistry};
+use infrastructure::dpapi::Dpapi;
 use infrastructure::logging::LogGuard;
+use infrastructure::signatures::FsSignatureStore;
 use infrastructure::{
     AppPaths, AtomicFileStore, ComponentManager, EventSink, FsComponentStore, HttpsDownloader,
     JobManager, JsonRecentStore, SystemUnixClock, TempSession, TomlSettingsStore, WorkerSession,
@@ -31,6 +35,8 @@ pub struct AppState {
     pub components: Arc<dyn ComponentStore>,
     /// Installs, imports and removes components.
     pub installer: Arc<dyn ComponentInstaller>,
+    /// Saved signatures, sealed by Windows for this user.
+    pub signatures: Arc<dyn SignatureStore>,
     // Held for their Drop behavior: flush logs and wipe the session scratch folder.
     _temp: TempSession,
     _log: LogGuard,
@@ -90,9 +96,12 @@ impl AppState {
             default_trust(),
             ComponentManager::current_arch(),
         ));
+        let signatures: Arc<dyn SignatureStore> =
+            Arc::new(FsSignatureStore::new(paths.signatures_dir, Arc::new(Dpapi)));
         Ok(Self {
             components,
             installer,
+            signatures,
             registry: Arc::new(registry),
             queries: Arc::new(WorkerSession::new(worker, loaded.limits)),
             files,

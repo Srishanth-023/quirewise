@@ -5,7 +5,7 @@ use application::inspect::InspectDocument;
 use application::ports::{
     Clock, ComponentStore, FileStore, Logger, OfficeEngines, PdfReader, PdfVerifier,
 };
-use application::query::QueryService;
+use application::query::{EditorPorts, QueryService};
 use application::tools::{ToolDeps, register_all};
 use application::{AppError, Password, RunTool, ToolRegistry};
 use domain::ErrorCode;
@@ -14,7 +14,8 @@ use infrastructure::{AppPaths, FsComponentStore, NativePaths, native::arch_dir};
 use quirewise_engine_export::OfficeWriter;
 use quirewise_engine_html_webview2::EdgePrinter;
 use quirewise_engine_lopdf_ops::{
-    LopdfAttachments, LopdfEditor, LopdfImages, LopdfStructure, LopdfToc,
+    InstalledFonts, LopdfAttachments, LopdfEditor, LopdfForms, LopdfImages, LopdfStructure,
+    LopdfToc,
 };
 use quirewise_engine_ocr_tesseract::Tesseract;
 use quirewise_engine_office_libreoffice::LibreOffice;
@@ -180,7 +181,12 @@ pub fn build_services(
         deps.ocr.clone(),
         inspect,
         limits,
-    );
+    )
+    .with_editor(EditorPorts {
+        layout: Arc::new(engines.pdfium),
+        forms: Arc::new(LopdfForms),
+        fonts: Arc::new(InstalledFonts),
+    });
     let runner = RunTool::new(
         Arc::new(registry),
         reader,

@@ -20,6 +20,8 @@ pub struct AppPaths {
     pub crashes_dir: PathBuf,
     /// Recent-files database.
     pub recent_db: PathBuf,
+    /// Saved signatures, each one encrypted for the current user.
+    pub signatures_dir: PathBuf,
     /// Parent of per-session scratch folders.
     pub temp_root: PathBuf,
     /// True when running in portable mode.
@@ -44,6 +46,7 @@ impl AppPaths {
                 components_dir: data.join("components"),
                 crashes_dir: data.join("crashes"),
                 recent_db: data.join("recent.db"),
+                signatures_dir: data.join("signatures"),
                 temp_root: data.join("temp"),
                 portable: true,
             });
@@ -62,6 +65,7 @@ impl AppPaths {
             components_dir: local.join("components"),
             crashes_dir: local.join("crashes"),
             recent_db: local.join("recent.db"),
+            signatures_dir: local.join("signatures"),
             temp_root: var("TEMP")?.join("Quirewise"),
             portable: false,
         })

@@ -256,6 +256,53 @@ pub enum PdfEdit {
     AddAttachments(Vec<PathBuf>),
     /// Removes attachments by name.
     RemoveAttachments(Vec<String>),
+    /// Adds text, pictures, shapes, links and patches to pages.
+    Overlay(Vec<domain::tools::editor::EditItem>),
+    /// Adds highlights, notes and drawings that belong to the document, not to the page content.
+    Annotate(Vec<domain::tools::editor::Annotation>),
+    /// Places visual signatures, initials, stamps and dates. Dates are already written out.
+    Sign(Vec<domain::tools::editor::SignatureItem>),
+    /// Sets the values of form fields.
+    FillForm(Vec<domain::tools::editor::FieldValue>),
+    /// Adds form fields.
+    CreateFields(Vec<domain::tools::editor::NewField>),
+}
+
+/// Lists the form fields of a document.
+pub trait FormReader: Send + Sync {
+    /// The fields of the form, with their pages, places and values.
+    fn fields(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<Vec<domain::forms::FormField>, AppError>;
+}
+
+/// Keeps secrets readable only by the current user on this computer.
+pub trait SecretVault: Send + Sync {
+    /// Encrypts bytes.
+    fn protect(&self, plain: &[u8]) -> Result<Vec<u8>, AppError>;
+    /// Decrypts bytes that `protect` made.
+    fn unprotect(&self, sealed: &[u8]) -> Result<Vec<u8>, AppError>;
+}
+
+/// The signatures, initials and stamps the person keeps to use again.
+pub trait SignatureStore: Send + Sync {
+    /// Every kept signature, newest last.
+    fn list(&self) -> Result<Vec<domain::signatures::SavedSignature>, AppError>;
+    /// Keeps a new one.
+    fn save(
+        &self,
+        new: &domain::signatures::NewSavedSignature,
+    ) -> Result<domain::signatures::SavedSignature, AppError>;
+    /// Forgets one. A signature that is not kept is not an error.
+    fn delete(&self, id: &str) -> Result<(), AppError>;
+}
+
+/// The fonts installed on this computer that can be embedded in a document.
+pub trait FontCatalog: Send + Sync {
+    /// Names of the font families, sorted and without repeats.
+    fn families(&self) -> Result<Vec<String>, AppError>;
 }
 
 /// Applies structural edits to PDFs.

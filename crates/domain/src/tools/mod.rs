@@ -4,6 +4,7 @@ pub mod combine;
 pub mod common;
 pub mod convert;
 pub mod document;
+pub mod editor;
 pub mod export;
 pub mod layout;
 pub mod office;
@@ -27,6 +28,9 @@ pub use convert::{
     PdfToTiffOptions, TiffToPdfOptions,
 };
 pub use document::{FlattenOptions, MetadataOptions, RemoveAnnotationsOptions};
+pub use editor::{
+    AnnotateOptions, CreateFormsOptions, EditPdfOptions, FillSignOptions, SignPdfOptions,
+};
 pub use export::{
     PdfToExcelOptions, PdfToHtmlOptions, PdfToMarkdownOptions, PdfToPowerPointOptions,
     PdfToWordOptions,
@@ -149,6 +153,16 @@ pub enum ToolId {
     Attachments,
     /// Page labels (row 66).
     PageLabels,
+    /// Edit PDF (row 42).
+    EditPdf,
+    /// Annotate (row 43).
+    Annotate,
+    /// Fill and sign (row 45).
+    FillSign,
+    /// Sign PDF (row 53).
+    SignPdf,
+    /// Create forms (row 46).
+    CreateForms,
     /// PDF to Word (row 25).
     PdfToWord,
     /// PDF to PowerPoint (row 26).
@@ -189,7 +203,7 @@ pub enum ToolId {
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 53] = [
+    pub const ALL: [ToolId; 58] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -225,6 +239,11 @@ impl ToolId {
         ToolId::RenameByContent,
         ToolId::Attachments,
         ToolId::PageLabels,
+        ToolId::EditPdf,
+        ToolId::Annotate,
+        ToolId::FillSign,
+        ToolId::SignPdf,
+        ToolId::CreateForms,
         ToolId::PdfToWord,
         ToolId::PdfToPowerpoint,
         ToolId::PdfToExcel,
@@ -283,6 +302,11 @@ impl ToolId {
             Self::RenameByContent => "rename-by-content",
             Self::Attachments => "attachments",
             Self::PageLabels => "page-labels",
+            Self::EditPdf => "edit-pdf",
+            Self::Annotate => "annotate",
+            Self::FillSign => "fill-sign",
+            Self::SignPdf => "sign-pdf",
+            Self::CreateForms => "create-forms",
             Self::PdfToWord => "pdf-to-word",
             Self::PdfToPowerpoint => "pdf-to-powerpoint",
             Self::PdfToExcel => "pdf-to-excel",
@@ -396,6 +420,16 @@ pub enum ToolOptions {
     Attachments(AttachmentsOptions),
     /// Options for [`ToolId::PageLabels`].
     PageLabels(PageLabelsOptions),
+    /// Options for [`ToolId::EditPdf`].
+    EditPdf(EditPdfOptions),
+    /// Options for [`ToolId::Annotate`].
+    Annotate(AnnotateOptions),
+    /// Options for [`ToolId::FillSign`].
+    FillSign(FillSignOptions),
+    /// Options for [`ToolId::SignPdf`].
+    SignPdf(SignPdfOptions),
+    /// Options for [`ToolId::CreateForms`].
+    CreateForms(CreateFormsOptions),
     /// Options for [`ToolId::PdfToWord`].
     PdfToWord(PdfToWordOptions),
     /// Options for [`ToolId::PdfToPowerpoint`].
@@ -473,6 +507,11 @@ impl ToolOptions {
             Self::RenameByContent(_) => ToolId::RenameByContent,
             Self::Attachments(_) => ToolId::Attachments,
             Self::PageLabels(_) => ToolId::PageLabels,
+            Self::EditPdf(_) => ToolId::EditPdf,
+            Self::Annotate(_) => ToolId::Annotate,
+            Self::FillSign(_) => ToolId::FillSign,
+            Self::SignPdf(_) => ToolId::SignPdf,
+            Self::CreateForms(_) => ToolId::CreateForms,
             Self::PdfToWord(_) => ToolId::PdfToWord,
             Self::PdfToPowerpoint(_) => ToolId::PdfToPowerpoint,
             Self::PdfToExcel(_) => ToolId::PdfToExcel,
@@ -534,6 +573,11 @@ impl ToolOptions {
             ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
             ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
             ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
+            ToolId::EditPdf => Self::EditPdf(EditPdfOptions::default()),
+            ToolId::Annotate => Self::Annotate(AnnotateOptions::default()),
+            ToolId::FillSign => Self::FillSign(FillSignOptions::default()),
+            ToolId::SignPdf => Self::SignPdf(SignPdfOptions::default()),
+            ToolId::CreateForms => Self::CreateForms(CreateFormsOptions::default()),
             ToolId::PdfToWord => Self::PdfToWord(PdfToWordOptions::default()),
             ToolId::PdfToPowerpoint => Self::PdfToPowerpoint(PdfToPowerPointOptions::default()),
             ToolId::PdfToExcel => Self::PdfToExcel(PdfToExcelOptions::default()),

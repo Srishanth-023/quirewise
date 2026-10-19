@@ -30,10 +30,10 @@ const MAX_TILES: usize = 2000;
 
 /// A picture ready to draw: its XObject and size in pixels.
 #[derive(Clone, Copy)]
-struct Picture {
-    id: ObjectId,
-    width: u32,
-    height: u32,
+pub(crate) struct Picture {
+    pub(crate) id: ObjectId,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
 }
 
 fn bad_picture() -> AppError {
@@ -43,7 +43,7 @@ fn bad_picture() -> AppError {
     )
 }
 
-fn load_picture(doc: &mut Document, path: &Path) -> Result<Picture, AppError> {
+pub(crate) fn load_picture(doc: &mut Document, path: &Path) -> Result<Picture, AppError> {
     let size = std::fs::metadata(path)
         .map_err(|e| AppError::from_io("read the picture", &e))?
         .len();
@@ -54,7 +54,12 @@ fn load_picture(doc: &mut Document, path: &Path) -> Result<Picture, AppError> {
         ));
     }
     let bytes = std::fs::read(path).map_err(|e| AppError::from_io("read the picture", &e))?;
-    let decoded = image::load_from_memory(&bytes).map_err(|_| bad_picture())?;
+    load_picture_bytes(doc, &bytes)
+}
+
+/// Writes a PNG or JPEG file's content into the document as an image object.
+pub(crate) fn load_picture_bytes(doc: &mut Document, bytes: &[u8]) -> Result<Picture, AppError> {
+    let decoded = image::load_from_memory(bytes).map_err(|_| bad_picture())?;
     let decoded = if decoded.width().max(decoded.height()) > MAX_PICTURE_EDGE {
         decoded.resize(MAX_PICTURE_EDGE, MAX_PICTURE_EDGE, FilterType::Triangle)
     } else {
@@ -94,7 +99,7 @@ fn load_picture(doc: &mut Document, path: &Path) -> Result<Picture, AppError> {
 }
 
 /// A PDF string literal for WinAnsi bytes.
-fn literal(bytes: &[u8]) -> String {
+pub(crate) fn literal(bytes: &[u8]) -> String {
     let mut out = String::with_capacity(bytes.len() + 2);
     out.push('(');
     for &b in bytes {

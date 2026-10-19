@@ -89,3 +89,11 @@ Ghostscript is never linked into Quirewise. MuPDF is not used.
 | roxmltree (development and tests only, not shipped) | MIT or Apache-2.0 | Checks that written Open XML parts are well formed |
 
 The Word, PowerPoint and Excel files are written with the `zip` and `image` crates that earlier phases already list.
+
+## Added in Phase 9
+
+| Component | License | Use |
+|---|---|---|
+| ttf-parser 0.25 | MIT or Apache-2.0 | Reads installed TrueType fonts so they can be embedded in edited PDFs |
+| windows 0.62 (Windows only) | MIT or Apache-2.0 | DPAPI sealing of saved signatures |
+| base64 | MIT or Apache-2.0 | Decodes signature pictures sent as data |

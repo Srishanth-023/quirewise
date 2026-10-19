@@ -7,9 +7,14 @@ import type {
   ComponentProgress,
   DocumentReport,
   DropAnalysis,
+  FieldSuggestion,
+  FormField,
+  NewSavedSignature,
   RecentFile,
   RunBatchRequest,
+  SavedSignature,
   Settings,
+  TextBlock,
   Thumbnail,
   ToolDescriptor,
 } from './generated';
@@ -21,9 +26,14 @@ export type {
   ComponentProgress,
   DocumentReport,
   DropAnalysis,
+  FieldSuggestion,
+  FormField,
+  NewSavedSignature,
   RecentFile,
   RunBatchRequest,
+  SavedSignature,
   Settings,
+  TextBlock,
   Thumbnail,
   ToolDescriptor,
 };
@@ -83,6 +93,17 @@ export const ipc = {
   openOutput: (path: string) => call<void>('open_output', { path }),
   revealOutput: (path: string) => call<void>('reveal_output', { path }),
   ocrLanguages: () => call<string[]>('ocr_languages'),
+  editorFonts: () => call<string[]>('editor_fonts'),
+  formFields: (path: string, password: string | null) =>
+    call<FormField[]>('form_fields', { path, password }),
+  suggestFields: (path: string, password: string | null, page: number) =>
+    call<FieldSuggestion[]>('suggest_fields', { path, password, page }),
+  textBlocks: (path: string, password: string | null, page: number) =>
+    call<TextBlock[]>('text_blocks', { path, password, page }),
+  signaturesList: () => call<SavedSignature[]>('signatures_list'),
+  signatureSave: (signature: NewSavedSignature) =>
+    call<SavedSignature>('signature_save', { signature }),
+  signatureDelete: (id: string) => call<void>('signature_delete', { id }),
   scanAvailable: () => call<boolean>('scan_available'),
   scanAcquire: () => call<string | null>('scan_acquire'),
   saveCapture: (pngBase64: string) => call<string>('save_capture', { pngBase64 }),

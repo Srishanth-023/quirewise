@@ -13,7 +13,9 @@ use std::sync::Arc;
 use crate::error::AppError;
 use crate::input::validate_input;
 use crate::inspect::{DocumentReport, InspectDocument};
-use crate::ports::{FileStore, OcrEngine, PdfReader, Renderer};
+use crate::ports::{
+    FileStore, FontCatalog, FormReader, LayoutReader, OcrEngine, PdfReader, Renderer,
+};
 use crate::runtime::{CancellationToken, Password};
 use crate::tool::InputKind;
 
@@ -80,6 +82,33 @@ pub enum DocumentQuery {
     },
     /// The text recognition languages that are installed.
     OcrLanguages,
+    /// The fields of the form of a document.
+    FormFields {
+        /// File to read.
+        path: PathBuf,
+        /// Password, when the user entered one this session.
+        password: Option<Password>,
+    },
+    /// Places on a page that look like fields to fill in.
+    SuggestFields {
+        /// File to read.
+        path: PathBuf,
+        /// Password, when the user entered one this session.
+        password: Option<Password>,
+        /// Zero-based page index.
+        page: u32,
+    },
+    /// The blocks of text of a page, for changing them.
+    TextBlocks {
+        /// File to read.
+        path: PathBuf,
+        /// Password, when the user entered one this session.
+        password: Option<Password>,
+        /// Zero-based page index.
+        page: u32,
+    },
+    /// The installed fonts that text can be set in.
+    EditorFonts,
 }
 
 /// A rendered page.
@@ -105,6 +134,14 @@ pub enum QueryResult {
     Thumbnail(Thumbnail),
     /// Codes of the installed text recognition languages, such as `eng`.
     OcrLanguages(Vec<String>),
+    /// The form fields.
+    FormFields(Vec<domain::forms::FormField>),
+    /// Suggested fields of a page.
+    Suggestions(Vec<domain::forms::FieldSuggestion>),
+    /// Blocks of text of a page.
+    TextBlocks(Vec<domain::forms::TextBlock>),
+    /// Names of installed font families.
+    EditorFonts(Vec<String>),
 }
 
 /// Runs document queries. Implemented in-process by [`QueryService`] and over IPC by the
@@ -126,6 +163,52 @@ pub struct QueryService {
     ocr: Arc<dyn OcrEngine>,
     inspect: InspectDocument,
     limits: SafetyLimits,
+    editor: Option<EditorPorts>,
+}
+
+/// The ports the editor's queries read through.
+#[derive(Clone)]
+pub struct EditorPorts {
+    /// Words, lines and pictures of pages.
+    pub layout: Arc<dyn LayoutReader>,
+    /// Form fields.
+    pub forms: Arc<dyn FormReader>,
+    /// Installed fonts.
+    pub fonts: Arc<dyn FontCatalog>,
+}
+
+/// Turns the paragraphs, headings and list items of a page into editable blocks.
+fn text_blocks(content: domain::layout::PageContent) -> Vec<domain::forms::TextBlock> {
+    use domain::layout::{Block, plain};
+    let (w, h) = (content.width.max(1.0), content.height.max(1.0));
+    let layouts = domain::layout::analyze(vec![content], domain::layout::Detection::Lattice);
+    let mut out = Vec::new();
+    for block in layouts.iter().flat_map(|l| &l.blocks) {
+        let (spans, rect) = match block {
+            Block::Heading { spans, rect, .. }
+            | Block::Paragraph { spans, rect, .. }
+            | Block::ListItem { spans, rect, .. } => (spans, rect),
+            _ => continue,
+        };
+        let text = plain(spans);
+        if text.trim().is_empty() || spans.is_empty() {
+            continue;
+        }
+        let size = spans.iter().map(|s| s.size).sum::<f32>() / spans.len() as f32;
+        out.push(domain::forms::TextBlock {
+            region: domain::tools::common::Region {
+                x: (rect.x0 / w).clamp(0.0, 1.0),
+                y: (rect.y0 / h).clamp(0.0, 1.0),
+                width: ((rect.x1 - rect.x0) / w).clamp(0.001, 1.0),
+                height: ((rect.y1 - rect.y0) / h).clamp(0.001, 1.0),
+            },
+            text,
+            size_pt: size,
+            bold: spans.iter().all(|s| s.bold),
+            italic: spans.iter().all(|s| s.italic),
+        });
+    }
+    out
 }
 
 impl QueryService {
@@ -145,7 +228,45 @@ impl QueryService {
             ocr,
             inspect,
             limits,
+            editor: None,
         }
+    }
+
+    /// Adds the ports the editor's queries need.
+    #[must_use]
+    pub fn with_editor(mut self, editor: EditorPorts) -> Self {
+        self.editor = Some(editor);
+        self
+    }
+
+    fn editor(&self) -> Result<&EditorPorts, AppError> {
+        self.editor.as_ref().ok_or_else(|| {
+            AppError::new(
+                domain::ErrorCode::ComponentMissing,
+                "The editor is not available here.",
+            )
+        })
+    }
+
+    /// Checks the file and the page number of an editor query.
+    fn checked(
+        &self,
+        path: &std::path::Path,
+        password: Option<&Password>,
+        page: Option<u32>,
+    ) -> Result<PathBuf, AppError> {
+        let (doc, _) = validate_input(self.files.as_ref(), path, &[InputKind::Pdf], &self.limits)?;
+        if let Some(page) = page {
+            let info = self.reader.open_info(&doc.path, password)?;
+            if page >= info.page_count {
+                return Err(DomainError::RangeOutOfBounds {
+                    detail: format!("Page {} is outside this document.", page + 1),
+                    valid: format!("1-{}", info.page_count),
+                }
+                .into());
+            }
+        }
+        Ok(doc.path)
     }
 }
 
@@ -158,6 +279,46 @@ impl QueryRunner for QueryService {
         cancel.check()?;
         match query {
             DocumentQuery::OcrLanguages => self.ocr.languages().map(QueryResult::OcrLanguages),
+            DocumentQuery::EditorFonts => self
+                .editor()?
+                .fonts
+                .families()
+                .map(QueryResult::EditorFonts),
+            DocumentQuery::FormFields { path, password } => {
+                let file = self.checked(path, password.as_ref(), None)?;
+                self.editor()?
+                    .forms
+                    .fields(&file, password.as_ref())
+                    .map(QueryResult::FormFields)
+            }
+            DocumentQuery::SuggestFields {
+                path,
+                password,
+                page,
+            } => {
+                let file = self.checked(path, password.as_ref(), Some(*page))?;
+                let content = self.editor()?.layout.page_content(
+                    &file,
+                    password.as_ref(),
+                    PageIndex::new(*page),
+                )?;
+                Ok(QueryResult::Suggestions(domain::layout::suggest_fields(
+                    &content,
+                )))
+            }
+            DocumentQuery::TextBlocks {
+                path,
+                password,
+                page,
+            } => {
+                let file = self.checked(path, password.as_ref(), Some(*page))?;
+                let content = self.editor()?.layout.page_content(
+                    &file,
+                    password.as_ref(),
+                    PageIndex::new(*page),
+                )?;
+                Ok(QueryResult::TextBlocks(text_blocks(content)))
+            }
             DocumentQuery::Inspect { path, password } => self
                 .inspect
                 .run(path, password.as_ref())

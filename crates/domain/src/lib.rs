@@ -6,6 +6,7 @@
 pub mod components;
 pub mod error;
 pub mod fonts;
+pub mod forms;
 pub mod job;
 pub mod layout;
 pub mod limits;
@@ -15,6 +16,7 @@ pub mod path_rules;
 pub mod planners;
 pub mod secret;
 pub mod settings;
+pub mod signatures;
 pub mod stamp;
 pub mod tools;
 pub mod units;

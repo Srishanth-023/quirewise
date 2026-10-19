@@ -2,6 +2,93 @@
 /* eslint-disable */
 
 /**
+ * A note, mark or drawing that belongs to the document but is not part of the page content.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Annotation".
+ */
+export type Annotation =
+  | {
+      /**
+       * Color as `#RRGGBB`. Default yellow.
+       */
+      color?: string;
+      kind: 'highlight';
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      /**
+       * The marked areas.
+       */
+      regions: Region[];
+    }
+  | {
+      /**
+       * Color as `#RRGGBB`. Default yellow.
+       */
+      color?: string;
+      kind: 'strikeout';
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      /**
+       * The marked areas.
+       */
+      regions: Region[];
+    }
+  | {
+      /**
+       * Color as `#RRGGBB`. Default yellow.
+       */
+      color?: string;
+      kind: 'underline';
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      /**
+       * The marked areas.
+       */
+      regions: Region[];
+    }
+  | {
+      at: Point;
+      /**
+       * Color of the icon as `#RRGGBB`.
+       */
+      color?: string;
+      kind: 'note';
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      /**
+       * The text of the note.
+       */
+      text: string;
+    }
+  | {
+      /**
+       * Color as `#RRGGBB`.
+       */
+      color?: string;
+      kind: 'freehand';
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      /**
+       * The strokes; each is a list of points.
+       */
+      strokes: Point1[][];
+      /**
+       * Line width in points. Default 2.
+       */
+      width_pt?: number;
+    };
+/**
  * Progress and results of a running batch, pushed to the UI as events.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -76,6 +163,108 @@ export type Suggestion =
  * via the `definition` "InputKindDto".
  */
 export type InputKindDto = 'pdf' | 'image' | 'word' | 'slides' | 'sheet' | 'html';
+/**
+ * One change to the content of a page.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "EditItem".
+ */
+export type EditItem =
+  | {
+      /**
+       * How lines sit in the box. Default left.
+       */
+      align?: 'left' | 'center' | 'right';
+      kind: 'text';
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      region: Region2;
+      style?: TextStyle;
+      /**
+       * The text; a line break starts a new line.
+       */
+      text: string;
+    }
+  | {
+      kind: 'image';
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      /**
+       * A PNG or JPEG file.
+       */
+      path: string;
+      region: Region3;
+    }
+  | {
+      /**
+       * Fill color as `#RRGGBB`; none leaves the inside empty.
+       */
+      fill_color?: string | null;
+      /**
+       * Run a line or arrow from the bottom left corner to the top right one instead.
+       */
+      flip?: boolean;
+      kind: 'shape';
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      region: Region4;
+      /**
+       * Which shape.
+       */
+      shape: 'rectangle' | 'ellipse' | 'line' | 'arrow';
+      /**
+       * Outline color as `#RRGGBB`. Default red.
+       */
+      stroke_color?: string;
+      /**
+       * Outline width in points. Default 2.
+       */
+      stroke_width_pt?: number;
+    }
+  | {
+      kind: 'link';
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      region: Region5;
+      /**
+       * Where it leads.
+       */
+      target:
+        | {
+            type: 'uri';
+            /**
+             * The address.
+             */
+            uri: string;
+          }
+        | {
+            /**
+             * The page, from 1.
+             */
+            page: number;
+            type: 'page';
+          };
+    }
+  | {
+      /**
+       * Color of the patch as `#RRGGBB`. Default white.
+       */
+      color?: string;
+      kind: 'whiteout';
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      region: Region6;
+    };
 /**
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "Password".
@@ -196,6 +385,13 @@ export type CompressPreset = 'extreme' | 'recommended' | 'less';
  */
 export type CropMethod = 'margins' | 'region' | 'auto';
 /**
+ * How a date is written.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "DateFormat".
+ */
+export type DateFormat = 'iso' | 'long' | 'us' | 'eu';
+/**
  * How Deskew finds the angle of each page.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -291,6 +487,13 @@ export type FlipDirection = 'horizontal' | 'vertical';
  */
 export type FontFamily = 'helvetica' | 'times' | 'courier';
 /**
+ * The kind of a form field.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FormFieldKind".
+ */
+export type FormFieldKind = 'text' | 'checkbox' | 'radio' | 'dropdown' | 'list-box' | 'signature' | 'button';
+/**
  * What to do with form fields while merging.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -374,6 +577,81 @@ export type Layer = 'above' | 'below';
  * via the `definition` "LengthUnit".
  */
 export type LengthUnit = 'mm' | 'in' | 'pt';
+/**
+ * Where a link leads.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "LinkTarget".
+ */
+export type LinkTarget =
+  | {
+      type: 'uri';
+      /**
+       * The address.
+       */
+      uri: string;
+    }
+  | {
+      /**
+       * The page, from 1.
+       */
+      page: number;
+      type: 'page';
+    };
+/**
+ * The kinds of field Create forms can add.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "NewFieldKind".
+ */
+export type NewFieldKind =
+  | {
+      /**
+       * Longest text, in characters; 0 for no limit.
+       */
+      max_len?: number;
+      /**
+       * Allow several lines.
+       */
+      multiline?: boolean;
+      type: 'text';
+      /**
+       * Text the field starts with.
+       */
+      value?: string;
+    }
+  | {
+      /**
+       * Start ticked.
+       */
+      checked?: boolean;
+      type: 'checkbox';
+    }
+  | {
+      /**
+       * Start selected.
+       */
+      checked?: boolean;
+      /**
+       * The name of this choice.
+       */
+      option: string;
+      type: 'radio';
+    }
+  | {
+      /**
+       * The choices.
+       */
+      options: string[];
+      type: 'dropdown';
+      /**
+       * The choice the field starts with.
+       */
+      value?: string;
+    }
+  | {
+      type: 'signature';
+    };
 /**
  * How a page number is written.
  *
@@ -461,10 +739,24 @@ export type Position =
  */
 export type RightAngle = '0' | '90' | '180' | '270';
 /**
+ * What a saved item is for.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SavedKind".
+ */
+export type SavedKind = 'signature' | 'initials' | 'stamp';
+/**
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "Schema".
  */
 export type Schema1 = {} | boolean;
+/**
+ * The shapes that can be drawn.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "ShapeKind".
+ */
+export type ShapeKind = 'rectangle' | 'ellipse' | 'line' | 'arrow';
 /**
  * Pages per sheet for N-up.
  *
@@ -494,6 +786,58 @@ export type SheetGrouping = 'per-table' | 'per-page';
  */
 export type SheetOrientation = 'auto' | 'portrait' | 'landscape';
 /**
+ * What a visual signature looks like.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SignatureSource".
+ */
+export type SignatureSource =
+  | {
+      /**
+       * Color as `#RRGGBB`.
+       */
+      color?: string;
+      /**
+       * The strokes.
+       */
+      strokes: Point1[][];
+      type: 'drawn';
+      /**
+       * Line width in points. Default 1.5.
+       */
+      width_pt?: number;
+    }
+  | {
+      style?: TextStyle1;
+      /**
+       * The text.
+       */
+      text: string;
+      type: 'typed';
+    }
+  | {
+      /**
+       * The file.
+       */
+      path: string;
+      type: 'image';
+    }
+  | {
+      /**
+       * The PNG or JPEG file, base64 encoded.
+       */
+      data: string;
+      type: 'image-data';
+    }
+  | {
+      /**
+       * How it is written.
+       */
+      format?: 'iso' | 'long' | 'us' | 'eu';
+      style?: TextStyle2;
+      type: 'date';
+    };
+/**
  * What a slide holds.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -507,6 +851,20 @@ export type SlideMode = 'editable-text' | 'image-slides';
  * via the `definition` "SplitDirection".
  */
 export type SplitDirection = 'vertical' | 'horizontal';
+/**
+ * What a field found on a page could be.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SuggestedKind".
+ */
+export type SuggestedKind = 'text' | 'checkbox';
+/**
+ * How lines of text sit in their box.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "TextAlign".
+ */
+export type TextAlign = 'left' | 'center' | 'right';
 /**
  * Character encoding of the text file.
  *
@@ -593,6 +951,11 @@ export type ToolId =
   | 'rename-by-content'
   | 'attachments'
   | 'page-labels'
+  | 'edit-pdf'
+  | 'annotate'
+  | 'fill-sign'
+  | 'sign-pdf'
+  | 'create-forms'
   | 'pdf-to-word'
   | 'pdf-to-powerpoint'
   | 'pdf-to-excel'
@@ -1362,6 +1725,45 @@ export type ToolOptions =
     }
   | {
       /**
+       * Everything added to the pages, in drawing order.
+       */
+      items?: EditItem[];
+      tool: 'edit-pdf';
+    }
+  | {
+      /**
+       * The notes, marks and drawings to add.
+       */
+      annotations?: Annotation[];
+      tool: 'annotate';
+    }
+  | {
+      /**
+       * Signatures, initials, stamps and dates to place.
+       */
+      signatures?: SignatureItem[];
+      tool: 'fill-sign';
+      /**
+       * Values for fields of the form.
+       */
+      values?: FieldValue[];
+    }
+  | {
+      /**
+       * The signatures, initials, stamps and dates to place.
+       */
+      signatures?: SignatureItem[];
+      tool: 'sign-pdf';
+    }
+  | {
+      /**
+       * The fields to add.
+       */
+      fields?: NewField[];
+      tool: 'create-forms';
+    }
+  | {
+      /**
        * Languages for OCR. Default `eng`.
        */
       languages?: string[];
@@ -1757,18 +2159,94 @@ export type WordLayout = 'flowing' | 'exact';
  * generator emit a duplicate inline type for each field.
  */
 export interface IpcTypes {
+  annotate_options: AnnotateOptions;
   app_error: AppError;
   batch_event: BatchEvent;
   component_entry: ComponentEntry;
   component_progress: ComponentProgress;
+  create_forms_options: CreateFormsOptions;
   document_report: DocumentReport;
   drop_analysis: DropAnalysis;
+  edit_pdf_options: EditPdfOptions;
+  field_suggestion: FieldSuggestion;
+  fill_sign_options: FillSignOptions;
+  form_field: FormField;
+  new_saved_signature: NewSavedSignature;
   output_artifact: OutputArtifact;
   recent_file: RecentFile;
   run_batch_request: RunBatchRequest;
+  saved_signature: SavedSignature;
   settings: Settings;
+  sign_pdf_options: SignPdfOptions;
+  text_block: TextBlock;
   thumbnail: Thumbnail;
   tool_descriptor: ToolDescriptor;
+}
+/**
+ * Options for Annotate.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "AnnotateOptions".
+ */
+export interface AnnotateOptions {
+  /**
+   * The notes, marks and drawings to add.
+   */
+  annotations?: Annotation[];
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Region".
+ */
+export interface Region {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * Where the note's icon sits.
+ */
+export interface Point {
+  /**
+   * Distance from the left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Distance from the top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * A point on a page, as fractions of the displayed page from its top left.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Point".
+ */
+export interface Point1 {
+  /**
+   * Distance from the left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Distance from the top edge, 0 to 1.
+   */
+  y: number;
 }
 /**
  * Error returned by use cases and ports.
@@ -1874,6 +2352,116 @@ export interface ComponentProgress {
    * Bytes in the download.
    */
   total: number;
+}
+/**
+ * Options for Create forms.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "CreateFormsOptions".
+ */
+export interface CreateFormsOptions {
+  /**
+   * The fields to add.
+   */
+  fields?: NewField[];
+}
+/**
+ * A field added to a page.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "NewField".
+ */
+export interface NewField {
+  /**
+   * What kind of field it is.
+   */
+  kind:
+    | {
+        /**
+         * Longest text, in characters; 0 for no limit.
+         */
+        max_len?: number;
+        /**
+         * Allow several lines.
+         */
+        multiline?: boolean;
+        type: 'text';
+        /**
+         * Text the field starts with.
+         */
+        value?: string;
+      }
+    | {
+        /**
+         * Start ticked.
+         */
+        checked?: boolean;
+        type: 'checkbox';
+      }
+    | {
+        /**
+         * Start selected.
+         */
+        checked?: boolean;
+        /**
+         * The name of this choice.
+         */
+        option: string;
+        type: 'radio';
+      }
+    | {
+        /**
+         * The choices.
+         */
+        options: string[];
+        type: 'dropdown';
+        /**
+         * The choice the field starts with.
+         */
+        value?: string;
+      }
+    | {
+        type: 'signature';
+      };
+  /**
+   * The name of the field. Names are unique, except in a radio group.
+   */
+  name: string;
+  /**
+   * The page, from 1.
+   */
+  page: number;
+  region: Region1;
+  /**
+   * The form cannot be submitted without it. Default off.
+   */
+  required?: boolean;
+  /**
+   * Help shown when the pointer rests on the field.
+   */
+  tooltip?: string;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region1 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
 }
 /**
  * Everything the Inspect panel shows.
@@ -2123,6 +2711,512 @@ export interface InputSummary {
    * The path as given.
    */
   path: string;
+}
+/**
+ * Options for Edit PDF.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "EditPdfOptions".
+ */
+export interface EditPdfOptions {
+  /**
+   * Everything added to the pages, in drawing order.
+   */
+  items?: EditItem[];
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region2 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * The look of the text.
+ */
+export interface TextStyle {
+  /**
+   * Bold. Default off.
+   */
+  bold?: boolean;
+  /**
+   * Color as `#RRGGBB`. Default black.
+   */
+  color?: string;
+  /**
+   * A standard font family. Default Helvetica.
+   */
+  font?: 'helvetica' | 'times' | 'courier';
+  /**
+   * Name of an installed font family, such as `Segoe UI`. It replaces `font` when set.
+   */
+  installed_font?: string | null;
+  /**
+   * Italic. Default off.
+   */
+  italic?: boolean;
+  /**
+   * Size in points. Default 12.
+   */
+  size_pt?: number;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region3 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region4 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region5 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region6 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * A place on a page that looks like a field to fill: a line, an empty box or a small square.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FieldSuggestion".
+ */
+export interface FieldSuggestion {
+  /**
+   * What it could be.
+   */
+  kind: 'text' | 'checkbox';
+  /**
+   * The words next to it, which usually say what to enter.
+   */
+  label: string;
+  /**
+   * A name for the field made from the label.
+   */
+  name: string;
+  /**
+   * The page, from 1.
+   */
+  page: number;
+  region: Region7;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region7 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * Options for Fill and sign.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FillSignOptions".
+ */
+export interface FillSignOptions {
+  /**
+   * Signatures, initials, stamps and dates to place.
+   */
+  signatures?: SignatureItem[];
+  /**
+   * Values for fields of the form.
+   */
+  values?: FieldValue[];
+}
+/**
+ * A visual signature, initials, stamp or date placed on a page. It is a picture of a signature,
+ * not a digital signature: it proves nothing about who placed it.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SignatureItem".
+ */
+export interface SignatureItem {
+  /**
+   * The page, from 1.
+   */
+  page: number;
+  region: Region8;
+  /**
+   * What it shows.
+   */
+  source:
+    | {
+        /**
+         * Color as `#RRGGBB`.
+         */
+        color?: string;
+        /**
+         * The strokes.
+         */
+        strokes: Point1[][];
+        type: 'drawn';
+        /**
+         * Line width in points. Default 1.5.
+         */
+        width_pt?: number;
+      }
+    | {
+        style?: TextStyle1;
+        /**
+         * The text.
+         */
+        text: string;
+        type: 'typed';
+      }
+    | {
+        /**
+         * The file.
+         */
+        path: string;
+        type: 'image';
+      }
+    | {
+        /**
+         * The PNG or JPEG file, base64 encoded.
+         */
+        data: string;
+        type: 'image-data';
+      }
+    | {
+        /**
+         * How it is written.
+         */
+        format?: 'iso' | 'long' | 'us' | 'eu';
+        style?: TextStyle2;
+        type: 'date';
+      };
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region8 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * The look of the text.
+ */
+export interface TextStyle1 {
+  /**
+   * Bold. Default off.
+   */
+  bold?: boolean;
+  /**
+   * Color as `#RRGGBB`. Default black.
+   */
+  color?: string;
+  /**
+   * A standard font family. Default Helvetica.
+   */
+  font?: 'helvetica' | 'times' | 'courier';
+  /**
+   * Name of an installed font family, such as `Segoe UI`. It replaces `font` when set.
+   */
+  installed_font?: string | null;
+  /**
+   * Italic. Default off.
+   */
+  italic?: boolean;
+  /**
+   * Size in points. Default 12.
+   */
+  size_pt?: number;
+}
+/**
+ * The look of the text.
+ */
+export interface TextStyle2 {
+  /**
+   * Bold. Default off.
+   */
+  bold?: boolean;
+  /**
+   * Color as `#RRGGBB`. Default black.
+   */
+  color?: string;
+  /**
+   * A standard font family. Default Helvetica.
+   */
+  font?: 'helvetica' | 'times' | 'courier';
+  /**
+   * Name of an installed font family, such as `Segoe UI`. It replaces `font` when set.
+   */
+  installed_font?: string | null;
+  /**
+   * Italic. Default off.
+   */
+  italic?: boolean;
+  /**
+   * Size in points. Default 12.
+   */
+  size_pt?: number;
+}
+/**
+ * A value for a form field, by the field's name. Text goes in text fields, `true` or `false`
+ * (or the field's own on value) in check boxes, the option's name in radio groups and lists.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FieldValue".
+ */
+export interface FieldValue {
+  /**
+   * The full name of the field.
+   */
+  name: string;
+  /**
+   * The value.
+   */
+  value: string;
+}
+/**
+ * A field of the form of a document.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FormField".
+ */
+export interface FormField {
+  /**
+   * The kind.
+   */
+  kind: 'text' | 'checkbox' | 'radio' | 'dropdown' | 'list-box' | 'signature' | 'button';
+  /**
+   * A text field with several lines.
+   */
+  multiline: boolean;
+  /**
+   * The full name, with its parents' names joined by dots.
+   */
+  name: string;
+  /**
+   * The choices of a list, or the choice a radio button stands for.
+   */
+  options: string[];
+  /**
+   * The page the field is on, from 1.
+   */
+  page: number;
+  /**
+   * The field cannot be changed.
+   */
+  read_only: boolean;
+  region: Region9;
+  /**
+   * The field must be filled.
+   */
+  required: boolean;
+  /**
+   * The current value: the text, the selected choice, or `true` or `false` for a check box.
+   */
+  value: string;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region9 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * What the person gives when saving.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "NewSavedSignature".
+ */
+export interface NewSavedSignature {
+  /**
+   * Width divided by height of the box it was made in, so it is placed in proportion.
+   */
+  aspect: number;
+  /**
+   * What it is for.
+   */
+  kind: 'signature' | 'initials' | 'stamp';
+  /**
+   * A name to find it by.
+   */
+  name: string;
+  /**
+   * What it looks like: strokes, typed text or a picture kept inside.
+   */
+  source:
+    | {
+        /**
+         * Color as `#RRGGBB`.
+         */
+        color?: string;
+        /**
+         * The strokes.
+         */
+        strokes: Point1[][];
+        type: 'drawn';
+        /**
+         * Line width in points. Default 1.5.
+         */
+        width_pt?: number;
+      }
+    | {
+        style?: TextStyle1;
+        /**
+         * The text.
+         */
+        text: string;
+        type: 'typed';
+      }
+    | {
+        /**
+         * The file.
+         */
+        path: string;
+        type: 'image';
+      }
+    | {
+        /**
+         * The PNG or JPEG file, base64 encoded.
+         */
+        data: string;
+        type: 'image-data';
+      }
+    | {
+        /**
+         * How it is written.
+         */
+        format?: 'iso' | 'long' | 'us' | 'eu';
+        style?: TextStyle2;
+        type: 'date';
+      };
 }
 /**
  * One entry in the recent list.
@@ -2907,6 +4001,45 @@ export interface RunBatchRequest {
       }
     | {
         /**
+         * Everything added to the pages, in drawing order.
+         */
+        items?: EditItem[];
+        tool: 'edit-pdf';
+      }
+    | {
+        /**
+         * The notes, marks and drawings to add.
+         */
+        annotations?: Annotation[];
+        tool: 'annotate';
+      }
+    | {
+        /**
+         * Signatures, initials, stamps and dates to place.
+         */
+        signatures?: SignatureItem[];
+        tool: 'fill-sign';
+        /**
+         * Values for fields of the form.
+         */
+        values?: FieldValue[];
+      }
+    | {
+        /**
+         * The signatures, initials, stamps and dates to place.
+         */
+        signatures?: SignatureItem[];
+        tool: 'sign-pdf';
+      }
+    | {
+        /**
+         * The fields to add.
+         */
+        fields?: NewField[];
+        tool: 'create-forms';
+      }
+    | {
+        /**
          * Languages for OCR. Default `eng`.
          */
         languages?: string[];
@@ -3323,6 +4456,11 @@ export interface RunBatchRequest {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'edit-pdf'
+    | 'annotate'
+    | 'fill-sign'
+    | 'sign-pdf'
+    | 'create-forms'
     | 'pdf-to-word'
     | 'pdf-to-powerpoint'
     | 'pdf-to-excel'
@@ -3386,31 +4524,6 @@ export interface AlternateFileOptions {
    * Default off.
    */
   reverse?: boolean;
-}
-/**
- * A rectangle on a page, as fractions of the page width and height measured from the top-left.
- * This is how the user draws a region, independent of page size and rotation of the preview.
- *
- * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "Region".
- */
-export interface Region {
-  /**
-   * Height, greater than 0 and at most 1.
-   */
-  height: number;
-  /**
-   * Width, greater than 0 and at most 1.
-   */
-  width: number;
-  /**
-   * Left edge, 0 to 1.
-   */
-  x: number;
-  /**
-   * Top edge, 0 to 1.
-   */
-  y: number;
 }
 /**
  * What opening the file allows. Default everything.
@@ -3523,6 +4636,79 @@ export interface PageAngle {
   page: number;
 }
 /**
+ * A kept signature.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SavedSignature".
+ */
+export interface SavedSignature {
+  /**
+   * Width divided by height.
+   */
+  aspect: number;
+  /**
+   * Its identifier.
+   */
+  id: string;
+  /**
+   * What it is for.
+   */
+  kind: 'signature' | 'initials' | 'stamp';
+  /**
+   * The name it was saved with.
+   */
+  name: string;
+  /**
+   * What it looks like.
+   */
+  source:
+    | {
+        /**
+         * Color as `#RRGGBB`.
+         */
+        color?: string;
+        /**
+         * The strokes.
+         */
+        strokes: Point1[][];
+        type: 'drawn';
+        /**
+         * Line width in points. Default 1.5.
+         */
+        width_pt?: number;
+      }
+    | {
+        style?: TextStyle1;
+        /**
+         * The text.
+         */
+        text: string;
+        type: 'typed';
+      }
+    | {
+        /**
+         * The file.
+         */
+        path: string;
+        type: 'image';
+      }
+    | {
+        /**
+         * The PNG or JPEG file, base64 encoded.
+         */
+        data: string;
+        type: 'image-data';
+      }
+    | {
+        /**
+         * How it is written.
+         */
+        format?: 'iso' | 'long' | 'us' | 'eu';
+        style?: TextStyle2;
+        type: 'date';
+      };
+}
+/**
  * User preferences stored in `settings.toml`. Never holds passwords or keys.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -3583,6 +4769,66 @@ export interface SafetyLimits {
    * Largest accepted page count. Default 20,000.
    */
   max_pages?: number;
+}
+/**
+ * Options for Sign PDF (visual signatures).
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SignPdfOptions".
+ */
+export interface SignPdfOptions {
+  /**
+   * The signatures, initials, stamps and dates to place.
+   */
+  signatures?: SignatureItem[];
+}
+/**
+ * A block of text on a page, found so that it can be changed: the editor covers it and writes
+ * new text in its place.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "TextBlock".
+ */
+export interface TextBlock {
+  /**
+   * Bold throughout.
+   */
+  bold: boolean;
+  /**
+   * Italic throughout.
+   */
+  italic: boolean;
+  region: Region10;
+  /**
+   * The usual size of the text, in points.
+   */
+  size_pt: number;
+  /**
+   * The text, lines joined by spaces.
+   */
+  text: string;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region10 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
 }
 /**
  * A rendered page.
@@ -3667,6 +4913,11 @@ export interface ToolDescriptor {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'edit-pdf'
+    | 'annotate'
+    | 'fill-sign'
+    | 'sign-pdf'
+    | 'create-forms'
     | 'pdf-to-word'
     | 'pdf-to-powerpoint'
     | 'pdf-to-excel'
@@ -3834,4 +5085,36 @@ export interface SizeBreakdown1 {
    * Everything else (structure, metadata, attachments).
    */
   other: number;
+}
+/**
+ * The look of text: a standard font, or a font installed on the computer.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "TextStyle".
+ */
+export interface TextStyle3 {
+  /**
+   * Bold. Default off.
+   */
+  bold?: boolean;
+  /**
+   * Color as `#RRGGBB`. Default black.
+   */
+  color?: string;
+  /**
+   * A standard font family. Default Helvetica.
+   */
+  font?: 'helvetica' | 'times' | 'courier';
+  /**
+   * Name of an installed font family, such as `Segoe UI`. It replaces `font` when set.
+   */
+  installed_font?: string | null;
+  /**
+   * Italic. Default off.
+   */
+  italic?: boolean;
+  /**
+   * Size in points. Default 12.
+   */
+  size_pt?: number;
 }

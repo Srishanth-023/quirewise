@@ -4,6 +4,7 @@
 //! The analysis is pure: an engine reads characters, lines and pictures from a page, this module
 //! decides what they mean.
 
+pub mod fields;
 pub mod flow;
 pub mod model;
 pub mod render;
@@ -13,6 +14,7 @@ pub mod words;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+pub use fields::suggest_fields;
 pub use flow::{BodyStats, analyze, analyze_page, body_stats, list_marker, strip_running};
 pub use model::{
     Block, Cell, CharBox, PageContent, PageLayout, PictureBox, Rect, Rule, Span, Table, Word, plain,

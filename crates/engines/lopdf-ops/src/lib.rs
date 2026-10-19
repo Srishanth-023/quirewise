@@ -4,32 +4,39 @@
 //! runs inside the worker, with a cap on how far any stream may expand.
 #![forbid(unsafe_code)]
 
+mod annot;
 mod annotations;
 mod attachments;
 mod boxes;
 mod edit;
 mod encryption;
+mod fonts;
+mod forms;
 mod grayscale;
 mod images;
 mod labels;
 mod layout;
+mod markup;
 mod metadata;
 mod outline;
+mod overlay;
 mod pageres;
+mod paint;
 mod sanitize;
 mod scan;
 mod stamp;
 mod textlayer;
 mod toc;
 
+pub use fonts::InstalledFonts;
 pub use toc::LopdfToc;
 
 use application::AppError;
 use application::Password;
 use application::inspect::StructureReport;
 use application::ports::{
-    Attachment, AttachmentInfo, AttachmentReader, ExtractReport, ExtractedImage, ImageExtractor,
-    PdfEdit, PdfEditor, StructureFacts,
+    Attachment, AttachmentInfo, AttachmentReader, ExtractReport, ExtractedImage, FormReader,
+    ImageExtractor, PdfEdit, PdfEditor, StructureFacts,
 };
 use domain::ErrorCode;
 use lopdf::{Document, LoadOptions};
@@ -62,6 +69,21 @@ impl PdfEditor for LopdfEditor {
         doc.save(dest)
             .map_err(|e| AppError::from_io("write the edited document", &e))?;
         Ok(())
+    }
+}
+
+/// [`FormReader`] over lopdf.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct LopdfForms;
+
+impl FormReader for LopdfForms {
+    fn fields(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<Vec<domain::forms::FormField>, AppError> {
+        let doc = LopdfStructure::load(path, password)?;
+        Ok(forms::list_fields(&doc))
     }
 }
 

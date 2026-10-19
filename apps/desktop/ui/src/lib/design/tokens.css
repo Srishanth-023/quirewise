@@ -20,6 +20,12 @@
   --warning: #8a5a00;
   --danger: #a3312a;
   --selection: #d7e5f0;
+  /* The page being edited is always paper, in both themes. */
+  --paper: #fdfdfc;
+  --ink: #111827;
+  --ink-muted: #4b5563;
+  --field-fill: #f4f8ff;
+  --field-edge: #6b7280;
 
   --space-1: 2px;
   --space-2: 4px;

@@ -5,6 +5,7 @@
 
 pub mod components;
 pub mod documents;
+pub mod editor;
 pub mod jobs;
 pub mod recent;
 pub mod scan;

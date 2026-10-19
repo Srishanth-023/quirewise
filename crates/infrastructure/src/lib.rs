@@ -1,10 +1,13 @@
 //! Adapters for Quirewise ports: file store, settings, logging, components, job queue and the
 //! worker supervisor. Engines never import this crate and it never imports an engine.
-#![forbid(unsafe_code)]
+// One module (`dpapi`) calls Windows and allows unsafe code for that; everything else may not.
+#![deny(unsafe_code)]
 
 pub mod clock;
 pub mod components;
 pub mod download;
+#[cfg(windows)]
+pub mod dpapi;
 pub mod file_store;
 pub mod jobs;
 pub mod logging;
@@ -14,6 +17,7 @@ pub mod queue;
 pub mod recent;
 pub mod session;
 pub mod settings;
+pub mod signatures;
 pub mod supervisor;
 
 pub use clock::SystemClock;

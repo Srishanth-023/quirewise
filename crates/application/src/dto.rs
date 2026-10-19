@@ -201,6 +201,16 @@ pub struct IpcTypes {
     pub run_batch_request: RunBatchRequest,
     pub component_entry: domain::components::ComponentEntry,
     pub component_progress: ComponentProgress,
+    pub form_field: domain::forms::FormField,
+    pub field_suggestion: domain::forms::FieldSuggestion,
+    pub text_block: domain::forms::TextBlock,
+    pub edit_pdf_options: domain::tools::editor::EditPdfOptions,
+    pub annotate_options: domain::tools::editor::AnnotateOptions,
+    pub fill_sign_options: domain::tools::editor::FillSignOptions,
+    pub sign_pdf_options: domain::tools::editor::SignPdfOptions,
+    pub create_forms_options: domain::tools::editor::CreateFormsOptions,
+    pub saved_signature: domain::signatures::SavedSignature,
+    pub new_saved_signature: domain::signatures::NewSavedSignature,
 }
 
 /// Progress of a component download, pushed to the UI as an event.

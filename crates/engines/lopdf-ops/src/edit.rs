@@ -156,5 +156,10 @@ pub fn apply(doc: &mut Document, edit: &PdfEdit) -> Result<(), AppError> {
         PdfEdit::SetPageLabels(ranges) => crate::labels::set_page_labels(doc, ranges),
         PdfEdit::AddAttachments(paths) => crate::attachments::add(doc, paths),
         PdfEdit::RemoveAttachments(names) => crate::attachments::remove(doc, names),
+        PdfEdit::Overlay(items) => crate::overlay::apply_items(doc, items),
+        PdfEdit::Annotate(annotations) => crate::markup::apply_annotations(doc, annotations),
+        PdfEdit::Sign(items) => crate::overlay::apply_signatures(doc, items),
+        PdfEdit::FillForm(values) => crate::forms::fill(doc, values),
+        PdfEdit::CreateFields(fields) => crate::forms::create_fields(doc, fields),
     }
 }
