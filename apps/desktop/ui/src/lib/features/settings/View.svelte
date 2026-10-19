@@ -2,6 +2,7 @@
   import { t } from '../../i18n';
   import type { Settings } from '../../ipc/client';
   import { settings } from '../../stores/settings.svelte';
+  import Components from '../components/View.svelte';
 
   const themes = ['system', 'light', 'dark'] as const;
   const themeLabel = {
@@ -40,6 +41,8 @@
     </div>
   {/if}
 </section>
+
+<Components />
 
 <style>
   .field {

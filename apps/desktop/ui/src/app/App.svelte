@@ -15,6 +15,8 @@
   import { settings } from '../lib/stores/settings.svelte';
   import { toasts } from '../lib/stores/toasts.svelte';
   import { tools } from '../lib/stores/tools.svelte';
+  import { toolOptions } from '../lib/stores/options.svelte';
+  import { runsWithoutFiles } from '../lib/forms/toolForms';
   import About from './shell/About.svelte';
   import CancelDialog from './shell/CancelDialog.svelte';
   import Home from './shell/Home.svelte';
@@ -115,6 +117,11 @@
       jobs.stop();
     };
   });
+  /** A tool such as HTML to PDF can run on a web address alone, so the run bar shows without files. */
+  const withoutFiles = (): boolean => {
+    void toolOptions.edits;
+    return tools.selected ? runsWithoutFiles(tools.selected.id, toolOptions.values(tools.selected)) : false;
+  };
 </script>
 
 <svelte:window {onkeydown} />
@@ -124,7 +131,7 @@
 
   <main class="workspace">
     {#if route === 'home'}
-      {#if files.entries.length === 0}
+      {#if files.entries.length === 0 && !withoutFiles()}
         <Home {dragging} onchoose={() => void pickAndAdd()} />
       {:else}
         <Workspace

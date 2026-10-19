@@ -27,6 +27,19 @@ pub struct BatchRequest {
     pub output_dir: Option<PathBuf>,
     /// Naming pattern.
     pub naming_pattern: OutputNamingPattern,
+    /// True when the tool can run with no input file (it prints a web address): an empty file
+    /// list then still makes one run.
+    pub without_files: bool,
+}
+
+impl BatchRequest {
+    /// The runs of this batch.
+    fn units(&self) -> Vec<Vec<InputDoc>> {
+        if self.inputs.is_empty() && self.without_files {
+            return vec![Vec::new()];
+        }
+        split_units(self.mode, &self.inputs)
+    }
 }
 
 /// Observes a running batch. Called from worker threads.
@@ -70,7 +83,7 @@ impl JobQueue {
         cancel: &CancellationToken,
         observer: &dyn BatchObserver,
     ) -> BatchReport {
-        let units = split_units(request.mode, &request.inputs);
+        let units = request.units();
         let report = BatchReport {
             tool: request.tool,
             files: units
@@ -91,7 +104,7 @@ impl JobQueue {
         cancel: &CancellationToken,
         observer: &dyn BatchObserver,
     ) -> BatchReport {
-        let units = split_units(request.mode, &request.inputs);
+        let units = request.units();
         let retry = previous.retryable();
         self.run_units(request, units, previous.clone(), &retry, cancel, observer)
     }
@@ -230,6 +243,7 @@ mod tests {
 
     fn request(names: &[&str]) -> BatchRequest {
         BatchRequest {
+            without_files: false,
             tool: ToolId::Rotate,
             mode: InputMode::PerFile,
             options: ToolOptions::defaults_for(ToolId::Rotate),
@@ -306,6 +320,17 @@ mod tests {
         assert_eq!(runner.calls.load(Ordering::SeqCst), 1);
         assert_eq!(report.files.len(), 1);
         assert_eq!(report.files[0].inputs.len(), 3);
+    }
+
+    #[test]
+    fn a_batch_without_files_runs_once_when_the_tool_allows_it() {
+        let (q, probe, runner) = queue(2);
+        let mut req = request(&[]);
+        req.without_files = true;
+        let report = q.run(&req, &CancellationToken::new(), &*probe);
+        assert_eq!(report.files.len(), 1);
+        assert!(report.files[0].inputs.is_empty());
+        assert_eq!(runner.calls.load(Ordering::SeqCst), 1);
     }
 
     #[test]

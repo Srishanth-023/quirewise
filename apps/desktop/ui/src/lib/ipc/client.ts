@@ -3,6 +3,8 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
   AppError,
   BatchEvent,
+  ComponentEntry,
+  ComponentProgress,
   DocumentReport,
   DropAnalysis,
   RecentFile,
@@ -15,6 +17,8 @@ import type {
 export type {
   AppError,
   BatchEvent,
+  ComponentEntry,
+  ComponentProgress,
   DocumentReport,
   DropAnalysis,
   RecentFile,
@@ -61,7 +65,7 @@ export const ipc = {
   appVersion: () => call<string>('app_version'),
   listTools: () => call<ToolDescriptor[]>('list_tools'),
   pickFiles: () => call<string[]>('pick_files'),
-  pickPaths: (kind: 'image' | 'any', multiple: boolean) =>
+  pickPaths: (kind: 'image' | 'package' | 'any', multiple: boolean) =>
     call<string[]>('pick_paths', { kind, multiple }),
   classifyInputs: (paths: string[]) => call<DropAnalysis>('classify_inputs', { paths }),
   inspectDocument: (path: string, password: string | null) =>
@@ -78,7 +82,23 @@ export const ipc = {
   retryFailed: (job: number) => call<void>('retry_failed', { job }),
   openOutput: (path: string) => call<void>('open_output', { path }),
   revealOutput: (path: string) => call<void>('reveal_output', { path }),
+  componentsInstalled: () => call<ComponentEntry[]>('components_installed'),
+  componentsAvailable: (consent: boolean) => call<ComponentEntry[]>('components_available', { consent }),
+  componentInstall: (id: string, consent: boolean) =>
+    call<ComponentEntry>('component_install', { id, consent }),
+  componentImport: (path: string) => call<ComponentEntry>('component_import', { path }),
+  componentRemove: (id: string) => call<void>('component_remove', { id }),
 };
+
+/** Name of the event carrying component download progress. Matches the Rust command. */
+const COMPONENT_EVENT = 'component-progress';
+
+/** Subscribes to component download progress. Returns a function that stops listening. */
+export function onComponentProgress(
+  handler: (progress: ComponentProgress) => void,
+): Promise<UnlistenFn> {
+  return listen<ComponentProgress>(COMPONENT_EVENT, (e) => handler(e.payload));
+}
 
 /** Subscribes to batch events. Returns a function that stops listening. */
 export function onBatchEvent(handler: (event: BatchEvent) => void): Promise<UnlistenFn> {

@@ -125,6 +125,17 @@ impl ComponentStore for FsComponentStore {
     }
 }
 
+/// Where the component list is published until the owner sets the real address.
+pub const DEFAULT_MANIFEST_URL: &str = "https://components.invalid/v1/components.json";
+
+/// The trust root of this build: the list address and the signing key in `trust/components.pub`.
+pub fn default_trust() -> ComponentTrust {
+    ComponentTrust {
+        manifest_url: DEFAULT_MANIFEST_URL.to_owned(),
+        public_key: include_str!("../trust/components.pub").trim().to_owned(),
+    }
+}
+
 /// Where the component list lives and who signed it.
 #[derive(Debug, Clone)]
 pub struct ComponentTrust {
@@ -170,6 +181,11 @@ impl ComponentManager {
     }
 
     fn verify_signature(&self, data: &[u8], signature: &str) -> Result<(), AppError> {
+        if self.trust.public_key.trim().is_empty() {
+            return Err(verify_failed(
+                "this build of Quirewise has no signing key for components yet",
+            ));
+        }
         let key = PublicKey::from_base64(self.trust.public_key.trim())
             .map_err(|_| verify_failed("the app's signing key is not valid"))?;
         let signature = Signature::decode(signature)
@@ -684,6 +700,38 @@ mod tests {
             fs::read(dir.path().join("libreoffice").join("1.10").join("a.txt")).unwrap(),
             b"two"
         );
+    }
+
+    #[test]
+    fn a_build_without_a_signing_key_installs_nothing() {
+        let dir = tempdir().unwrap();
+        let (net, keys) = (Network::new(), keys());
+        let payload = zip_of(&[("a.txt", b"x")]);
+        net.put("https://components.invalid/p.zip", payload.clone());
+        publish(
+            &net,
+            &keys,
+            &[entry_for(
+                &payload,
+                "https://components.invalid/p.zip",
+                "1.0",
+            )],
+        );
+        let m = ComponentManager::new(
+            dir.path().to_path_buf(),
+            net.clone(),
+            ComponentTrust {
+                manifest_url: MANIFEST_URL.to_owned(),
+                public_key: String::new(),
+            },
+            Arch::X64,
+        );
+        let err = m
+            .install("libreoffice", &application::NoProgress)
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::ComponentVerifyFailed);
+        assert!(err.message.contains("no signing key"), "{}", err.message);
+        assert!(default_trust().public_key.is_empty() || default_trust().public_key.len() > 20);
     }
 
     #[test]

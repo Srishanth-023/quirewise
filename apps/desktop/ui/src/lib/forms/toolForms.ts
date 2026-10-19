@@ -25,6 +25,17 @@ export interface ToolForm {
   regionPicker?: { when?: ShowRule };
 }
 
+/** Tools that can run with an empty file list, and the option that makes it possible. */
+const withoutFiles: Record<string, string> = { 'html-to-pdf': 'url' };
+
+/** True when the tool needs no file with the values chosen so far. */
+export function runsWithoutFiles(toolId: string, values: Record<string, unknown>): boolean {
+  const key = withoutFiles[toolId];
+  if (!key) return false;
+  const value = values[key];
+  return typeof value === 'string' && value.trim() !== '';
+}
+
 /** What the color control shows while the text is not a valid #RRGGBB value. */
 export const FALLBACK_COLOR = '#000000';
 
@@ -254,6 +265,52 @@ export const toolForms: Record<string, ToolForm> = {
     order: ['remove_all', 'ranges'],
     rows: ['ranges'],
     visibleWhen: { ranges: { field: 'remove_all', equals: false } },
+  },
+  'images-to-pdf': { order: ['one_pdf', 'page_size', 'orientation', 'margin'] },
+  'pdf-to-images': {
+    order: ['format', 'dpi', 'jpeg_quality', 'color', 'single_tiff', 'pages'],
+    limits: { dpi: { min: 10, max: 2400 }, jpeg_quality: { min: 1, max: 100 } },
+    visibleWhen: {
+      jpeg_quality: { field: 'format', equals: 'jpg' },
+      single_tiff: { field: 'format', equals: 'tiff' },
+    },
+  },
+  'extract-images': {
+    order: ['keep_original_format', 'min_width', 'min_height'],
+    limits: { min_width: { min: 1 }, min_height: { min: 1 } },
+  },
+  'pdf-to-text': { order: ['layout', 'page_separators', 'encoding', 'pages'] },
+  'tiff-to-pdf': {},
+  'pdf-to-tiff': {
+    order: ['compression', 'dpi', 'color', 'pages'],
+    limits: { dpi: { min: 10, max: 2400 } },
+    visibleWhen: { color: { field: 'compression', in: ['lzw', 'deflate'] } },
+  },
+  'word-to-pdf': { order: ['pages', 'engine'] },
+  'powerpoint-to-pdf': { order: ['slides', 'include_hidden', 'engine'] },
+  'excel-to-pdf': { order: ['sheets', 'fit_to_page_width', 'orientation', 'engine'] },
+  'html-to-pdf': {
+    order: [
+      'url',
+      'allow_network',
+      'page_size',
+      'custom_width_mm',
+      'custom_height_mm',
+      'orientation',
+      'margin_mm',
+      'scale_percent',
+      'background_graphics',
+      'header_footer',
+      'load_timeout_s',
+    ],
+    limits: {
+      scale_percent: { min: 10, max: 200 },
+      load_timeout_s: { min: 1, max: 300 },
+      margin_mm: { min: 0, max: 100 },
+    },
+    visibleWhen: {
+      ...only(['custom_width_mm', 'custom_height_mm'], { field: 'page_size', equals: 'custom' }),
+    },
   },
   'insert-pages': {
     order: ['mode', 'pages', 'position', 'count', 'page_size'],

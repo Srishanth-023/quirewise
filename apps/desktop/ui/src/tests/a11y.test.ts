@@ -14,6 +14,7 @@ const ipc = vi.hoisted(() => ({
   recentAdd: vi.fn(),
   recentClear: vi.fn(),
   getSettings: vi.fn(),
+  componentsInstalled: vi.fn(),
   saveSettings: vi.fn(),
 }));
 
@@ -21,6 +22,7 @@ vi.mock('../lib/ipc/client', () => ({
   ipc,
   toAppError: (e: unknown) => e,
   onBatchEvent: () => Promise.resolve(() => undefined),
+  onComponentProgress: () => Promise.resolve(() => undefined),
 }));
 vi.mock('../lib/dnd', () => ({ listenForDrops: () => Promise.reject(new Error('no webview')) }));
 
@@ -44,6 +46,7 @@ beforeEach(() => {
   ipc.inspectDocument.mockResolvedValue(report());
   ipc.recentAdd.mockResolvedValue(undefined);
   ipc.getSettings.mockResolvedValue({ theme: 'system', remember_recent_files: true });
+  ipc.componentsInstalled.mockResolvedValue([]);
 });
 
 /** Structural accessibility rules. Color contrast needs real layout, so contrast.test.ts covers it. */

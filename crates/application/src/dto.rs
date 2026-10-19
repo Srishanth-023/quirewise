@@ -199,6 +199,19 @@ pub struct IpcTypes {
     pub app_error: AppError,
     pub output_artifact: OutputArtifact,
     pub run_batch_request: RunBatchRequest,
+    pub component_entry: domain::components::ComponentEntry,
+    pub component_progress: ComponentProgress,
+}
+
+/// Progress of a component download, pushed to the UI as an event.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ComponentProgress {
+    /// The component being installed.
+    pub id: String,
+    /// Bytes downloaded so far.
+    pub done: u64,
+    /// Bytes in the download.
+    pub total: u64,
 }
 
 /// JSON Schema of all UI types, as pretty JSON text.

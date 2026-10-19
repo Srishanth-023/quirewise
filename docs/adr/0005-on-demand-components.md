@@ -15,3 +15,10 @@ Ship a signed `components.json` manifest listing id, version, architecture, URL,
 - The app works fully offline once components are installed.
 - The manifest parser is a fuzz target.
 - A tampered or mismatched component fails with `QW-COMPONENT-VERIFY-FAILED`.
+
+## Update (Phase 6)
+
+- The public key lives in `crates/infrastructure/trust/components.pub`. An empty key means the build installs nothing; the owner provides the key and the list address before release (docs/components.md).
+- Downloads use HTTPS through the Windows TLS stack and only after the UI asked the person; the command line needs `--yes`.
+- An offline `.qwpkg` is a zip of `entry.json`, `entry.json.minisig` and `payload.zip`, and passes the same signature, size and SHA-256 checks as a download.
+- Unpacking refuses paths that leave the install folder and links, and limits file count and total size.

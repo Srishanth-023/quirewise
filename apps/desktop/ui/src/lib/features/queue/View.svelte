@@ -1,4 +1,12 @@
 <script lang="ts">
+  const kindIcon = {
+    pdf: 'file-pdf',
+    image: 'image',
+    word: 'file-doc',
+    slides: 'file-ppt',
+    sheet: 'file-xls',
+    html: 'file-html',
+  } as const;
   import { t, tDynamic } from '../../i18n';
   import Button from '../../components/Button/Button.svelte';
   import Icon from '../../components/Icon.svelte';
@@ -42,7 +50,7 @@
           aria-label={t('files.select', { name: entry.name })}
           onclick={() => files.select(entry.id)}
         >
-          <Icon name={entry.kind === 'pdf' ? 'file-pdf' : 'image'} />
+          <Icon name={kindIcon[entry.kind]} />
           <span>{entry.name}</span>
           {#if entry.problem?.code === 'QW-PDF-ENCRYPTED' || entry.report?.locked}
             <Icon name="lock" />

@@ -3,6 +3,7 @@
 //!
 //! The submodules are public because `generate_handler!` needs the full command paths.
 
+pub mod components;
 pub mod documents;
 pub mod jobs;
 pub mod recent;

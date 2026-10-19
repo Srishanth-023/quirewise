@@ -10,8 +10,10 @@ import {
   editMetadataSchema,
   everyNSchema,
   flattenSchema,
+  htmlSchema,
   mergeSchema,
   organizeSchema,
+  pdfToImagesSchema,
   protectSchema,
   removeAnnotationsSchema,
   report,
@@ -29,6 +31,7 @@ const ipc = vi.hoisted(() => ({
   recentAdd: vi.fn(),
   runBatch: vi.fn(),
   getSettings: vi.fn(),
+  componentsInstalled: vi.fn(),
   pickPaths: vi.fn(),
 }));
 
@@ -36,6 +39,7 @@ vi.mock('../lib/ipc/client', () => ({
   ipc,
   toAppError: (e: unknown) => e,
   onBatchEvent: () => Promise.resolve(() => undefined),
+  onComponentProgress: () => Promise.resolve(() => undefined),
 }));
 vi.mock('../lib/dnd', () => ({ listenForDrops: () => Promise.reject(new Error('no webview')) }));
 
@@ -66,6 +70,8 @@ const list = [
   { id: 'bookmarks', group: 'edit', label: 'bookmarked', input_mode: 'per-file', options_schema: bookmarksSchema },
   { id: 'attachments', group: 'edit', label: 'attached', input_mode: 'per-file', options_schema: attachmentsSchema },
   { id: 'crop', group: 'edit', label: 'cropped', input_mode: 'per-file', options_schema: cropSchema },
+  { id: 'pdf-to-images', group: 'convert-from-pdf', label: 'images', input_mode: 'per-file', options_schema: pdfToImagesSchema },
+  { id: 'html-to-pdf', group: 'convert-to-pdf', label: 'web page', input_mode: 'per-file', options_schema: htmlSchema },
 ];
 
 beforeEach(() => {
@@ -80,6 +86,7 @@ beforeEach(() => {
   ipc.inspectDocument.mockResolvedValue(report());
   ipc.recentAdd.mockResolvedValue(undefined);
   ipc.getSettings.mockResolvedValue({ theme: 'system', remember_recent_files: true });
+  ipc.componentsInstalled.mockResolvedValue([]);
   ipc.runBatch.mockResolvedValue(1);
   jobs.running = false;
   jobs.status = null;
@@ -290,6 +297,47 @@ describe('forms for the edit tools', () => {
     expect(screen.queryByText('Area to keep')).toBeNull();
     await fireEvent.click(screen.getByLabelText('Keep a box I draw'));
     expect(await screen.findByText('Area to keep')).toBeTruthy();
+  });
+});
+
+describe('forms for the conversion tools', () => {
+  it('asks for the JPEG quality only for JPG and for one TIFF file only for TIFF', async () => {
+    await open('PDF to images', ['C:\\a.pdf']);
+    expect(await screen.findByLabelText('JPEG quality (1 to 100)')).toBeTruthy();
+    expect(screen.queryByLabelText('Put all pages in one multi-page TIFF file')).toBeNull();
+    await fireEvent.click(screen.getByLabelText('TIFF'));
+    expect(await screen.findByLabelText('Put all pages in one multi-page TIFF file')).toBeTruthy();
+    expect(screen.queryByLabelText('JPEG quality (1 to 100)')).toBeNull();
+    expect(await violations()).toEqual([]);
+  });
+
+  it('runs on a web address with no file, and shows the custom paper size only when asked', async () => {
+    render(App);
+    await screen.findByRole('button', { name: 'HTML to PDF' });
+    await fireEvent.click(screen.getByRole('button', { name: 'HTML to PDF' }));
+    await screen.findByLabelText('Web address');
+    expect(screen.queryByRole('button', { name: /Run HTML to PDF/ })).toBeNull();
+    expect(screen.queryByLabelText('Width (mm)')).toBeNull();
+    await fireEvent.click(screen.getByLabelText('Custom size'));
+    expect(await screen.findByLabelText('Width (mm)')).toBeTruthy();
+
+    await fireEvent.input(screen.getByLabelText('Web address'), {
+      target: { value: 'https://example.com/report' },
+    });
+    await fireEvent.click(screen.getByLabelText('Allow the page to load from the internet'));
+    const run = (await screen.findByRole('button', { name: /Run HTML to PDF/ })) as HTMLButtonElement;
+    expect(run.disabled).toBe(false);
+    expect(run.textContent).toContain('on the web address');
+    await fireEvent.click(run);
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    const request = ipc.runBatch.mock.calls[0]?.[0];
+    expect(request.inputs).toEqual([]);
+    expect(request.options).toMatchObject({
+      tool: 'html-to-pdf',
+      url: 'https://example.com/report',
+      allow_network: true,
+      page_size: 'custom',
+    });
   });
 });
 

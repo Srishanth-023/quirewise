@@ -67,14 +67,15 @@ export type BatchEvent =
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "Suggestion".
  */
-export type Suggestion = 'unlock' | 'ocr' | 'merge' | 'images-to-pdf';
+export type Suggestion =
+  'unlock' | 'ocr' | 'merge' | 'images-to-pdf' | 'word-to-pdf' | 'power-point-to-pdf' | 'excel-to-pdf' | 'html-to-pdf';
 /**
  * Wire form of [`InputKind`].
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "InputKindDto".
  */
-export type InputKindDto = 'pdf' | 'image';
+export type InputKindDto = 'pdf' | 'image' | 'word' | 'slides' | 'sheet' | 'html';
 /**
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "Password".
@@ -147,6 +148,13 @@ export type Secret = string;
  */
 export type Schema = {} | boolean;
 /**
+ * CPU architecture of a component build.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Arch".
+ */
+export type Arch = 'x64' | 'arm64' | 'any';
+/**
  * What Attachments does.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -188,6 +196,13 @@ export type CompressPreset = 'extreme' | 'recommended' | 'less';
  */
 export type CropMethod = 'margins' | 'region' | 'auto';
 /**
+ * Dots per inch, limited to a range PDFium can render sensibly.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Dpi".
+ */
+export type Dpi = number;
+/**
  * Stable, user-visible error code. The string form never changes once released.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -209,6 +224,7 @@ export type ErrorCode =
   | 'QW-ENGINE-TIMEOUT'
   | 'QW-JOB-CANCELLED'
   | 'QW-NETWORK-CONSENT-REQUIRED'
+  | 'QW-NETWORK-UNAVAILABLE'
   | 'QW-INTERNAL';
 /**
  * Outcome of one file in a batch.
@@ -268,6 +284,34 @@ export type FormHandling = 'keep' | 'flatten';
  */
 export type GrayscaleScope = 'both' | 'images' | 'text';
 /**
+ * Page turn of a printed web page.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "HtmlOrientation".
+ */
+export type HtmlOrientation = 'portrait' | 'landscape';
+/**
+ * Space between the picture and the page edge.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "ImageMargin".
+ */
+export type ImageMargin = 'none' | 'small' | 'big';
+/**
+ * Turn of the page for the fixed paper sizes of Images to PDF.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "ImageOrientation".
+ */
+export type ImageOrientation = 'auto' | 'portrait' | 'landscape';
+/**
+ * Page size of Images to PDF.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "ImagePageSize".
+ */
+export type ImagePageSize = 'fit' | 'a4' | 'letter';
+/**
  * How a batch maps onto tool runs.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -317,6 +361,13 @@ export type LengthUnit = 'mm' | 'in' | 'pt';
  */
 export type NumberStyle = 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
 /**
+ * Which program converts the document.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "OfficeEngine".
+ */
+export type OfficeEngine = 'auto' | 'libre-office' | 'ms-office';
+/**
  * A validated naming pattern.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -344,6 +395,20 @@ export type PageSizeChoice = 'same-as-neighbor' | 'a4' | 'letter' | 'legal' | 'a
  * via the `definition` "PaperSize".
  */
 export type PaperSize = 'a4' | 'letter' | 'legal' | 'a3' | 'custom';
+/**
+ * Colors of the page pictures.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "PictureColor".
+ */
+export type PictureColor = 'color' | 'gray' | 'black-white';
+/**
+ * File format of the page pictures.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "PictureFormat".
+ */
+export type PictureFormat = 'jpg' | 'png' | 'tiff';
 /**
  * Where a stamp sits on the page: a 3 by 3 grid.
  *
@@ -380,6 +445,13 @@ export type Schema1 = {} | boolean;
  */
 export type SheetCount = '2' | '4' | '8' | '16' | '32';
 /**
+ * Page turn of the sheets of a workbook.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SheetOrientation".
+ */
+export type SheetOrientation = 'auto' | 'portrait' | 'landscape';
+/**
  * Orientation of the cut for Split in half.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -387,12 +459,33 @@ export type SheetCount = '2' | '4' | '8' | '16' | '32';
  */
 export type SplitDirection = 'vertical' | 'horizontal';
 /**
+ * Character encoding of the text file.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "TextEncoding".
+ */
+export type TextEncoding = 'utf8' | 'utf8-bom' | 'utf16' | 'windows1252';
+/**
+ * How PDF to text lays the text out.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "TextLayout".
+ */
+export type TextLayout = 'plain' | 'layout';
+/**
  * Theme choice. `System` follows the Windows app theme.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "ThemePreference".
  */
 export type ThemePreference = 'system' | 'light' | 'dark';
+/**
+ * Compression of the TIFF pages written by PDF to TIFF.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "TiffCompression".
+ */
+export type TiffCompression = 'lzw' | 'deflate' | 'ccitt-g4';
 /**
  * Navigation group a tool belongs to (MASTER_PROMPT.md section 3.1).
  *
@@ -450,7 +543,17 @@ export type ToolId =
   | 'bookmarks'
   | 'rename-by-content'
   | 'attachments'
-  | 'page-labels';
+  | 'page-labels'
+  | 'word-to-pdf'
+  | 'powerpoint-to-pdf'
+  | 'excel-to-pdf'
+  | 'html-to-pdf'
+  | 'images-to-pdf'
+  | 'pdf-to-images'
+  | 'extract-images'
+  | 'pdf-to-text'
+  | 'tiff-to-pdf'
+  | 'pdf-to-tiff';
 /**
  * Options for any tool. The tag is the tool id.
  *
@@ -1199,6 +1302,201 @@ export type ToolOptions =
        */
       remove_all?: boolean;
       tool: 'page-labels';
+    }
+  | {
+      /**
+       * The program that converts the file. Default auto.
+       */
+      engine?: 'auto' | 'libre-office' | 'ms-office';
+      /**
+       * Pages of the result to keep: `all`, a range, `even`, `odd`. Default `all`.
+       */
+      pages?: string;
+      tool: 'word-to-pdf';
+    }
+  | {
+      /**
+       * The program that converts the file. Default auto.
+       */
+      engine?: 'auto' | 'libre-office' | 'ms-office';
+      /**
+       * Include slides that are hidden in the presentation. Default off.
+       */
+      include_hidden?: boolean;
+      /**
+       * Slides to keep, counting the slides that are in the result. Default `all`.
+       */
+      slides?: string;
+      tool: 'powerpoint-to-pdf';
+    }
+  | {
+      /**
+       * The program that converts the file. Default auto.
+       */
+      engine?: 'auto' | 'libre-office' | 'ms-office';
+      /**
+       * Shrink wide sheets so every column fits the page width. Default on.
+       */
+      fit_to_page_width?: boolean;
+      /**
+       * Page turn. Default auto.
+       */
+      orientation?: 'auto' | 'portrait' | 'landscape';
+      /**
+       * Sheets to print, by position: `all` or for example `1,3`. Default `all`.
+       */
+      sheets?: string;
+      tool: 'excel-to-pdf';
+    }
+  | {
+      /**
+       * Allow the page to load from the internet. Without it only local files print and pictures
+       * or styles that live on the web are left out. Default off.
+       */
+      allow_network?: boolean;
+      /**
+       * Print background colors and pictures. Default on.
+       */
+      background_graphics?: boolean;
+      /**
+       * Height in millimeters, for a custom size. Default 297.
+       */
+      custom_height_mm?: number;
+      /**
+       * Width in millimeters, for a custom size. Default 210.
+       */
+      custom_width_mm?: number;
+      /**
+       * Print the page title and number in the margins. Default off.
+       */
+      header_footer?: boolean;
+      /**
+       * Longest the page may take to load, in seconds, 1 to 300. Default 15.
+       */
+      load_timeout_s?: number;
+      /**
+       * Margin on every side in millimeters. Default 10.
+       */
+      margin_mm?: number;
+      /**
+       * Page turn. Default portrait.
+       */
+      orientation?: 'portrait' | 'landscape';
+      /**
+       * Paper size: A4, Letter, Legal, A3 or custom. Default A4.
+       */
+      page_size?: 'a4' | 'letter' | 'legal' | 'a3' | 'custom';
+      /**
+       * Scale in percent, 10 to 200. Default 100.
+       */
+      scale_percent?: number;
+      tool: 'html-to-pdf';
+      /**
+       * A web address to print instead of a file. Needs `allow_network`. Default none.
+       */
+      url?: string | null;
+    }
+  | {
+      /**
+       * Space around the picture. Default none.
+       */
+      margin?: 'none' | 'small' | 'big';
+      /**
+       * One PDF for all pictures (default) or one PDF per picture.
+       */
+      one_pdf?: boolean;
+      /**
+       * Page turn for A4 and Letter. Default auto.
+       */
+      orientation?: 'auto' | 'portrait' | 'landscape';
+      /**
+       * Page size. Default fit.
+       */
+      page_size?: 'fit' | 'a4' | 'letter';
+      tool: 'images-to-pdf';
+    }
+  | {
+      /**
+       * Colors. Default color.
+       */
+      color?: 'color' | 'gray' | 'black-white';
+      /**
+       * Resolution in dots per inch, 10 to 2400. Default 150.
+       */
+      dpi?: number;
+      /**
+       * File format. Default JPG.
+       */
+      format?: 'jpg' | 'png' | 'tiff';
+      /**
+       * JPEG quality, 1 to 100. Default 90.
+       */
+      jpeg_quality?: number;
+      /**
+       * Pages to convert. Default `all`.
+       */
+      pages?: string;
+      /**
+       * For TIFF: one multi-page file instead of one file per page. Default off.
+       */
+      single_tiff?: boolean;
+      tool: 'pdf-to-images';
+    }
+  | {
+      /**
+       * Keep the format the picture has in the PDF (default). Off writes every picture as PNG.
+       */
+      keep_original_format?: boolean;
+      /**
+       * Skip pictures lower than this many pixels. Default 50.
+       */
+      min_height?: number;
+      /**
+       * Skip pictures narrower than this many pixels. Default 50.
+       */
+      min_width?: number;
+      tool: 'extract-images';
+    }
+  | {
+      /**
+       * Encoding of the file. Default UTF-8.
+       */
+      encoding?: 'utf8' | 'utf8-bom' | 'utf16' | 'windows1252';
+      /**
+       * Plain or layout-preserving text. Default plain.
+       */
+      layout?: 'plain' | 'layout';
+      /**
+       * Put a line such as `--- Page 2 ---` between pages. Default on.
+       */
+      page_separators?: boolean;
+      /**
+       * Pages to read. Default `all`.
+       */
+      pages?: string;
+      tool: 'pdf-to-text';
+    }
+  | {
+      tool: 'tiff-to-pdf';
+    }
+  | {
+      /**
+       * Colors. CCITT G4 always writes black and white. Default color.
+       */
+      color?: 'color' | 'gray' | 'black-white';
+      /**
+       * Compression. Default LZW.
+       */
+      compression?: 'lzw' | 'deflate' | 'ccitt-g4';
+      /**
+       * Resolution in dots per inch, 10 to 2400. Default 150.
+       */
+      dpi?: number;
+      /**
+       * Pages to convert. Default `all`.
+       */
+      pages?: string;
+      tool: 'pdf-to-tiff';
     };
 /**
  * What a watermark shows.
@@ -1217,6 +1515,8 @@ export type WatermarkKind = 'text' | 'image';
 export interface IpcTypes {
   app_error: AppError;
   batch_event: BatchEvent;
+  component_entry: ComponentEntry;
+  component_progress: ComponentProgress;
   document_report: DocumentReport;
   drop_analysis: DropAnalysis;
   output_artifact: OutputArtifact;
@@ -1252,6 +1552,7 @@ export interface AppError {
     | 'QW-ENGINE-TIMEOUT'
     | 'QW-JOB-CANCELLED'
     | 'QW-NETWORK-CONSENT-REQUIRED'
+    | 'QW-NETWORK-UNAVAILABLE'
     | 'QW-INTERNAL';
   /**
    * User-facing message: what happened and what to do next.
@@ -1277,6 +1578,58 @@ export interface OutputArtifact {
    * Where the output was written.
    */
   path: string;
+}
+/**
+ * One downloadable component build.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "ComponentEntry".
+ */
+export interface ComponentEntry {
+  /**
+   * Target architecture.
+   */
+  arch: 'x64' | 'arm64' | 'any';
+  /**
+   * Component id, kebab-case (`libreoffice`, `tessdata-eng`).
+   */
+  id: string;
+  /**
+   * Lowercase hex SHA-256 of the download.
+   */
+  sha256: string;
+  /**
+   * Download size.
+   */
+  size: number;
+  /**
+   * HTTPS download URL.
+   */
+  url: string;
+  /**
+   * Version string.
+   */
+  version: string;
+}
+/**
+ * Progress of a component download, pushed to the UI as an event.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "ComponentProgress".
+ */
+export interface ComponentProgress {
+  /**
+   * Bytes downloaded so far.
+   */
+  done: number;
+  /**
+   * The component being installed.
+   */
+  id: string;
+  /**
+   * Bytes in the download.
+   */
+  total: number;
 }
 /**
  * Everything the Inspect panel shows.
@@ -2307,6 +2660,201 @@ export interface RunBatchRequest {
          */
         remove_all?: boolean;
         tool: 'page-labels';
+      }
+    | {
+        /**
+         * The program that converts the file. Default auto.
+         */
+        engine?: 'auto' | 'libre-office' | 'ms-office';
+        /**
+         * Pages of the result to keep: `all`, a range, `even`, `odd`. Default `all`.
+         */
+        pages?: string;
+        tool: 'word-to-pdf';
+      }
+    | {
+        /**
+         * The program that converts the file. Default auto.
+         */
+        engine?: 'auto' | 'libre-office' | 'ms-office';
+        /**
+         * Include slides that are hidden in the presentation. Default off.
+         */
+        include_hidden?: boolean;
+        /**
+         * Slides to keep, counting the slides that are in the result. Default `all`.
+         */
+        slides?: string;
+        tool: 'powerpoint-to-pdf';
+      }
+    | {
+        /**
+         * The program that converts the file. Default auto.
+         */
+        engine?: 'auto' | 'libre-office' | 'ms-office';
+        /**
+         * Shrink wide sheets so every column fits the page width. Default on.
+         */
+        fit_to_page_width?: boolean;
+        /**
+         * Page turn. Default auto.
+         */
+        orientation?: 'auto' | 'portrait' | 'landscape';
+        /**
+         * Sheets to print, by position: `all` or for example `1,3`. Default `all`.
+         */
+        sheets?: string;
+        tool: 'excel-to-pdf';
+      }
+    | {
+        /**
+         * Allow the page to load from the internet. Without it only local files print and pictures
+         * or styles that live on the web are left out. Default off.
+         */
+        allow_network?: boolean;
+        /**
+         * Print background colors and pictures. Default on.
+         */
+        background_graphics?: boolean;
+        /**
+         * Height in millimeters, for a custom size. Default 297.
+         */
+        custom_height_mm?: number;
+        /**
+         * Width in millimeters, for a custom size. Default 210.
+         */
+        custom_width_mm?: number;
+        /**
+         * Print the page title and number in the margins. Default off.
+         */
+        header_footer?: boolean;
+        /**
+         * Longest the page may take to load, in seconds, 1 to 300. Default 15.
+         */
+        load_timeout_s?: number;
+        /**
+         * Margin on every side in millimeters. Default 10.
+         */
+        margin_mm?: number;
+        /**
+         * Page turn. Default portrait.
+         */
+        orientation?: 'portrait' | 'landscape';
+        /**
+         * Paper size: A4, Letter, Legal, A3 or custom. Default A4.
+         */
+        page_size?: 'a4' | 'letter' | 'legal' | 'a3' | 'custom';
+        /**
+         * Scale in percent, 10 to 200. Default 100.
+         */
+        scale_percent?: number;
+        tool: 'html-to-pdf';
+        /**
+         * A web address to print instead of a file. Needs `allow_network`. Default none.
+         */
+        url?: string | null;
+      }
+    | {
+        /**
+         * Space around the picture. Default none.
+         */
+        margin?: 'none' | 'small' | 'big';
+        /**
+         * One PDF for all pictures (default) or one PDF per picture.
+         */
+        one_pdf?: boolean;
+        /**
+         * Page turn for A4 and Letter. Default auto.
+         */
+        orientation?: 'auto' | 'portrait' | 'landscape';
+        /**
+         * Page size. Default fit.
+         */
+        page_size?: 'fit' | 'a4' | 'letter';
+        tool: 'images-to-pdf';
+      }
+    | {
+        /**
+         * Colors. Default color.
+         */
+        color?: 'color' | 'gray' | 'black-white';
+        /**
+         * Resolution in dots per inch, 10 to 2400. Default 150.
+         */
+        dpi?: number;
+        /**
+         * File format. Default JPG.
+         */
+        format?: 'jpg' | 'png' | 'tiff';
+        /**
+         * JPEG quality, 1 to 100. Default 90.
+         */
+        jpeg_quality?: number;
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        /**
+         * For TIFF: one multi-page file instead of one file per page. Default off.
+         */
+        single_tiff?: boolean;
+        tool: 'pdf-to-images';
+      }
+    | {
+        /**
+         * Keep the format the picture has in the PDF (default). Off writes every picture as PNG.
+         */
+        keep_original_format?: boolean;
+        /**
+         * Skip pictures lower than this many pixels. Default 50.
+         */
+        min_height?: number;
+        /**
+         * Skip pictures narrower than this many pixels. Default 50.
+         */
+        min_width?: number;
+        tool: 'extract-images';
+      }
+    | {
+        /**
+         * Encoding of the file. Default UTF-8.
+         */
+        encoding?: 'utf8' | 'utf8-bom' | 'utf16' | 'windows1252';
+        /**
+         * Plain or layout-preserving text. Default plain.
+         */
+        layout?: 'plain' | 'layout';
+        /**
+         * Put a line such as `--- Page 2 ---` between pages. Default on.
+         */
+        page_separators?: boolean;
+        /**
+         * Pages to read. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-text';
+      }
+    | {
+        tool: 'tiff-to-pdf';
+      }
+    | {
+        /**
+         * Colors. CCITT G4 always writes black and white. Default color.
+         */
+        color?: 'color' | 'gray' | 'black-white';
+        /**
+         * Compression. Default LZW.
+         */
+        compression?: 'lzw' | 'deflate' | 'ccitt-g4';
+        /**
+         * Resolution in dots per inch, 10 to 2400. Default 150.
+         */
+        dpi?: number;
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-tiff';
       };
   /**
    * Output folder, or `None` for next to each source.
@@ -2350,7 +2898,17 @@ export interface RunBatchRequest {
     | 'bookmarks'
     | 'rename-by-content'
     | 'attachments'
-    | 'page-labels';
+    | 'page-labels'
+    | 'word-to-pdf'
+    | 'powerpoint-to-pdf'
+    | 'excel-to-pdf'
+    | 'html-to-pdf'
+    | 'images-to-pdf'
+    | 'pdf-to-images'
+    | 'extract-images'
+    | 'pdf-to-text'
+    | 'tiff-to-pdf'
+    | 'pdf-to-tiff';
 }
 /**
  * One file the user added, with an optional password for this session.
@@ -2660,7 +3218,17 @@ export interface ToolDescriptor {
     | 'bookmarks'
     | 'rename-by-content'
     | 'attachments'
-    | 'page-labels';
+    | 'page-labels'
+    | 'word-to-pdf'
+    | 'powerpoint-to-pdf'
+    | 'excel-to-pdf'
+    | 'html-to-pdf'
+    | 'images-to-pdf'
+    | 'pdf-to-images'
+    | 'extract-images'
+    | 'pdf-to-text'
+    | 'tiff-to-pdf'
+    | 'pdf-to-tiff';
   /**
    * How a batch maps onto runs: one per file, or all files together.
    */

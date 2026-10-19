@@ -1,13 +1,14 @@
 //! Shared application state managed by Tauri, built once at startup.
 
-use application::ports::{FileStore, SettingsStore};
+use application::ports::{ComponentInstaller, ComponentStore, FileStore, SettingsStore};
 use application::query::QueryRunner;
 use application::tools::ToolDeps;
 use application::{AppError, RecentFiles, ToolRegistry};
 use infrastructure::logging::LogGuard;
 use infrastructure::{
-    AppPaths, AtomicFileStore, EventSink, JobManager, JsonRecentStore, SystemUnixClock,
-    TempSession, TomlSettingsStore, WorkerSession, WorkerSupervisor, init_logging,
+    AppPaths, AtomicFileStore, ComponentManager, EventSink, FsComponentStore, HttpsDownloader,
+    JobManager, JsonRecentStore, SystemUnixClock, TempSession, TomlSettingsStore, WorkerSession,
+    WorkerSupervisor, default_trust, init_logging,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -26,6 +27,10 @@ pub struct AppState {
     pub recent: RecentFiles,
     /// Background batch jobs.
     pub jobs: JobManager,
+    /// Components installed on this computer.
+    pub components: Arc<dyn ComponentStore>,
+    /// Installs, imports and removes components.
+    pub installer: Arc<dyn ComponentInstaller>,
     // Held for their Drop behavior: flush logs and wipe the session scratch folder.
     _temp: TempSession,
     _log: LogGuard,
@@ -77,7 +82,17 @@ impl AppState {
             Arc::clone(&files),
             Arc::new(SystemUnixClock),
         );
+        let components: Arc<dyn ComponentStore> =
+            Arc::new(FsComponentStore::new(paths.components_dir.clone()));
+        let installer: Arc<dyn ComponentInstaller> = Arc::new(ComponentManager::new(
+            paths.components_dir,
+            Arc::new(HttpsDownloader::new()),
+            default_trust(),
+            ComponentManager::current_arch(),
+        ));
         Ok(Self {
+            components,
+            installer,
             registry: Arc::new(registry),
             queries: Arc::new(WorkerSession::new(worker, loaded.limits)),
             files,

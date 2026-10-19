@@ -22,8 +22,8 @@
         <span class="mono count">{t('viewer.pages', { count: entry.report.page_count })}</span>
       {/if}
     </h2>
-    {#if entry.kind === 'image'}
-      <p class="empty">{t('viewer.imageFile')}</p>
+    {#if entry.kind !== 'pdf'}
+      <p class="empty">{entry.kind === 'image' ? t('viewer.imageFile') : t('viewer.otherFile')}</p>
     {:else if locked}
       <PasswordPrompt {entry} />
     {:else if entry.problem}

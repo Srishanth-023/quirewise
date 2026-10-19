@@ -37,6 +37,11 @@ fn main() {
             commands::jobs::run_batch,
             commands::jobs::cancel_job,
             commands::jobs::retry_failed,
+            commands::components::components_installed,
+            commands::components::components_available,
+            commands::components::component_install,
+            commands::components::component_import,
+            commands::components::component_remove,
             commands::system::open_output,
             commands::system::reveal_output,
         ])

@@ -16,6 +16,10 @@
     ocr: 'ocr',
     merge: 'merge',
     'images-to-pdf': 'images-to-pdf',
+    'word-to-pdf': 'word-to-pdf',
+    'power-point-to-pdf': 'powerpoint-to-pdf',
+    'excel-to-pdf': 'excel-to-pdf',
+    'html-to-pdf': 'html-to-pdf',
   };
 
   const offered = $derived(

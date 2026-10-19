@@ -4,14 +4,17 @@
 #![forbid(unsafe_code)]
 
 use application::UnitRunner;
-use application::ports::{Clock, FileStore};
+use application::ports::{Clock, ComponentInstaller, ComponentStore, FileStore};
 use application::query::{DocumentQuery, QueryResult, QueryRunner};
 use application::{AppError, CancellationToken, Password, ToolRegistry};
 use clap::{Parser, Subcommand};
 use domain::naming::{NameContext, OutputNamingPattern};
 use domain::path_rules::{UncPolicy, check_path_text};
 use domain::{Duplicates, PageRange, ToolId};
-use infrastructure::{AtomicFileStore, SystemClock, WorkerSession, WorkerSupervisor};
+use infrastructure::{
+    AppPaths, AtomicFileStore, ComponentManager, FsComponentStore, HttpsDownloader, SystemClock,
+    WorkerSession, WorkerSupervisor, default_trust,
+};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -79,8 +82,7 @@ pub enum Command {
     Run {
         /// Tool id, for example `rotate` or `split-every-n`. See `qw tools list`.
         tool: String,
-        /// Input files.
-        #[arg(required = true)]
+        /// Input files. A tool that prints a web address (`html-to-pdf` with `url`) needs none.
         files: Vec<PathBuf>,
         /// Tool options as JSON; missing fields use the defaults, for example `{"angle":"180"}`.
         #[arg(long, conflicts_with = "options_file")]
@@ -123,6 +125,12 @@ pub enum Command {
         #[arg(long)]
         password_stdin: bool,
     },
+    /// List, install, import and remove on-demand components such as LibreOffice.
+    Components {
+        /// Component action.
+        #[command(subcommand)]
+        action: ComponentsAction,
+    },
     /// Check a path against the path policy.
     Path {
         /// Path to check.
@@ -130,6 +138,37 @@ pub enum Command {
         /// Treat as user-picked, which allows UNC paths.
         #[arg(long)]
         user_picked: bool,
+    },
+}
+
+/// Component actions.
+#[derive(Debug, Subcommand)]
+pub enum ComponentsAction {
+    /// List the components installed on this computer, as JSON.
+    List,
+    /// List the components that can be installed. Uses the internet, so it needs `--yes`.
+    Available {
+        /// Agree to contact the component server.
+        #[arg(long)]
+        yes: bool,
+    },
+    /// Download and install a component. Uses the internet, so it needs `--yes`.
+    Install {
+        /// Component id, for example `libreoffice`.
+        id: String,
+        /// Agree to download the component.
+        #[arg(long)]
+        yes: bool,
+    },
+    /// Install a component from a `.qwpkg` file.
+    Import {
+        /// The package file.
+        file: PathBuf,
+    },
+    /// Remove a component.
+    Remove {
+        /// Component id.
+        id: String,
     },
 }
 
@@ -163,6 +202,10 @@ pub struct Env<'a> {
     pub password: Option<Password>,
     /// Runs tool units, normally through the worker process.
     pub runner: Arc<dyn UnitRunner>,
+    /// Installed components.
+    pub components: &'a dyn ComponentStore,
+    /// Installs, imports and removes components.
+    pub installer: &'a dyn ComponentInstaller,
 }
 
 /// Runs a command and returns the text to print.
@@ -174,6 +217,8 @@ pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
         files,
         password,
         runner,
+        components,
+        installer,
     } = env;
     match cli.command {
         Command::Version => Ok(format!("qw {}", env!("CARGO_PKG_VERSION"))),
@@ -293,6 +338,30 @@ pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
                 thumb.page_count
             ))
         }
+        Command::Components { action } => match action {
+            ComponentsAction::List => {
+                let mut list = components.installed()?;
+                list.sort_by(|a, b| a.id.cmp(&b.id));
+                json(&list)
+            }
+            ComponentsAction::Available { yes } => {
+                require_consent(yes)?;
+                json(&installer.available()?)
+            }
+            ComponentsAction::Install { id, yes } => {
+                require_consent(yes)?;
+                let entry = installer.install(&id, &application::NoProgress)?;
+                Ok(format!("installed {} {}", entry.id, entry.version))
+            }
+            ComponentsAction::Import { file } => {
+                let entry = installer.import(&file)?;
+                Ok(format!("installed {} {}", entry.id, entry.version))
+            }
+            ComponentsAction::Remove { id } => {
+                installer.remove(&id)?;
+                Ok(format!("removed {id}"))
+            }
+        },
         Command::Path { path, user_picked } => {
             let policy = if user_picked {
                 UncPolicy::UserPicked
@@ -302,6 +371,17 @@ pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
             check_path_text(&path.to_string_lossy(), policy)?;
             Ok("allowed".to_owned())
         }
+    }
+}
+
+fn require_consent(yes: bool) -> Result<(), AppError> {
+    if yes {
+        Ok(())
+    } else {
+        Err(AppError::new(
+            domain::ErrorCode::NetworkConsentRequired,
+            "This uses the internet. Add --yes to agree.",
+        ))
     }
 }
 
@@ -369,6 +449,16 @@ where
         Ok(registry) => registry,
         Err(e) => return (e.to_string(), 1),
     };
+    let components_dir = AppPaths::from_environment()
+        .map(|p| p.components_dir)
+        .unwrap_or_default();
+    let components = FsComponentStore::new(components_dir.clone());
+    let installer = ComponentManager::new(
+        components_dir,
+        Arc::new(HttpsDownloader::new()),
+        default_trust(),
+        ComponentManager::current_arch(),
+    );
     let env = Env {
         registry: &registry,
         clock: &SystemClock,
@@ -376,6 +466,8 @@ where
         files: &AtomicFileStore,
         password,
         runner: supervisor,
+        components: &components,
+        installer: &installer,
     };
     match execute(cli, env) {
         Ok(out) => (out, 0),
@@ -389,6 +481,32 @@ mod tests {
 
     fn qw(args: &[&str]) -> (String, i32) {
         run(std::iter::once("qw").chain(args.iter().copied()))
+    }
+
+    #[test]
+    fn components_need_consent_before_the_internet_is_used() {
+        for args in [
+            &["components", "available"][..],
+            &["components", "install", "libreoffice"][..],
+        ] {
+            let (out, code) = qw(args);
+            assert_eq!(code, 1, "{args:?}");
+            assert!(out.starts_with("QW-NETWORK-CONSENT-REQUIRED"), "{out}");
+        }
+    }
+
+    #[test]
+    fn listing_components_works_offline_and_removing_an_unknown_one_is_harmless() {
+        let (out, code) = qw(&["components", "list"]);
+        assert_eq!(code, 0, "{out}");
+        assert!(out.trim_start().starts_with('['), "{out}");
+        assert_eq!(
+            qw(&["components", "remove", "not-installed"]).0,
+            "removed not-installed"
+        );
+        let (out, code) = qw(&["components", "remove", "../x"]);
+        assert_eq!(code, 1);
+        assert!(out.starts_with("QW-OPTION-INVALID"), "{out}");
     }
 
     #[test]

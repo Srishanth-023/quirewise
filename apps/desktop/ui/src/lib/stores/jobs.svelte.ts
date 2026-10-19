@@ -4,6 +4,7 @@ import type { JobStatus, OutputArtifact, ToolDescriptor } from '../ipc/generated
 import { files } from './files.svelte';
 import { organizer } from '../features/organize/organizer.svelte';
 import { toolOptions } from './options.svelte';
+import { runsWithoutFiles } from '../forms/toolForms';
 import { toasts } from './toasts.svelte';
 
 /**
@@ -17,6 +18,8 @@ class Jobs {
   /** Result files of the last finished job, for the completion panel. */
   results = $state<OutputArtifact[]>([]);
   #unitFiles: number[][] = [];
+  /** Results of runs that had no file to attach them to, such as a printed web address. */
+  #extra: OutputArtifact[] = [];
   #unlisten: UnlistenFn | undefined;
 
   /** Starts listening for batch events. Safe to call more than once. */
@@ -31,10 +34,15 @@ class Jobs {
 
   /** Runs `tool` on every file in the work list. */
   async run(tool: ToolDescriptor): Promise<void> {
-    if (this.running || files.entries.length === 0) return;
+    const noFiles = files.entries.length === 0 && runsWithoutFiles(tool.id, toolOptions.values(tool));
+    if (this.running || (files.entries.length === 0 && !noFiles)) return;
     const entries = files.entries;
-    this.#unitFiles =
-      tool.input_mode === 'per-file' ? entries.map((e) => [e.id]) : [entries.map((e) => e.id)];
+    this.#extra = [];
+    this.#unitFiles = noFiles
+      ? [[]]
+      : tool.input_mode === 'per-file'
+        ? entries.map((e) => [e.id])
+        : [entries.map((e) => e.id)];
     // The organizer names files by their place in the list, which may have changed since the last edit.
     if (tool.id === 'organize') organizer.publish();
     files.resetStatuses();
@@ -90,6 +98,10 @@ class Jobs {
         }
         break;
       case 'unit-finished':
+        if (ids.length === 0) {
+          this.#extra = [...this.#extra, ...event.outputs];
+          if (event.error) toasts.error(event.error);
+        }
         for (const id of ids) {
           files.patch(id, {
             status: event.status,
@@ -102,7 +114,7 @@ class Jobs {
       case 'job-finished':
         this.running = false;
         this.status = event.status;
-        this.results = files.entries.flatMap((e) => e.outputs);
+        this.results = [...files.entries.flatMap((e) => e.outputs), ...this.#extra];
         break;
     }
   }

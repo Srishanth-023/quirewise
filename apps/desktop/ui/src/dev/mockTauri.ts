@@ -66,6 +66,31 @@ async function invoke(cmd: string, args: Record<string, unknown> = {}): Promise<
       return new URLSearchParams(location.search).has('tools') ? previewTools : [];
     case 'pick_paths':
       return args.kind === 'image' ? ['C:/Docs/logo.png'] : ['C:/Docs/notes.txt'];
+    case 'components_installed':
+      return [];
+    case 'components_available':
+      return [
+        {
+          id: 'libreoffice',
+          version: '25.2.1',
+          arch: 'x64',
+          url: 'https://components.invalid/libreoffice.zip',
+          size: 330 * 1024 * 1024,
+          sha256: 'a'.repeat(64),
+        },
+      ];
+    case 'component_install':
+    case 'component_import':
+      return {
+        id: 'libreoffice',
+        version: '25.2.1',
+        arch: 'x64',
+        url: 'https://components.invalid/libreoffice.zip',
+        size: 330 * 1024 * 1024,
+        sha256: 'a'.repeat(64),
+      };
+    case 'component_remove':
+      return null;
     case 'pick_files':
       return ['C:\\Docs\\report.pdf', 'C:\\Docs\\locked.pdf'];
     case 'classify_inputs':

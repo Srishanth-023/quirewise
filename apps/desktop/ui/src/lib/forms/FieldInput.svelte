@@ -54,8 +54,10 @@
     );
   }
 
-  function parseInteger(text: string): void {
-    onchange(text.trim() === '' ? Number.NaN : Number.parseInt(text, 10));
+  /** Whole numbers for integer fields, decimals for the others. A blank box means "use the default". */
+  function parseNumber(text: string): void {
+    if (text.trim() === '') return onchange(Number.NaN);
+    onchange(field.kind === 'integer' ? Number.parseInt(text, 10) : Number.parseFloat(text));
   }
 
   const lines = $derived(Array.isArray(value) ? (value as string[]) : []);
@@ -147,20 +149,20 @@
     </select>
     {#if hint}<p id={hintId} class="hint">{hint}</p>{/if}
   </div>
-{:else if field.kind === 'integer'}
+{:else if field.kind === 'integer' || field.kind === 'number'}
   <div class="field">
     <label for={id}>{label}</label>
     <input
       {id}
       type="number"
-      inputmode="numeric"
-      step="1"
+      inputmode={field.kind === 'integer' ? 'numeric' : 'decimal'}
+      step={field.kind === 'integer' ? '1' : 'any'}
       min={limits?.min ?? field.min}
       max={limits?.max ?? field.max}
       value={typeof value === 'number' && Number.isFinite(value) ? value : ''}
       placeholder={field.nullable ? t('option.preset') : undefined}
       aria-describedby={hint ? hintId : undefined}
-      oninput={(e) => parseInteger(e.currentTarget.value)}
+      oninput={(e) => parseNumber(e.currentTarget.value)}
     />
     {#if hint}<p id={hintId} class="hint">{hint}</p>{/if}
   </div>

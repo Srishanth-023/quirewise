@@ -231,3 +231,29 @@ export const cropSchema = {
   },
   $defs: { CropMethod: choices(['margins', 'region', 'auto']), ...byTextSchema.$defs },
 };
+
+/** PDF to images: a format that decides which other fields matter. */
+export const pdfToImagesSchema = {
+  type: 'object',
+  properties: {
+    dpi: { type: 'integer', default: 150 },
+    format: { $ref: '#/$defs/PictureFormat', default: 'jpg' },
+    jpeg_quality: { type: 'integer', default: 90 },
+    pages: { $ref: '#/$defs/PageRange', default: 'all' },
+    single_tiff: { type: 'boolean', default: false },
+  },
+  $defs: { PictureFormat: choices(['jpg', 'png', 'tiff']), PageRange: pageRange },
+};
+
+/** HTML to PDF: a web address that needs no file, and a custom paper size. */
+export const htmlSchema = {
+  type: 'object',
+  properties: {
+    allow_network: { type: 'boolean', default: false },
+    custom_width_mm: { type: 'number', default: 210 },
+    custom_height_mm: { type: 'number', default: 297 },
+    page_size: { $ref: '#/$defs/PaperSize', default: 'a4' },
+    url: nullableText,
+  },
+  $defs: { PaperSize: choices(['a4', 'letter', 'custom']) },
+};

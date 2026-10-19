@@ -1,3 +1,4 @@
+import { untrack } from 'svelte';
 import type { ToolDescriptor } from '../ipc/client';
 import type { RunBatchRequest } from '../ipc/generated';
 import {
@@ -12,6 +13,12 @@ import {
 import { formFor } from '../forms/toolForms';
 
 type Request = RunBatchRequest['options'];
+
+/** A deeply reactive copy of `initial`. */
+function reactive(initial: Values): Values {
+  const state: Values = $state(initial);
+  return state;
+}
 
 function allFields(tool: ToolDescriptor): Field[] {
   const schema = tool.options_schema as JsonSchema;
@@ -33,13 +40,16 @@ export function formFields(tool: ToolDescriptor): Field[] {
  */
 class ToolOptionsStore {
   #values = new Map<string, Values>();
+  /** Counts every edit, for readers that decide something from the values of the selected tool. */
+  edits = $state(0);
   #perFile = new Map<string, Values>();
 
   /** Current values of a tool, starting from the defaults. */
   values(tool: ToolDescriptor): Values {
     let values = this.#values.get(tool.id);
     if (!values) {
-      const fresh: Values = $state(defaultValues(allFields(tool)));
+      // Created outside any reaction, so no component's derived value owns (and later drops) it.
+      const fresh: Values = untrack(() => reactive(defaultValues(allFields(tool))));
       this.#values.set(tool.id, fresh);
       values = fresh;
     }
@@ -48,11 +58,13 @@ class ToolOptionsStore {
 
   set(tool: ToolDescriptor, key: string, value: unknown): void {
     this.values(tool)[key] = value;
+    this.edits = untrack(() => this.edits) + 1;
   }
 
   /** Back to the defaults, including per-file settings. */
   reset(tool: ToolDescriptor): void {
     Object.assign(this.values(tool), defaultValues(allFields(tool)));
+    this.edits = untrack(() => this.edits) + 1;
     const prefix = `${tool.id}.`;
     for (const [key, own] of this.#perFile) {
       if (!key.startsWith(prefix)) continue;
@@ -66,7 +78,7 @@ class ToolOptionsStore {
     const key = `${tool.id}.${field.key}.${fileId}`;
     let own = this.#perFile.get(key);
     if (!own) {
-      const fresh: Values = $state(itemDefaults(field));
+      const fresh: Values = untrack(() => reactive(itemDefaults(field)));
       this.#perFile.set(key, fresh);
       own = fresh;
     }

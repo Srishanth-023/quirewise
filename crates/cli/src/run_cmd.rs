@@ -62,6 +62,10 @@ pub fn run_tool(
         )
     })?;
     let options = parse_options(id, args.options)?;
+    let without_files = args.files.is_empty() && tool.runs_without_files(&options);
+    if args.files.is_empty() && !without_files {
+        return Err(DomainError::option("files", "add at least one file").into());
+    }
     let inputs: Vec<InputDoc> = args
         .files
         .iter()
@@ -80,6 +84,7 @@ pub fn run_tool(
         inputs,
         output_dir: args.out,
         naming_pattern: OutputNamingPattern::default(),
+        without_files,
     };
     let report =
         JobQueue::new(runner, slots).run(&request, &application::CancellationToken::new(), &Silent);

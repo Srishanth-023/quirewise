@@ -17,7 +17,7 @@ pub mod settings;
 pub mod supervisor;
 
 pub use clock::SystemClock;
-pub use components::{ComponentManager, ComponentTrust, FsComponentStore};
+pub use components::{ComponentManager, ComponentTrust, FsComponentStore, default_trust};
 pub use download::HttpsDownloader;
 pub use file_store::AtomicFileStore;
 pub use jobs::{EventSink, JobManager};

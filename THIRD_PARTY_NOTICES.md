@@ -59,3 +59,17 @@ Ghostscript is never linked into Quirewise. MuPDF is not used.
 | intl-messageformat | BSD-3-Clause | ICU message formatting in the UI |
 | @tauri-apps/api | MIT or Apache-2.0 | Tauri bridge in the UI |
 | axe-core, json-schema-to-typescript | MPL-2.0, MIT | Development only: accessibility tests, type generation |
+
+## Added in Phase 6
+
+| Component | License | Use |
+|---|---|---|
+| ureq, ureq-proto, native-tls, schannel | MIT or Apache-2.0 (schannel MIT) | HTTPS downloads of components, through the Windows TLS stack |
+| minisign-verify | MIT | Signature check of the component list and offline packages |
+| minisign (tests only) | MIT | Creates test keys and signatures |
+| zip and its compression helpers (zopfli) | MIT, zopfli Apache-2.0 | Unpacking components, reading and writing Office packages |
+| tungstenite | MIT or Apache-2.0 | Local WebSocket to headless Edge for HTML to PDF |
+| tiff, fax, weezl | MIT; weezl MIT or Apache-2.0 | Reading TIFF files, CCITT Group 4 and LZW coding |
+| base64 | MIT or Apache-2.0 | Decoding the PDF the browser prints |
+| LibreOffice (downloaded on demand, never shipped in the installer) | MPL-2.0 | Word, PowerPoint and Excel to PDF when Microsoft Office is not installed |
+| Microsoft Edge, Microsoft Office (the person's own copies, not shipped) | their own licences | HTML to PDF, Office to PDF |

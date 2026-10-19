@@ -249,6 +249,7 @@ mod tests {
 
     fn request(names: &[&str]) -> BatchRequest {
         BatchRequest {
+            without_files: false,
             tool: ToolId::Rotate,
             mode: InputMode::PerFile,
             options: ToolOptions::defaults_for(ToolId::Rotate),

@@ -25,6 +25,7 @@ pub fn run_batch(state: State<'_, AppState>, request: RunBatchRequest) -> Result
         Some(text) => OutputNamingPattern::parse(text)?,
         None => state.settings.load()?.naming_pattern,
     };
+    let without_files = request.inputs.is_empty() && tool.runs_without_files(&request.options);
     let inputs = request
         .inputs
         .into_iter()
@@ -41,6 +42,7 @@ pub fn run_batch(state: State<'_, AppState>, request: RunBatchRequest) -> Result
         inputs,
         output_dir: request.output_dir,
         naming_pattern: pattern,
+        without_files,
     }))
 }
 

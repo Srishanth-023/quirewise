@@ -5,6 +5,8 @@
   import { files } from '../../stores/files.svelte';
   import { jobs } from '../../stores/jobs.svelte';
   import { tools, toolName } from '../../stores/tools.svelte';
+  import { runsWithoutFiles } from '../../forms/toolForms';
+  import { toolOptions } from '../../stores/options.svelte';
 
   interface Props {
     oncancel: () => void;
@@ -13,9 +15,13 @@
   let { oncancel }: Props = $props();
 
   const tool = $derived(tools.selected);
-  const hint = $derived(
-    files.entries.length === 0 ? t('queue.noFiles') : tool ? '' : t('queue.noTool'),
-  );
+  /** A tool may need no files, such as printing a web address. */
+  const noFiles = (): boolean => {
+    void toolOptions.edits;
+    return tool ? runsWithoutFiles(tool.id, toolOptions.values(tool)) : false;
+  };
+  const canRun = (): boolean => !!tool && (files.entries.length > 0 || noFiles());
+  const hint = $derived(files.entries.length === 0 ? t('queue.noFiles') : tool ? '' : t('queue.noTool'));
 </script>
 
 <div class="bar">
@@ -24,12 +30,16 @@
   {:else}
     <Button
       variant="primary"
-      disabled={!tool || files.entries.length === 0}
+      disabled={!canRun()}
       onclick={() => tool && void jobs.run(tool)}
     >
       <Icon name="play" />
       {#if tool}
-        {t('queue.run', { tool: toolName(tool), count: files.entries.length })}
+        {#if files.entries.length === 0}
+          {t('queue.runAddress', { tool: toolName(tool) })}
+        {:else}
+          {t('queue.run', { tool: toolName(tool), count: files.entries.length })}
+        {/if}
       {:else}
         {t('queue.noTool')}
       {/if}

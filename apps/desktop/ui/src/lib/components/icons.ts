@@ -11,7 +11,12 @@ import arrowDown from '@phosphor-icons/core/assets/regular/arrow-down.svg?raw';
 import arrowUp from '@phosphor-icons/core/assets/regular/arrow-up.svg?raw';
 import command from '@phosphor-icons/core/assets/regular/command.svg?raw';
 import fileArrowUp from '@phosphor-icons/core/assets/regular/file-arrow-up.svg?raw';
+import fileDoc from '@phosphor-icons/core/assets/regular/file-doc.svg?raw';
+import fileHtml from '@phosphor-icons/core/assets/regular/file-html.svg?raw';
 import filePdf from '@phosphor-icons/core/assets/regular/file-pdf.svg?raw';
+import filePpt from '@phosphor-icons/core/assets/regular/file-ppt.svg?raw';
+import fileXls from '@phosphor-icons/core/assets/regular/file-xls.svg?raw';
+import downloadSimple from '@phosphor-icons/core/assets/regular/download-simple.svg?raw';
 import folderOpen from '@phosphor-icons/core/assets/regular/folder-open.svg?raw';
 import gear from '@phosphor-icons/core/assets/regular/gear.svg?raw';
 import house from '@phosphor-icons/core/assets/regular/house.svg?raw';
@@ -42,6 +47,11 @@ export const icons = {
   command,
   'file-arrow-up': fileArrowUp,
   'file-pdf': filePdf,
+  'file-doc': fileDoc,
+  'file-ppt': filePpt,
+  'file-xls': fileXls,
+  'file-html': fileHtml,
+  'download-simple': downloadSimple,
   'folder-open': folderOpen,
   gear,
   house,
