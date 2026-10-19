@@ -7,6 +7,7 @@
 mod errors;
 mod facts;
 mod headings;
+mod layout;
 mod region;
 
 use application::AppError;
@@ -183,6 +184,17 @@ impl TextExtractor for PdfiumEngine {
             .map_err(|e| map_error(&e, password.is_some()))?;
         let text = page.text().map_err(|e| map_error(&e, password.is_some()))?;
         Ok(facts::all_text(&text))
+    }
+
+    fn page_text_layout(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        page: PageIndex,
+    ) -> Result<String, AppError> {
+        Ok(layout::layout_text(
+            &self.placed_chars(path, password, page)?,
+        ))
     }
 
     fn text_in_region(
@@ -586,6 +598,26 @@ mod tests {
             .text_in_region(&path, None, PageIndex::new(0), &top_left)
             .unwrap();
         assert!(!miss.contains("Page"), "got {miss:?}");
+    }
+
+    #[test]
+    fn layout_text_keeps_columns_apart_on_a_real_page() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = test_support::pdfs::pdf_with_positioned_text(&[
+            (50.0, 700.0, "Item"),
+            (300.0, 700.0, "Price"),
+            (50.0, 686.0, "Pens"),
+            (300.0, 686.0, "12.50"),
+        ]);
+        let path = write(&dir, "cols.pdf", &pdf);
+        let text = engine()
+            .page_text_layout(&path, None, PageIndex::new(0))
+            .unwrap();
+        let lines: Vec<&str> = text.lines().collect();
+        assert_eq!(lines.len(), 2, "{text:?}");
+        assert!(lines[0].starts_with("Item") && lines[0].contains("Price"));
+        assert_eq!(lines[0].find("Price"), lines[1].find("12.50"));
+        assert!(lines[0].find("Price").unwrap() > 25, "{text:?}");
     }
 
     #[test]

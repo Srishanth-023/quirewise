@@ -2,6 +2,7 @@
 
 pub mod combine;
 pub mod common;
+pub mod convert;
 pub mod document;
 pub mod layout;
 pub mod optimize;
@@ -18,6 +19,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::DomainError;
 pub use combine::{AlternateMixOptions, MergeOptions, OrganizeOptions};
+pub use convert::{
+    ExtractImagesOptions, ImagesToPdfOptions, PdfToImagesOptions, PdfToTextOptions,
+    PdfToTiffOptions, TiffToPdfOptions,
+};
 pub use document::{FlattenOptions, MetadataOptions, RemoveAnnotationsOptions};
 pub use layout::{CropOptions, FlipOptions, GrayscaleOptions, NUpOptions, ResizeOptions};
 pub use optimize::{CompressOptions, LinearizeOptions, RepairOptions};
@@ -135,11 +140,23 @@ pub enum ToolId {
     Attachments,
     /// Page labels (row 66).
     PageLabels,
+    /// Images to PDF (row 18).
+    ImagesToPdf,
+    /// PDF to images (row 23).
+    PdfToImages,
+    /// Extract images (row 24).
+    ExtractImages,
+    /// PDF to text (row 28).
+    PdfToText,
+    /// TIFF to PDF (row 68).
+    TiffToPdf,
+    /// PDF to TIFF (row 68).
+    PdfToTiff,
 }
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 35] = [
+    pub const ALL: [ToolId; 41] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -175,6 +192,12 @@ impl ToolId {
         ToolId::RenameByContent,
         ToolId::Attachments,
         ToolId::PageLabels,
+        ToolId::ImagesToPdf,
+        ToolId::PdfToImages,
+        ToolId::ExtractImages,
+        ToolId::PdfToText,
+        ToolId::TiffToPdf,
+        ToolId::PdfToTiff,
     ];
 
     /// The kebab-case identifier.
@@ -215,6 +238,12 @@ impl ToolId {
             Self::RenameByContent => "rename-by-content",
             Self::Attachments => "attachments",
             Self::PageLabels => "page-labels",
+            Self::ImagesToPdf => "images-to-pdf",
+            Self::PdfToImages => "pdf-to-images",
+            Self::ExtractImages => "extract-images",
+            Self::PdfToText => "pdf-to-text",
+            Self::TiffToPdf => "tiff-to-pdf",
+            Self::PdfToTiff => "pdf-to-tiff",
         }
     }
 }
@@ -310,6 +339,18 @@ pub enum ToolOptions {
     Attachments(AttachmentsOptions),
     /// Options for [`ToolId::PageLabels`].
     PageLabels(PageLabelsOptions),
+    /// Options for [`ToolId::ImagesToPdf`].
+    ImagesToPdf(ImagesToPdfOptions),
+    /// Options for [`ToolId::PdfToImages`].
+    PdfToImages(PdfToImagesOptions),
+    /// Options for [`ToolId::ExtractImages`].
+    ExtractImages(ExtractImagesOptions),
+    /// Options for [`ToolId::PdfToText`].
+    PdfToText(PdfToTextOptions),
+    /// Options for [`ToolId::TiffToPdf`].
+    TiffToPdf(TiffToPdfOptions),
+    /// Options for [`ToolId::PdfToTiff`].
+    PdfToTiff(PdfToTiffOptions),
 }
 
 impl ToolOptions {
@@ -351,6 +392,12 @@ impl ToolOptions {
             Self::RenameByContent(_) => ToolId::RenameByContent,
             Self::Attachments(_) => ToolId::Attachments,
             Self::PageLabels(_) => ToolId::PageLabels,
+            Self::ImagesToPdf(_) => ToolId::ImagesToPdf,
+            Self::PdfToImages(_) => ToolId::PdfToImages,
+            Self::ExtractImages(_) => ToolId::ExtractImages,
+            Self::PdfToText(_) => ToolId::PdfToText,
+            Self::TiffToPdf(_) => ToolId::TiffToPdf,
+            Self::PdfToTiff(_) => ToolId::PdfToTiff,
         }
     }
 
@@ -394,6 +441,12 @@ impl ToolOptions {
             ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
             ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
             ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
+            ToolId::ImagesToPdf => Self::ImagesToPdf(ImagesToPdfOptions::default()),
+            ToolId::PdfToImages => Self::PdfToImages(PdfToImagesOptions::default()),
+            ToolId::ExtractImages => Self::ExtractImages(ExtractImagesOptions::default()),
+            ToolId::PdfToText => Self::PdfToText(PdfToTextOptions::default()),
+            ToolId::TiffToPdf => Self::TiffToPdf(TiffToPdfOptions::default()),
+            ToolId::PdfToTiff => Self::PdfToTiff(PdfToTiffOptions::default()),
         }
     }
 }

@@ -9,7 +9,9 @@ use application::{AppError, Password, RunTool, ToolRegistry};
 use domain::ErrorCode;
 use domain::limits::SafetyLimits;
 use infrastructure::NativePaths;
-use quirewise_engine_lopdf_ops::{LopdfAttachments, LopdfEditor, LopdfStructure, LopdfToc};
+use quirewise_engine_lopdf_ops::{
+    LopdfAttachments, LopdfEditor, LopdfImages, LopdfStructure, LopdfToc,
+};
 use quirewise_engine_pdfium::PdfiumEngine;
 use quirewise_engine_qpdf::QpdfCli;
 use quirewise_engine_raster::RasterConverter;
@@ -104,6 +106,8 @@ pub fn tool_deps(engines: &Engines) -> ToolDeps {
         page_images: Arc::new(RasterConverter),
         attachments: Arc::new(LopdfAttachments),
         headings: Arc::new(engines.pdfium),
+        pictures: Arc::new(RasterConverter),
+        extractor: Arc::new(LopdfImages),
     }
 }
 

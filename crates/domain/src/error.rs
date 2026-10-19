@@ -51,6 +51,10 @@ pub enum ErrorCode {
     /// Action needs network consent.
     #[serde(rename = "QW-NETWORK-CONSENT-REQUIRED")]
     NetworkConsentRequired,
+    /// The network could not be reached or the server answered with an error (extension of the
+    /// starter catalog).
+    #[serde(rename = "QW-NETWORK-UNAVAILABLE")]
+    NetworkUnavailable,
     /// Unexpected internal failure (extension of the starter catalog).
     #[serde(rename = "QW-INTERNAL")]
     Internal,
@@ -75,6 +79,7 @@ impl ErrorCode {
             Self::EngineTimeout => "QW-ENGINE-TIMEOUT",
             Self::JobCancelled => "QW-JOB-CANCELLED",
             Self::NetworkConsentRequired => "QW-NETWORK-CONSENT-REQUIRED",
+            Self::NetworkUnavailable => "QW-NETWORK-UNAVAILABLE",
             Self::Internal => "QW-INTERNAL",
         }
     }
@@ -175,6 +180,7 @@ mod tests {
             ErrorCode::EngineTimeout,
             ErrorCode::JobCancelled,
             ErrorCode::NetworkConsentRequired,
+            ErrorCode::NetworkUnavailable,
             ErrorCode::Internal,
         ];
         for code in all {

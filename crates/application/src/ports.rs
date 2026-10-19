@@ -6,6 +6,7 @@ use domain::naming::DateTimeParts;
 use domain::settings::Settings;
 use domain::stamp::PageStamps;
 use domain::tools::common::{FractionBox, Region, RightAngle};
+use domain::tools::convert::{ImagesToPdfOptions, PictureColor, PictureFormat, TiffCompression};
 use domain::tools::document::{AnnotationKind, MetadataChange};
 use domain::tools::layout::{FlipDirection, NUpOptions};
 use domain::tools::optimize::CompressSettings;
@@ -407,10 +408,138 @@ pub trait TocBuilder: Send + Sync {
     ) -> Result<(), AppError>;
 }
 
-/// Turns an image file into a one-page PDF.
+/// Turns image files into PDF pages.
 pub trait ImageConverter: Send + Sync {
     /// Writes a PDF with the image filling one page of the image's own proportions.
     fn image_to_pdf(&self, image: &Path, dest: &Path) -> Result<(), AppError>;
+
+    /// Writes one page per image, laid out by `layout`. Pictures in HEIC are converted through
+    /// the Windows imaging component first, using `scratch` for the temporary file.
+    fn images_to_pdf(
+        &self,
+        images: &[PathBuf],
+        layout: &ImagesToPdfOptions,
+        scratch: &Path,
+        dest: &Path,
+    ) -> Result<(), AppError>;
+
+    /// Writes one page per frame of a TIFF file, sized from its resolution, and returns how many
+    /// pages it wrote.
+    fn tiff_to_pdf(&self, tiff: &Path, dest: &Path) -> Result<u32, AppError>;
+}
+
+/// How one page picture is written.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PictureSpec {
+    /// File format.
+    pub format: PictureFormat,
+    /// JPEG quality, 1 to 100.
+    pub jpeg_quality: u8,
+    /// Colors.
+    pub color: PictureColor,
+    /// Resolution written into the file.
+    pub dpi: Dpi,
+}
+
+/// How a multi-page TIFF is written.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TiffSpec {
+    /// Compression of every page.
+    pub compression: TiffCompression,
+    /// Colors. CCITT Group 4 always writes black and white.
+    pub color: PictureColor,
+    /// Resolution written into the file.
+    pub dpi: Dpi,
+}
+
+/// A TIFF file that grows one page at a time, so a long document never sits in memory.
+pub trait TiffPages {
+    /// Appends one page.
+    fn add(&mut self, image: &RenderedImage) -> Result<(), AppError>;
+
+    /// Completes the file.
+    fn finish(self: Box<Self>) -> Result<(), AppError>;
+}
+
+/// Writes rendered pages as picture files.
+pub trait PictureWriter: Send + Sync {
+    /// Writes one page picture.
+    fn write_picture(
+        &self,
+        image: &RenderedImage,
+        spec: &PictureSpec,
+        dest: &Path,
+    ) -> Result<(), AppError>;
+
+    /// Starts a multi-page TIFF at `dest`.
+    fn start_tiff(&self, dest: &Path, spec: &TiffSpec) -> Result<Box<dyn TiffPages>, AppError>;
+
+    /// Reopens a written file and checks that it decodes. `pages` is how many pages it must have.
+    fn check_picture(&self, path: &Path, format: PictureFormat, pages: u32)
+    -> Result<(), AppError>;
+}
+
+/// Container of a picture taken out of a PDF.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExtractedKind {
+    /// A JPEG file.
+    Jpeg,
+    /// A JPEG 2000 file.
+    Jpeg2000,
+    /// A PNG file.
+    Png,
+}
+
+impl ExtractedKind {
+    /// File extension without the dot.
+    pub const fn extension(self) -> &'static str {
+        match self {
+            Self::Jpeg => "jpg",
+            Self::Jpeg2000 => "jp2",
+            Self::Png => "png",
+        }
+    }
+}
+
+/// One picture taken out of a PDF.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExtractedImage {
+    /// Page it appears on.
+    pub page: PageIndex,
+    /// Position among the pictures of that page, from 1.
+    pub number: u32,
+    /// Width in pixels.
+    pub width: u32,
+    /// Height in pixels.
+    pub height: u32,
+    /// File format of `bytes`.
+    pub kind: ExtractedKind,
+    /// The file contents.
+    pub bytes: Vec<u8>,
+}
+
+/// What an extraction left out.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ExtractReport {
+    /// Pictures found, including the ones left out.
+    pub found: u32,
+    /// Pictures smaller than the filter.
+    pub too_small: u32,
+    /// Pictures in a format that cannot be taken out (such as scans stored as CCITT or JBIG2).
+    pub unsupported: u32,
+}
+
+/// Takes the pictures out of a PDF.
+pub trait ImageExtractor: Send + Sync {
+    /// Calls `sink` for every picture at least `min` (width, height) pixels, in page order.
+    /// `source` must be unencrypted. With `keep_original` off every picture is written as PNG.
+    fn extract(
+        &self,
+        source: &Path,
+        keep_original: bool,
+        min: (u32, u32),
+        sink: &mut dyn FnMut(ExtractedImage) -> Result<(), AppError>,
+    ) -> Result<ExtractReport, AppError>;
 }
 
 /// A bookmark read from a document.
@@ -536,6 +665,14 @@ pub trait TextExtractor: Send + Sync {
         page: PageIndex,
     ) -> Result<String, AppError>;
 
+    /// Returns the text of one page with its columns and gaps kept in place by spaces.
+    fn page_text_layout(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        page: PageIndex,
+    ) -> Result<String, AppError>;
+
     /// Returns the text inside `region` of one page.
     fn text_in_region(
         &self,
@@ -641,6 +778,42 @@ pub trait SettingsStore: Send + Sync {
 pub trait ComponentStore: Send + Sync {
     /// Components installed and verified on this machine.
     fn installed(&self) -> Result<Vec<ComponentEntry>, AppError>;
+
+    /// The folder of the newest installed version of a component, when there is one.
+    fn locate(&self, id: &str) -> Option<PathBuf>;
+}
+
+/// Downloads a file over HTTPS.
+pub trait Downloader: Send + Sync {
+    /// Streams the body of `url` to `sink`. Fails when the body is larger than `max_bytes`.
+    fn download(
+        &self,
+        url: &str,
+        max_bytes: u64,
+        sink: &mut dyn FnMut(&[u8]) -> Result<(), AppError>,
+    ) -> Result<(), AppError>;
+}
+
+/// Installs, imports and removes on-demand components. Everything it puts on disk has been
+/// checked against the signed list first.
+pub trait ComponentInstaller: Send + Sync {
+    /// The components this build of Quirewise can install, from the signed component list. Needs
+    /// the network, so callers ask the person first.
+    fn available(&self) -> Result<Vec<ComponentEntry>, AppError>;
+
+    /// Downloads, verifies and installs the newest version of `id` for this machine. `progress`
+    /// counts downloaded bytes.
+    fn install(
+        &self,
+        id: &str,
+        progress: &dyn crate::runtime::ProgressSink,
+    ) -> Result<ComponentEntry, AppError>;
+
+    /// Installs a component from a `.qwpkg` file on disk, for machines without a network.
+    fn import(&self, package: &Path) -> Result<ComponentEntry, AppError>;
+
+    /// Removes every installed version of a component.
+    fn remove(&self, id: &str) -> Result<(), AppError>;
 }
 
 /// Source of the current local date and time.

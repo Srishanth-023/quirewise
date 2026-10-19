@@ -10,6 +10,7 @@ mod boxes;
 mod edit;
 mod encryption;
 mod grayscale;
+mod images;
 mod labels;
 mod layout;
 mod metadata;
@@ -26,7 +27,8 @@ use application::AppError;
 use application::Password;
 use application::inspect::StructureReport;
 use application::ports::{
-    Attachment, AttachmentInfo, AttachmentReader, PdfEdit, PdfEditor, StructureFacts,
+    Attachment, AttachmentInfo, AttachmentReader, ExtractReport, ExtractedImage, ImageExtractor,
+    PdfEdit, PdfEditor, StructureFacts,
 };
 use domain::ErrorCode;
 use lopdf::{Document, LoadOptions};
@@ -84,6 +86,23 @@ impl AttachmentReader for LopdfAttachments {
     ) -> Result<Vec<Attachment>, AppError> {
         let doc = LopdfStructure::load(path, password)?;
         attachments::read(&doc, names)
+    }
+}
+
+/// [`ImageExtractor`] over lopdf.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct LopdfImages;
+
+impl ImageExtractor for LopdfImages {
+    fn extract(
+        &self,
+        source: &Path,
+        keep_original: bool,
+        min: (u32, u32),
+        sink: &mut dyn FnMut(ExtractedImage) -> Result<(), AppError>,
+    ) -> Result<ExtractReport, AppError> {
+        let doc = LopdfStructure::load(source, None)?;
+        images::extract(&doc, keep_original, min, sink)
     }
 }
 

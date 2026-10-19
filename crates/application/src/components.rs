@@ -94,6 +94,9 @@ mod tests {
         fn installed(&self) -> Result<Vec<ComponentEntry>, AppError> {
             Ok(self.0.clone())
         }
+        fn locate(&self, _: &str) -> Option<std::path::PathBuf> {
+            None
+        }
     }
 
     #[test]

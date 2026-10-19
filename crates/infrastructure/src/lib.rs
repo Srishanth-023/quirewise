@@ -4,6 +4,7 @@
 
 pub mod clock;
 pub mod components;
+pub mod download;
 pub mod file_store;
 pub mod jobs;
 pub mod logging;
@@ -16,7 +17,8 @@ pub mod settings;
 pub mod supervisor;
 
 pub use clock::SystemClock;
-pub use components::FsComponentStore;
+pub use components::{ComponentManager, ComponentTrust, FsComponentStore};
+pub use download::HttpsDownloader;
 pub use file_store::AtomicFileStore;
 pub use jobs::{EventSink, JobManager};
 pub use logging::{TracingLogger, init_logging};

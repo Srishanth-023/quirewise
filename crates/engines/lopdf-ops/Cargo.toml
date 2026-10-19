@@ -21,3 +21,4 @@ image = { version = "0.25.10", default-features = false, features = ["png", "jpe
 [dev-dependencies]
 test-support.workspace = true
 tempfile = "3"
+flate2 = "1.1.10"

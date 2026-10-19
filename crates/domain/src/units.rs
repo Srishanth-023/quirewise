@@ -86,6 +86,13 @@ impl Dpi {
     }
 }
 
+impl Default for Dpi {
+    /// 150 dots per inch, the usual choice for screens and ordinary printing.
+    fn default() -> Self {
+        Self(150)
+    }
+}
+
 impl TryFrom<u32> for Dpi {
     type Error = DomainError;
     fn try_from(value: u32) -> Result<Self, Self::Error> {

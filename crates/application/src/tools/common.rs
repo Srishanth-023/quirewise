@@ -11,15 +11,17 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::error::AppError;
 use crate::inspect::PdfiumFacts;
 use crate::ports::{
-    AssemblyPlan, AttachmentReader, DocumentInfo, FileStore, FormFlattener, HeadingFinder,
-    ImageConverter, ImageOptimizer, ImageReport, OutlineItem, OutlineReader, PackageOptions,
-    PageImage, PageImageWriter, PageSize, PdfEdit, PdfEditor, PdfPackager, PdfReader, PdfRepairer,
-    PdfSecurity, PdfVerifier, PdfWriter, PngImage, ProtectionSource, RenderedImage, Renderer,
-    RepairOutcome, TextExtractor, TocBuilder, TocLine,
+    AssemblyPlan, AttachmentReader, DocumentInfo, ExtractReport, ExtractedImage, FileStore,
+    FormFlattener, HeadingFinder, ImageConverter, ImageExtractor, ImageOptimizer, ImageReport,
+    OutlineItem, OutlineReader, PackageOptions, PageImage, PageImageWriter, PageSize, PdfEdit,
+    PdfEditor, PdfPackager, PdfReader, PdfRepairer, PdfSecurity, PdfVerifier, PdfWriter,
+    PictureSpec, PictureWriter, PngImage, ProtectionSource, RenderedImage, Renderer, RepairOutcome,
+    TextExtractor, TiffPages, TiffSpec, TocBuilder, TocLine,
 };
 use crate::runtime::{Password, ProgressEvent};
 use crate::tool::{InputDoc, JobContext, OutputArtifact};
 use domain::Dpi;
+use domain::tools::convert::{ImagesToPdfOptions, PictureFormat};
 use domain::tools::optimize::CompressSettings;
 use domain::tools::secure::ProtectPlan;
 
@@ -60,6 +62,10 @@ pub struct ToolDeps {
     pub attachments: Arc<dyn AttachmentReader>,
     /// Heading detection.
     pub headings: Arc<dyn HeadingFinder>,
+    /// Page pictures and TIFF files.
+    pub pictures: Arc<dyn PictureWriter>,
+    /// Pictures taken out of documents.
+    pub extractor: Arc<dyn ImageExtractor>,
 }
 
 impl ToolDeps {
@@ -84,7 +90,9 @@ impl ToolDeps {
             optimizer: none.clone(),
             page_images: none.clone(),
             attachments: none.clone(),
-            headings: none,
+            headings: none.clone(),
+            pictures: none.clone(),
+            extractor: none,
         }
     }
 }
@@ -150,6 +158,42 @@ impl ImageConverter for Unavailable {
     fn image_to_pdf(&self, _: &Path, _: &Path) -> Result<(), AppError> {
         missing()
     }
+    fn images_to_pdf(
+        &self,
+        _: &[PathBuf],
+        _: &ImagesToPdfOptions,
+        _: &Path,
+        _: &Path,
+    ) -> Result<(), AppError> {
+        missing()
+    }
+    fn tiff_to_pdf(&self, _: &Path, _: &Path) -> Result<u32, AppError> {
+        missing()
+    }
+}
+
+impl PictureWriter for Unavailable {
+    fn write_picture(&self, _: &RenderedImage, _: &PictureSpec, _: &Path) -> Result<(), AppError> {
+        missing()
+    }
+    fn start_tiff(&self, _: &Path, _: &TiffSpec) -> Result<Box<dyn TiffPages>, AppError> {
+        missing()
+    }
+    fn check_picture(&self, _: &Path, _: PictureFormat, _: u32) -> Result<(), AppError> {
+        missing()
+    }
+}
+
+impl ImageExtractor for Unavailable {
+    fn extract(
+        &self,
+        _: &Path,
+        _: bool,
+        _: (u32, u32),
+        _: &mut dyn FnMut(ExtractedImage) -> Result<(), AppError>,
+    ) -> Result<ExtractReport, AppError> {
+        missing()
+    }
 }
 
 impl OutlineReader for Unavailable {
@@ -160,6 +204,14 @@ impl OutlineReader for Unavailable {
 
 impl TextExtractor for Unavailable {
     fn page_text(&self, _: &Path, _: Option<&Password>, _: PageIndex) -> Result<String, AppError> {
+        missing()
+    }
+    fn page_text_layout(
+        &self,
+        _: &Path,
+        _: Option<&Password>,
+        _: PageIndex,
+    ) -> Result<String, AppError> {
         missing()
     }
     fn text_in_region(

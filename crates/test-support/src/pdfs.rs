@@ -404,6 +404,23 @@ pub fn pdf_with_sized_lines(pages: &[Vec<(&str, f32)>]) -> Vec<u8> {
     serialize(&objects, "")
 }
 
+/// A one-page Letter PDF with each text placed at `(x, y)` (from the lower left), size 12.
+/// The texts must not contain parentheses or backslashes.
+pub fn pdf_with_positioned_text(items: &[(f32, f32, &str)]) -> Vec<u8> {
+    let mut content = String::new();
+    for (x, y, text) in items {
+        content.push_str(&format!("BT /F1 12 Tf {x} {y} Td ({text}) Tj ET\n"));
+    }
+    let objects = vec![
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        "<< /Type /Pages /Kids [4 0 R] /Count 1 >>".to_owned(),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>".to_owned(),
+        format!("<< /Length {} >>\nstream\n{content}\nendstream", content.len()),
+    ];
+    serialize(&objects, "")
+}
+
 /// A one-page PDF with a red filled box, a green outline and blue text.
 pub fn pdf_with_colors() -> Vec<u8> {
     let content = "1 0 0 rg 100 400 200 200 re f\n0 1 0 RG 6 w 350 400 200 200 re S\n0 0 1 rg BT /F1 36 Tf 100 300 Td (COLORS) Tj ET";

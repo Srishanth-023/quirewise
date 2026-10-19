@@ -2,6 +2,7 @@
 
 mod combine;
 mod common;
+mod convert;
 mod document;
 mod insert;
 mod layout;
@@ -28,6 +29,12 @@ pub fn register_all(
     deps: &ToolDeps,
 ) -> Result<(), crate::error::AppError> {
     registry.register(Arc::new(combine::MergeTool::new(deps.clone())))?;
+    registry.register(Arc::new(convert::ImagesToPdfTool::new(deps.clone())))?;
+    registry.register(Arc::new(convert::PdfToImagesTool::new(deps.clone())))?;
+    registry.register(Arc::new(convert::ExtractImagesTool::new(deps.clone())))?;
+    registry.register(Arc::new(convert::PdfToTextTool::new(deps.clone())))?;
+    registry.register(Arc::new(convert::TiffToPdfTool::new(deps.clone())))?;
+    registry.register(Arc::new(convert::PdfToTiffTool::new(deps.clone())))?;
     registry.register(Arc::new(combine::AlternateMixTool::new(deps.clone())))?;
     registry.register(Arc::new(combine::OrganizeTool::new(deps.clone())))?;
     registry.register(Arc::new(select::SplitRangesTool::new(deps.clone())))?;

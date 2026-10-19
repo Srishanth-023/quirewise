@@ -6,23 +6,22 @@
 #![forbid(unsafe_code)]
 
 mod compress;
+mod heic;
+mod imagepdf;
 mod pages;
+mod pictures;
+mod tiffio;
 
 use application::AppError;
 use application::ports::ImageConverter;
 use domain::ErrorCode;
+use domain::tools::convert::ImagesToPdfOptions;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
-use image::{ColorType, DynamicImage, ImageDecoder, ImageFormat, ImageReader};
-use lopdf::{Document, Object, Stream, dictionary};
-use std::fs;
+use image::{ColorType, DynamicImage, ImageDecoder};
 use std::io::{Cursor, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-/// Resolution assumed when sizing the page from pixels.
-const ASSUMED_DPI: f32 = 150.0;
-/// PDF viewers handle pages up to 200 inches (14,400 points).
-const MAX_PAGE_POINTS: f32 = 14_400.0;
 /// Largest image accepted, in pixels, to bound memory (a 100 megapixel RGBA image is 400 MB).
 const MAX_PIXELS: u64 = 100_000_000;
 
@@ -30,21 +29,21 @@ const MAX_PIXELS: u64 = 100_000_000;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct RasterConverter;
 
-fn unreadable() -> AppError {
+pub(crate) fn unreadable() -> AppError {
     AppError::new(
         ErrorCode::InputNotPdf,
         "This image could not be read. It may be damaged or in a format Quirewise does not support yet.",
     )
 }
 
-fn too_big() -> AppError {
+pub(crate) fn too_big() -> AppError {
     AppError::new(
         ErrorCode::PdfLimitExceeded,
         "This image is larger than the safety limit of 100 megapixels. Reduce its size first.",
     )
 }
 
-fn flate(bytes: &[u8]) -> Result<Vec<u8>, AppError> {
+pub(crate) fn flate(bytes: &[u8]) -> Result<Vec<u8>, AppError> {
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
     encoder
         .write_all(bytes)
@@ -61,6 +60,10 @@ struct Prepared {
     data: Vec<u8>,
     /// Flate-compressed 8-bit alpha, when the image has transparency.
     alpha: Option<Vec<u8>>,
+    /// Bits per color component: 8, or 1 for black and white scans.
+    bits: u8,
+    /// Quarter turns clockwise (0, 90, 180 or 270) that show the pixels upright.
+    turns: u16,
 }
 
 /// JPEG bytes can be embedded directly when they are 8-bit gray or RGB.
@@ -79,6 +82,8 @@ fn prepare_jpeg(bytes: &[u8]) -> Option<Prepared> {
         filter: "DCTDecode",
         data: bytes.to_vec(),
         alpha: None,
+        bits: 8,
+        turns: 0,
     })
 }
 
@@ -99,6 +104,8 @@ fn prepare_decoded(image: DynamicImage) -> Result<Prepared, AppError> {
             filter: "FlateDecode",
             data: flate(&rgb)?,
             alpha: Some(flate(&alpha)?),
+            bits: 8,
+            turns: 0,
         });
     }
     let (color_space, raw) = if image.color().has_color() {
@@ -113,107 +120,44 @@ fn prepare_decoded(image: DynamicImage) -> Result<Prepared, AppError> {
         filter: "FlateDecode",
         data: flate(&raw)?,
         alpha: None,
+        bits: 8,
+        turns: 0,
     })
-}
-
-fn page_points(pixels: u32) -> f32 {
-    pixels as f32 * 72.0 / ASSUMED_DPI
-}
-
-fn build(prepared: Prepared) -> Document {
-    let mut doc = Document::with_version("1.5");
-    let pages_id = doc.new_object_id();
-
-    let mut dict = dictionary! {
-        "Type" => "XObject",
-        "Subtype" => "Image",
-        "Width" => i64::from(prepared.width),
-        "Height" => i64::from(prepared.height),
-        "ColorSpace" => prepared.color_space,
-        "BitsPerComponent" => 8,
-        "Filter" => prepared.filter,
-    };
-    if let Some(alpha) = prepared.alpha {
-        let mask = doc.add_object(Stream::new(
-            dictionary! {
-                "Type" => "XObject", "Subtype" => "Image",
-                "Width" => i64::from(prepared.width), "Height" => i64::from(prepared.height),
-                "ColorSpace" => "DeviceGray", "BitsPerComponent" => 8, "Filter" => "FlateDecode",
-            },
-            alpha,
-        ));
-        dict.set("SMask", mask);
-    }
-    let mut stream = Stream::new(dict, prepared.data);
-    // The data is already compressed; stop lopdf from compressing it again on save.
-    stream.allows_compression = false;
-    let image_id = doc.add_object(stream);
-
-    // Scale down together if the image would not fit one PDF page.
-    let (mut w, mut h) = (page_points(prepared.width), page_points(prepared.height));
-    let largest = w.max(h);
-    if largest > MAX_PAGE_POINTS {
-        let k = MAX_PAGE_POINTS / largest;
-        (w, h) = (w * k, h * k);
-    }
-    let content = doc.add_object(Stream::new(
-        dictionary! {},
-        format!("q {w:.3} 0 0 {h:.3} 0 0 cm /Im0 Do Q").into_bytes(),
-    ));
-    let page = doc.add_object(dictionary! {
-        "Type" => "Page",
-        "Parent" => pages_id,
-        "MediaBox" => vec![0.into(), 0.into(), w.into(), h.into()],
-        "Resources" => dictionary! { "XObject" => dictionary! { "Im0" => image_id } },
-        "Contents" => content,
-    });
-    doc.objects.insert(
-        pages_id,
-        Object::Dictionary(
-            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
-        ),
-    );
-    let catalog = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
-    doc.trailer.set("Root", catalog);
-    doc
 }
 
 impl ImageConverter for RasterConverter {
     fn image_to_pdf(&self, image: &Path, dest: &Path) -> Result<(), AppError> {
-        let bytes = fs::read(image).map_err(|e| AppError::from_io("read the image", &e))?;
-        let reader = ImageReader::new(Cursor::new(&bytes))
-            .with_guessed_format()
-            .map_err(|_| unreadable())?;
-        let format = reader.format().ok_or_else(unreadable)?;
-        let (width, height) = reader.into_dimensions().map_err(|_| unreadable())?;
-        if u64::from(width) * u64::from(height) > MAX_PIXELS {
-            return Err(too_big());
-        }
-        if width == 0 || height == 0 {
-            return Err(unreadable());
-        }
+        imagepdf::write_pdf(
+            &[image.to_path_buf()],
+            &ImagesToPdfOptions::default(),
+            &std::env::temp_dir(),
+            dest,
+        )
+    }
 
-        let prepared = match format {
-            ImageFormat::Jpeg => match prepare_jpeg(&bytes) {
-                Some(p) => p,
-                // CMYK and other JPEG kinds are decoded and stored losslessly instead.
-                None => {
-                    prepare_decoded(image::load_from_memory(&bytes).map_err(|_| unreadable())?)?
-                }
-            },
-            _ => prepare_decoded(image::load_from_memory(&bytes).map_err(|_| unreadable())?)?,
-        };
-        let mut doc = build(prepared);
-        doc.save(dest)
-            .map_err(|e| AppError::from_io("write the PDF", &e))?;
-        Ok(())
+    fn images_to_pdf(
+        &self,
+        images: &[PathBuf],
+        layout: &ImagesToPdfOptions,
+        scratch: &Path,
+        dest: &Path,
+    ) -> Result<(), AppError> {
+        imagepdf::write_pdf(images, layout, scratch, dest)
+    }
+
+    fn tiff_to_pdf(&self, tiff: &Path, dest: &Path) -> Result<u32, AppError> {
+        tiffio::tiff_to_pdf(tiff, dest)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use domain::tools::convert::MAX_PAGE_POINTS;
+    use image::ImageFormat;
     use image::{GrayImage, ImageEncoder, Luma, Rgb, RgbImage, Rgba, RgbaImage};
+    use lopdf::{Document, Object};
+    use std::fs;
 
     fn convert(bytes: &[u8], name: &str) -> (tempfile::TempDir, Document) {
         let dir = tempfile::tempdir().unwrap();
