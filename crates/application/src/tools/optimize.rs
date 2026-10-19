@@ -6,7 +6,7 @@ use domain::tools::secure::SanitizeOptions;
 use domain::{ErrorCode, ToolId, ToolOptions};
 
 use super::common::{
-    Progress, Scratch, ToolDeps, first_input, page_count, publish_pdf, publish_pdf_checked,
+    Progress, Scratch, ToolDeps, first_input, kept_protection, page_count, publish_pdf_checked,
     wrong_options,
 };
 use crate::error::AppError;
@@ -117,13 +117,20 @@ impl Tool for CompressTool {
         };
         progress.advance(1);
 
+        let protection = kept_protection(&self.deps, input)?;
         let packaging = PackageOptions {
-            linearize: false,
-            object_streams: opts.object_streams,
+            keep_protection: protection.clone(),
+            ..PackageOptions::new(false, opts.object_streams)
         };
-        let out = publish_pdf(ctx, &self.deps, input, self.label(), count, &mut |tmp| {
-            self.deps.packager.package(source, None, &packaging, tmp)
-        })?;
+        let out = publish_pdf_checked(
+            ctx,
+            &self.deps,
+            input,
+            self.label(),
+            Some(count),
+            protection.as_ref().map(|p| &p.password),
+            &mut |tmp| self.deps.packager.package(source, None, &packaging, tmp),
+        )?;
         progress.advance(1);
         Ok(vec![out])
     }
@@ -295,16 +302,18 @@ impl Tool for LinearizeTool {
         let input = first_input(&plan.inputs)?;
         let opts = linearize_options(&plan.options)?;
         let mut progress = Progress::start(ctx, plan.total_units);
+        let protection = kept_protection(&self.deps, input)?;
         let packaging = PackageOptions {
-            linearize: opts.enabled,
-            object_streams: true,
+            keep_protection: protection.clone(),
+            ..PackageOptions::new(opts.enabled, true)
         };
-        let out = publish_pdf(
+        let out = publish_pdf_checked(
             ctx,
             &self.deps,
             input,
             self.label(),
-            page_count(input),
+            Some(page_count(input)),
+            protection.as_ref().map(|p| &p.password),
             &mut |tmp| {
                 self.deps
                     .packager

@@ -238,7 +238,7 @@ fn compress_can_strip_metadata_and_keeps_text() {
 }
 
 #[test]
-fn compress_reads_a_password_protected_file_and_writes_it_unlocked() {
+fn compress_reads_a_password_protected_file_and_keeps_it_protected() {
     let lab = Lab::new();
     let plain = lab.put("a.pdf", &pdfs::pdf_with_texts(&["one", "two"]));
     let locked = lab.dir.path().join("locked.pdf");
@@ -248,7 +248,13 @@ fn compress_reads_a_password_protected_file_and_writes_it_unlocked() {
     let out = lab
         .run(ToolOptions::defaults_for(domain::ToolId::Compress), input)
         .unwrap();
-    assert_eq!(lab.texts(&out[0].path, None), ["one", "two"]);
+    let password = Password::new("open");
+    assert_eq!(lab.texts(&out[0].path, Some(&password)), ["one", "two"]);
+    assert_eq!(
+        lab.engine.open_info(&out[0].path, None).unwrap_err().code,
+        ErrorCode::PdfEncrypted,
+        "the result still asks for the password"
+    );
     lab.tidy();
 }
 
@@ -795,7 +801,7 @@ fn flatten_everything_makes_pages_pictures_of_the_same_size() {
 }
 
 #[test]
-fn flatten_everything_reads_a_protected_file_with_its_password() {
+fn flatten_everything_reads_a_protected_file_and_keeps_it_protected() {
     let lab = Lab::new();
     let plain = lab.put("a.pdf", &pdfs::pdf_with_texts(&["secret page"]));
     let locked = lab.dir.path().join("locked.pdf");
@@ -812,9 +818,15 @@ fn flatten_everything_reads_a_protected_file_with_its_password() {
         )
         .unwrap();
     assert_eq!(out[0].pages, Some(1));
+    let password = Password::new("pw");
     assert!(
-        lab.engine.open_info(&out[0].path, None).is_ok(),
-        "output is not protected"
+        lab.engine.open_info(&out[0].path, Some(&password)).is_ok(),
+        "the password still opens the output"
+    );
+    assert_eq!(
+        lab.engine.open_info(&out[0].path, None).unwrap_err().code,
+        ErrorCode::PdfEncrypted,
+        "the output is still protected"
     );
     lab.tidy();
 }

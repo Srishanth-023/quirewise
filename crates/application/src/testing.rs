@@ -77,6 +77,14 @@ impl FileStore for MemoryFiles {
         self.lock().remove(path);
     }
 
+    fn copy_file(&self, from: &Path, to: &Path) -> Result<(), AppError> {
+        let bytes = self.lock().get(from).cloned().ok_or_else(|| {
+            AppError::from_io("read the file", &io::Error::from(io::ErrorKind::NotFound))
+        })?;
+        self.lock().insert(to.to_path_buf(), bytes);
+        Ok(())
+    }
+
     fn modified_unix(&self, path: &Path) -> Option<u64> {
         self.exists(path).then_some(1_700_000_000)
     }

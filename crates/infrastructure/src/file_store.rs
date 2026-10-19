@@ -85,6 +85,12 @@ impl FileStore for AtomicFileStore {
         let _ = fs::remove_file(path);
     }
 
+    fn copy_file(&self, from: &Path, to: &Path) -> Result<(), AppError> {
+        fs::copy(from, to)
+            .map(|_| ())
+            .map_err(|e| AppError::from_io("copy the file", &e))
+    }
+
     fn modified_unix(&self, path: &Path) -> Option<u64> {
         fs::metadata(path)
             .ok()?

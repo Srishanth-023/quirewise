@@ -27,7 +27,7 @@ The raster engine walks each page's content stream to learn how large every imag
 
 - Only images drawn directly on pages are touched, and only 8-bit gray and RGB images stored as DCT (JPEG) or Flate. Masks, indexed, CMYK and 16-bit images are left as they are.
 - An image is never made bigger. A file with nothing to gain is still published, rewritten.
-- A password-protected input gives an unprotected result: the file is decrypted with the password you entered and written without encryption. Run Protect afterwards to lock it again.
+- A password-protected input stays protected: the original password and restrictions are copied to the result (qpdf `--copy-encryption`). A file that opens without a password has no owner restrictions to keep.
 - Fonts are not subset (see open question 23).
 
 ## Errors

@@ -14,8 +14,36 @@ export interface ToolForm {
   /** Text fields with a "remove" switch, where blank means "keep the current value". */
   clearable?: string[];
   /** Fields shown only while another field has a given value. */
-  visibleWhen?: Record<string, { field: string; equals: unknown }>;
+  visibleWhen?: Record<string, ShowRule>;
+  /** Text fields picked with a color control. */
+  color?: string[];
+  /** Text or line-list fields with a button that opens the file chooser. */
+  picker?: Record<string, 'image' | 'files'>;
+  /** Lists of objects edited as rows the person can add, remove and move. */
+  rows?: string[];
+  /** Draw the region picker over the first page; `when` limits it to one value of another field. */
+  regionPicker?: { when?: ShowRule };
 }
+
+/** What the color control shows while the text is not a valid #RRGGBB value. */
+export const FALLBACK_COLOR = '#000000';
+
+/** Show something while a field has one value (`equals`) or any of several (`in`). */
+export interface ShowRule {
+  field: string;
+  equals?: unknown;
+  in?: unknown[];
+}
+
+/** True when the rule is met by the current values, or when there is no rule. */
+export function ruleMet(rule: ShowRule | undefined, values: Record<string, unknown>): boolean {
+  if (!rule) return true;
+  const current = values[rule.field];
+  return rule.in ? rule.in.includes(current) : current === rule.equals;
+}
+
+const only = (keys: string[], rule: ShowRule): Record<string, ShowRule> =>
+  Object.fromEntries(keys.map((key) => [key, rule]));
 
 export const toolForms: Record<string, ToolForm> = {
   merge: {
@@ -31,7 +59,7 @@ export const toolForms: Record<string, ToolForm> = {
   'split-by-bookmarks': { order: ['level', 'name_from_bookmark'], limits: { level: { min: 1 } } },
   'split-in-half': { order: ['direction', 'skip_first', 'skip_last', 'right_to_left'] },
   'split-by-size': { limits: { max_size_mb: { min: 1, max: 2048 } } },
-  'split-by-text': { order: ['region', 'starts_with'], custom: ['region'] },
+  'split-by-text': { order: ['region', 'starts_with'], custom: ['region'], regionPicker: {} },
   rotate: { order: ['angle', 'pages'] },
   compress: {
     order: ['preset', 'jpeg_quality', 'max_image_ppi', 'grayscale', 'strip_metadata', 'object_streams'],
@@ -88,6 +116,144 @@ export const toolForms: Record<string, ToolForm> = {
       'thumbnails',
       'private_data',
     ],
+  },
+  'page-numbers': {
+    order: [
+      'pages',
+      'template',
+      'style',
+      'position',
+      'offset_x_pt',
+      'offset_y_pt',
+      'start_number',
+      'skip_first_page',
+      'facing_pages',
+      'font',
+      'bold',
+      'italic',
+      'size_pt',
+      'color',
+    ],
+    color: ['color'],
+    limits: { size_pt: { min: 1, max: 400 } },
+  },
+  'header-footer': {
+    order: [
+      'header_left',
+      'header_center',
+      'header_right',
+      'footer_left',
+      'footer_center',
+      'footer_right',
+      'pages',
+      'font',
+      'bold',
+      'italic',
+      'size_pt',
+      'color',
+      'margin_pt',
+    ],
+    color: ['color'],
+    limits: { size_pt: { min: 1, max: 400 }, margin_pt: { min: 0, max: 400 } },
+  },
+  bates: {
+    order: [
+      'prefix',
+      'suffix',
+      'digits',
+      'start',
+      'continue_across_files',
+      'position',
+      'offset_x_pt',
+      'offset_y_pt',
+      'font',
+      'bold',
+      'italic',
+      'size_pt',
+      'color',
+    ],
+    color: ['color'],
+    limits: { digits: { min: 1, max: 12 }, size_pt: { min: 1, max: 400 } },
+  },
+  watermark: {
+    order: [
+      'kind',
+      'text',
+      'image_path',
+      'image_width_percent',
+      'pages',
+      'position',
+      'tile',
+      'rotation_deg',
+      'transparency',
+      'layer',
+      'font',
+      'bold',
+      'italic',
+      'size_pt',
+      'color',
+      'offset_x_pt',
+      'offset_y_pt',
+    ],
+    color: ['color'],
+    picker: { image_path: 'image' },
+    limits: {
+      transparency: { min: 1, max: 100 },
+      rotation_deg: { min: 0, max: 360 },
+      image_width_percent: { min: 1, max: 100 },
+      size_pt: { min: 1, max: 400 },
+    },
+    visibleWhen: {
+      ...only(['text', 'font', 'bold', 'italic', 'size_pt', 'color'], { field: 'kind', equals: 'text' }),
+      ...only(['image_path', 'image_width_percent'], { field: 'kind', equals: 'image' }),
+    },
+  },
+  crop: {
+    order: ['method', 'margins', 'unit', 'region', 'auto_padding_mm', 'pages', 'apply_to_media_box'],
+    custom: ['region'],
+    regionPicker: { when: { field: 'method', equals: 'region' } },
+    visibleWhen: {
+      ...only(['margins', 'unit'], { field: 'method', equals: 'margins' }),
+      auto_padding_mm: { field: 'method', equals: 'auto' },
+    },
+  },
+  resize: {
+    order: ['size', 'custom_width_mm', 'custom_height_mm', 'margin_mm', 'scale_content', 'match_orientation'],
+    visibleWhen: only(['custom_width_mm', 'custom_height_mm'], { field: 'size', equals: 'custom' }),
+  },
+  flip: { order: ['direction', 'pages'] },
+  'n-up': { order: ['per_sheet', 'order', 'preserve_page_size', 'right_to_left'] },
+  grayscale: {
+    order: ['apply_to', 'raster_fallback', 'dpi'],
+    visibleWhen: { dpi: { field: 'raster_fallback', equals: true } },
+  },
+  bookmarks: {
+    order: ['auto_generate', 'auto_max_level', 'bookmarks'],
+    rows: ['bookmarks'],
+    limits: { auto_max_level: { min: 1, max: 6 } },
+    visibleWhen: {
+      auto_max_level: { field: 'auto_generate', equals: true },
+      bookmarks: { field: 'auto_generate', equals: false },
+    },
+  },
+  'rename-by-content': {
+    order: ['pattern', 'page', 'region'],
+    custom: ['region'],
+    regionPicker: {},
+    limits: { page: { min: 1 } },
+  },
+  attachments: {
+    order: ['action', 'files', 'names'],
+    picker: { files: 'files' },
+    visibleWhen: {
+      files: { field: 'action', equals: 'add' },
+      names: { field: 'action', in: ['extract', 'delete'] },
+    },
+  },
+  'page-labels': {
+    order: ['remove_all', 'ranges'],
+    rows: ['ranges'],
+    visibleWhen: { ranges: { field: 'remove_all', equals: false } },
   },
   'insert-pages': {
     order: ['mode', 'pages', 'position', 'count', 'page_size'],

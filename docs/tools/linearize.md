@@ -20,7 +20,7 @@ qpdf `--linearize` reorders the objects. The result is checked with `qpdf --chec
 
 ## Behavior and limits
 
-- A password-protected input gives an unprotected result: the file is decrypted with the password you entered and written without encryption. Run Protect afterwards to lock it again.
+- A password-protected input stays protected: the original password and restrictions are copied to the result (qpdf `--copy-encryption`). A file that opens without a password has no owner restrictions to keep.
 - The result is rewritten with compressed object streams and recompressed streams, so the size can change.
 - Signatures become invalid because the file changes.
 - An encrypted input needs its password.

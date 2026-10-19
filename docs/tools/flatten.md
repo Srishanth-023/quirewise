@@ -25,7 +25,7 @@ qw run flatten form.pdf --options '{"mode":"everything","dpi":"150"}'
 
 - In `everything` mode text can no longer be selected or searched, links and bookmarks are lost, and the file can be much larger.
 - Signatures become invalid because the file changes.
-- A password-protected input gives an unprotected result. Run Protect afterwards to lock it again.
+- A password-protected input stays protected: the original password and restrictions are copied to the result (qpdf `--copy-encryption`).
 - Fields without an appearance stream have nothing to draw.
 
 ## Errors

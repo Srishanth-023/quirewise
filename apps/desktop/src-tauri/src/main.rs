@@ -25,6 +25,7 @@ fn main() {
             commands::system::app_version,
             commands::system::list_tools,
             commands::system::pick_files,
+            commands::system::pick_paths,
             commands::documents::classify_inputs,
             commands::documents::inspect_document,
             commands::documents::render_thumbnail,

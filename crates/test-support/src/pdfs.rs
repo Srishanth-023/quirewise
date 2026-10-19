@@ -372,6 +372,51 @@ pub fn pdf_without_pages() -> Vec<u8> {
     .into_bytes()
 }
 
+/// A PDF with one Letter page per entry, each made of lines of `(text, font size)` from the top.
+pub fn pdf_with_sized_lines(pages: &[Vec<(&str, f32)>]) -> Vec<u8> {
+    let n = pages.len().max(1);
+    let kids: Vec<String> = (0..n).map(|i| format!("{} 0 R", 4 + i * 2)).collect();
+    let mut objects: Vec<String> = vec![
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        format!("<< /Type /Pages /Kids [{}] /Count {n} >>", kids.join(" ")),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
+    ];
+    for (i, lines) in pages.iter().enumerate() {
+        let mut y = 740.0f32;
+        let mut content = String::new();
+        for (text, size) in lines {
+            let escaped = text
+                .replace('\\', "\\\\")
+                .replace('(', "\\(")
+                .replace(')', "\\)");
+            content.push_str(&format!("BT /F1 {size} Tf 50 {y} Td ({escaped}) Tj ET\n"));
+            y -= size * 1.6;
+        }
+        objects.push(format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents {} 0 R >>",
+            5 + i * 2
+        ));
+        objects.push(format!(
+            "<< /Length {} >>\nstream\n{content}\nendstream",
+            content.len()
+        ));
+    }
+    serialize(&objects, "")
+}
+
+/// A one-page PDF with a red filled box, a green outline and blue text.
+pub fn pdf_with_colors() -> Vec<u8> {
+    let content = "1 0 0 rg 100 400 200 200 re f\n0 1 0 RG 6 w 350 400 200 200 re S\n0 0 1 rg BT /F1 36 Tf 100 300 Td (COLORS) Tj ET";
+    let objects = vec![
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        "<< /Type /Pages /Kids [4 0 R] /Count 1 >>".to_owned(),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>".to_owned(),
+        format!("<< /Length {} >>\nstream\n{content}\nendstream", content.len()),
+    ];
+    serialize(&objects, "")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

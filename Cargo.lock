@@ -3331,6 +3331,7 @@ version = "0.1.0"
 name = "quirewise-engine-lopdf-ops"
 version = "0.1.0"
 dependencies = [
+ "image",
  "lopdf",
  "quirewise-application",
  "quirewise-domain",
@@ -3385,6 +3386,7 @@ dependencies = [
  "lopdf",
  "quirewise-application",
  "quirewise-domain",
+ "quirewise-test-support",
  "tempfile",
 ]
 

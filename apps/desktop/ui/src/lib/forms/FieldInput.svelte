@@ -1,6 +1,9 @@
 <script lang="ts">
   import { t, tDynamic } from '../i18n';
+  import { ipc, toAppError } from '../ipc/client';
+  import { toasts } from '../stores/toasts.svelte';
   import type { Field } from './schema';
+  import { FALLBACK_COLOR } from './toolForms';
 
   interface Props {
     field: Field;
@@ -13,10 +16,25 @@
     secret?: boolean;
     /** Offer a "remove" switch next to the text, for fields where blank means "keep". */
     clearable?: boolean;
+    /** Text drawn with a color control. */
+    color?: boolean;
+    /** Offer a button that opens the file chooser for pictures or any file. */
+    picker?: 'image' | 'files';
     onchange: (value: unknown) => void;
   }
 
-  let { field, value, toolId, id, limits, secret = false, clearable = false, onchange }: Props = $props();
+  let {
+    field,
+    value,
+    toolId,
+    id,
+    limits,
+    secret = false,
+    clearable = false,
+    color = false,
+    picker,
+    onchange,
+  }: Props = $props();
 
   const label = $derived(
     tDynamic(`option.${toolId}.${field.key}`, tDynamic(`option.${field.key}`, field.key.replaceAll('_', ' '))),
@@ -30,11 +48,31 @@
   const removed = $derived(clearable && value === ' ');
 
   function choiceLabel(choice: string): string {
-    return tDynamic(`choice.${field.key}.${choice}`, tDynamic(`choice.${choice}`, choice));
+    return tDynamic(
+      `choice.${toolId}.${field.key}.${choice}`,
+      tDynamic(`choice.${field.key}.${choice}`, tDynamic(`choice.${choice}`, choice)),
+    );
   }
 
   function parseInteger(text: string): void {
     onchange(text.trim() === '' ? Number.NaN : Number.parseInt(text, 10));
+  }
+
+  const lines = $derived(Array.isArray(value) ? (value as string[]) : []);
+
+  async function browse(): Promise<void> {
+    try {
+      const picked = await ipc.pickPaths(picker === 'image' ? 'image' : 'any', picker === 'files');
+      if (picked.length === 0) return;
+      if (field.kind === 'lines') {
+        const known = new Set(lines);
+        onchange([...lines, ...picked.filter((p) => !known.has(p))]);
+      } else {
+        onchange(picked[0]);
+      }
+    } catch (error) {
+      toasts.error(toAppError(error));
+    }
   }
 
   function toggle(choice: string, on: boolean): void {
@@ -126,6 +164,37 @@
     />
     {#if hint}<p id={hintId} class="hint">{hint}</p>{/if}
   </div>
+{:else if field.kind === 'lines'}
+  <div class="field">
+    <label for={id}>{label}</label>
+    <textarea
+      {id}
+      rows="4"
+      spellcheck="false"
+      value={lines.join('\n')}
+      aria-describedby={hint ? hintId : undefined}
+      oninput={(e) => onchange(e.currentTarget.value.split(/\r?\n/))}
+    ></textarea>
+    {#if picker}
+      <button type="button" class="browse" onclick={browse}>{t('option.browse')}</button>
+    {/if}
+    {#if hint}<p id={hintId} class="hint">{hint}</p>{/if}
+  </div>
+{:else if field.kind === 'text' && color}
+  <div class="field">
+    <label for={id}>{label}</label>
+    <div class="row">
+      <input
+        {id}
+        type="color"
+        value={typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value : FALLBACK_COLOR}
+        aria-describedby={hint ? hintId : undefined}
+        oninput={(e) => onchange(e.currentTarget.value)}
+      />
+      <code>{typeof value === 'string' ? value : ''}</code>
+    </div>
+    {#if hint}<p id={hintId} class="hint">{hint}</p>{/if}
+  </div>
 {:else if field.kind === 'text'}
   <div class="field">
     <label for={id}>{label}</label>
@@ -141,6 +210,9 @@
         aria-describedby={hint ? hintId : undefined}
         oninput={(e) => onchange(e.currentTarget.value)}
       />
+      {#if picker}
+        <button type="button" class="browse" onclick={browse}>{t('option.browse')}</button>
+      {/if}
       {#if clearable}
         <label class="check">
           <input
@@ -214,6 +286,33 @@
     width: 16px;
     height: 16px;
     accent-color: var(--accent);
+  }
+  textarea {
+    padding: var(--space-3);
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    resize: vertical;
+    min-width: 0;
+  }
+  input[type='color'] {
+    width: 48px;
+    min-height: 32px;
+    padding: 0;
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    background: var(--bg);
+  }
+  .browse {
+    align-self: flex-start;
+    min-height: 32px;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--text);
   }
   .hint {
     margin: 0;

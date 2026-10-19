@@ -61,6 +61,8 @@ export const ipc = {
   appVersion: () => call<string>('app_version'),
   listTools: () => call<ToolDescriptor[]>('list_tools'),
   pickFiles: () => call<string[]>('pick_files'),
+  pickPaths: (kind: 'image' | 'any', multiple: boolean) =>
+    call<string[]>('pick_paths', { kind, multiple }),
   classifyInputs: (paths: string[]) => call<DropAnalysis>('classify_inputs', { paths }),
   inspectDocument: (path: string, password: string | null) =>
     call<DocumentReport>('inspect_document', { path, password }),

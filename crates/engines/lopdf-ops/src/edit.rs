@@ -51,7 +51,7 @@ pub fn crop_fractions(
 }
 
 /// The ids of a page's content streams, in order.
-fn content_ids(doc: &Document, page: ObjectId) -> Vec<Object> {
+pub(crate) fn content_ids(doc: &Document, page: ObjectId) -> Vec<Object> {
     let Ok(dict) = doc.get_dictionary(page) else {
         return Vec::new();
     };
@@ -124,5 +124,34 @@ pub fn apply(doc: &mut Document, edit: &PdfEdit) -> Result<(), AppError> {
             crate::annotations::remove_annotations(doc, kinds, pages)
         }
         PdfEdit::Sanitize(options) => crate::sanitize::sanitize(doc, options),
+        PdfEdit::Stamp(pages) => crate::stamp::apply_stamps(doc, pages),
+        PdfEdit::CropPages { crops, media_box } => {
+            crop_fractions(doc, crops)?;
+            if *media_box {
+                let pages: Vec<PageIndex> = crops.iter().map(|(p, _)| *p).collect();
+                crate::layout::crop_media_box(doc, &pages)?;
+            }
+            Ok(())
+        }
+        PdfEdit::ResizePages {
+            width_pt,
+            height_pt,
+            margin_pt,
+            scale,
+            match_orientation,
+        } => crate::layout::resize_pages(
+            doc,
+            *width_pt,
+            *height_pt,
+            *margin_pt,
+            *scale,
+            *match_orientation,
+        ),
+        PdfEdit::Flip { direction, pages } => crate::layout::flip_pages(doc, *direction, pages),
+        PdfEdit::NUp(options) => crate::layout::n_up(doc, options),
+        PdfEdit::GrayscaleContent => crate::grayscale::grayscale_content(doc),
+        PdfEdit::SetPageLabels(ranges) => crate::labels::set_page_labels(doc, ranges),
+        PdfEdit::AddAttachments(paths) => crate::attachments::add(doc, paths),
+        PdfEdit::RemoveAttachments(names) => crate::attachments::remove(doc, names),
     }
 }

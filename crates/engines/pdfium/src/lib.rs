@@ -6,6 +6,7 @@
 
 mod errors;
 mod facts;
+mod headings;
 mod region;
 
 use application::AppError;
@@ -585,6 +586,47 @@ mod tests {
             .text_in_region(&path, None, PageIndex::new(0), &top_left)
             .unwrap();
         assert!(!miss.contains("Page"), "got {miss:?}");
+    }
+
+    #[test]
+    fn text_lines_carry_their_font_sizes_page_by_page() {
+        use application::ports::HeadingFinder;
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = test_support::pdfs::pdf_with_sized_lines(&[
+            vec![
+                ("Annual Report", 28.0),
+                ("Body text of the first page.", 11.0),
+            ],
+            vec![
+                ("Results", 18.0),
+                ("More body text.", 11.0),
+                ("Second line here.", 11.0),
+            ],
+        ]);
+        let path = write(&dir, "h.pdf", &pdf);
+        let lines = engine().text_lines(&path, None).unwrap();
+        let rows: Vec<(u32, String, f32)> = lines
+            .iter()
+            .map(|l| (l.page.get(), l.text.clone(), l.size_pt.round()))
+            .collect();
+        assert_eq!(
+            rows,
+            vec![
+                (0, "Annual Report".to_owned(), 28.0),
+                (0, "Body text of the first page.".to_owned(), 11.0),
+                (1, "Results".to_owned(), 18.0),
+                (1, "More body text.".to_owned(), 11.0),
+                (1, "Second line here.".to_owned(), 11.0),
+            ]
+        );
+        let headings = domain::tools::structure::detect_headings(&lines, 2, 3);
+        assert_eq!(
+            headings
+                .iter()
+                .map(|h| (h.title.as_str(), h.page, h.level))
+                .collect::<Vec<_>>(),
+            vec![("Annual Report", 1, 1), ("Results", 2, 2)]
+        );
     }
 
     #[test]

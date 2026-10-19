@@ -4,10 +4,13 @@
 use domain::components::ComponentEntry;
 use domain::naming::DateTimeParts;
 use domain::settings::Settings;
+use domain::stamp::PageStamps;
 use domain::tools::common::{FractionBox, Region, RightAngle};
 use domain::tools::document::{AnnotationKind, MetadataChange};
+use domain::tools::layout::{FlipDirection, NUpOptions};
 use domain::tools::optimize::CompressSettings;
 use domain::tools::secure::{ProtectPlan, SanitizeOptions};
+use domain::tools::structure::{LabelRange, TextLine};
 use domain::{Dpi, PageIndex};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -203,6 +206,46 @@ pub enum PdfEdit {
     },
     /// Removes hidden or risky content.
     Sanitize(SanitizeOptions),
+    /// Draws text and pictures on pages.
+    Stamp(Vec<PageStamps>),
+    /// Sets the crop box (and optionally the media box) of pages to a fraction of their visible
+    /// area.
+    CropPages {
+        /// The pages and what to keep of each.
+        crops: Vec<(PageIndex, FractionBox)>,
+        /// Also cut the media box.
+        media_box: bool,
+    },
+    /// Changes pages to a new size, optionally scaling and centering their content.
+    ResizePages {
+        /// Target size of a portrait page in points.
+        width_pt: f32,
+        /// Target size of a portrait page in points.
+        height_pt: f32,
+        /// Empty space kept around the content.
+        margin_pt: f32,
+        /// Scale the content to fit; otherwise it keeps its size.
+        scale: bool,
+        /// Turn the target to match each page's orientation.
+        match_orientation: bool,
+    },
+    /// Mirrors pages.
+    Flip {
+        /// Which way.
+        direction: FlipDirection,
+        /// Which pages.
+        pages: Vec<PageIndex>,
+    },
+    /// Puts several pages on each sheet.
+    NUp(NUpOptions),
+    /// Turns colored text and lines gray (pictures are handled separately).
+    GrayscaleContent,
+    /// Replaces the page labels. An empty list removes them.
+    SetPageLabels(Vec<LabelRange>),
+    /// Attaches files.
+    AddAttachments(Vec<PathBuf>),
+    /// Removes attachments by name.
+    RemoveAttachments(Vec<String>),
 }
 
 /// Applies structural edits to PDFs.
@@ -232,18 +275,42 @@ pub trait PdfSecurity: Send + Sync {
     ) -> Result<(), AppError>;
 }
 
+/// An encrypted document whose passwords, key length and permissions a finished copy keeps.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProtectionSource {
+    /// The encrypted document.
+    pub path: PathBuf,
+    /// A password that opens it.
+    pub password: Password,
+}
+
 /// How a finished document is packed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageOptions {
     /// Write for fast web view.
     pub linearize: bool,
     /// Pack objects into compressed object streams.
     pub object_streams: bool,
+    /// Encrypt the result the way this document is encrypted. Without it the result is
+    /// unencrypted.
+    pub keep_protection: Option<ProtectionSource>,
+}
+
+impl PackageOptions {
+    /// Options for an unencrypted result.
+    pub const fn new(linearize: bool, object_streams: bool) -> Self {
+        Self {
+            linearize,
+            object_streams,
+            keep_protection: None,
+        }
+    }
 }
 
 /// Rewrites the file structure: stream compression, object streams and linearization.
 pub trait PdfPackager: Send + Sync {
-    /// Writes an unencrypted, repacked copy of `source` to `dest`.
+    /// Writes a repacked copy of `source` to `dest`: unencrypted, or protected like
+    /// `options.keep_protection` says.
     fn package(
         &self,
         source: &Path,
@@ -293,6 +360,10 @@ pub trait ImageOptimizer: Send + Sync {
         settings: &CompressSettings,
         dest: &Path,
     ) -> Result<ImageReport, AppError>;
+
+    /// Writes `source` (unencrypted) to `dest` with every color picture turned gray. Unlike
+    /// [`ImageOptimizer::optimize_images`] it changes a picture even when the result is larger.
+    fn grayscale_images(&self, source: &Path, dest: &Path) -> Result<ImageReport, AppError>;
 }
 
 /// One page picture for [`PageImageWriter`].
@@ -361,6 +432,55 @@ pub trait OutlineReader: Send + Sync {
         path: &Path,
         password: Option<&Password>,
     ) -> Result<Vec<OutlineItem>, AppError>;
+}
+
+/// A file attached to a document, listed without its content.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AttachmentInfo {
+    /// The name the file was attached under.
+    pub name: String,
+    /// Size in bytes, when known.
+    pub size: Option<u64>,
+    /// The description given when it was attached.
+    pub description: Option<String>,
+}
+
+/// A file attached to a document, with its content.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Attachment {
+    /// The name the file was attached under.
+    pub name: String,
+    /// The bytes.
+    pub data: Vec<u8>,
+}
+
+/// Reads the files attached to a document.
+pub trait AttachmentReader: Send + Sync {
+    /// Lists the attachments.
+    fn list(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<Vec<AttachmentInfo>, AppError>;
+
+    /// Reads the attachments called `names`, or all of them when `names` is empty. An unknown
+    /// name is an error.
+    fn read(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        names: &[String],
+    ) -> Result<Vec<Attachment>, AppError>;
+}
+
+/// Reads the lines of text of a document with their sizes, to find headings.
+pub trait HeadingFinder: Send + Sync {
+    /// Every line of text on every page, in reading order.
+    fn text_lines(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<Vec<TextLine>, AppError>;
 }
 
 /// Flattens interactive form fields and annotations into page content.
@@ -478,6 +598,9 @@ pub trait FileStore: Send + Sync {
 
     /// Removes a scratch file. Failure is ignored: leftovers are wiped with the session folder.
     fn remove_file(&self, path: &Path);
+
+    /// Copies the file at `from` to `to`, which is a temp path produced by [`FileStore::publish`].
+    fn copy_file(&self, from: &Path, to: &Path) -> Result<(), AppError>;
 
     /// Last modification time in seconds since the Unix epoch, when known.
     fn modified_unix(&self, path: &Path) -> Option<u64>;

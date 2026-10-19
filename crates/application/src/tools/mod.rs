@@ -4,11 +4,14 @@ mod combine;
 mod common;
 mod document;
 mod insert;
+mod layout;
 mod optimize;
 mod rotate;
 mod secure;
 mod select;
 mod split;
+mod stamp;
+mod structure;
 
 pub use common::{ToolDeps, pages_label};
 
@@ -46,6 +49,19 @@ pub fn register_all(
     registry.register(Arc::new(secure::ProtectTool::new(deps.clone())))?;
     registry.register(Arc::new(secure::UnlockTool::new(deps.clone())))?;
     registry.register(Arc::new(secure::SanitizeTool::new(deps.clone())))?;
+    registry.register(Arc::new(stamp::PageNumbersTool::new(deps.clone())))?;
+    registry.register(Arc::new(stamp::HeaderFooterTool::new(deps.clone())))?;
+    registry.register(Arc::new(stamp::BatesTool::new(deps.clone())))?;
+    registry.register(Arc::new(stamp::WatermarkTool::new(deps.clone())))?;
+    registry.register(Arc::new(layout::CropTool::new(deps.clone())))?;
+    registry.register(Arc::new(layout::ResizeTool::new(deps.clone())))?;
+    registry.register(Arc::new(layout::FlipTool::new(deps.clone())))?;
+    registry.register(Arc::new(layout::NUpTool::new(deps.clone())))?;
+    registry.register(Arc::new(layout::GrayscaleTool::new(deps.clone())))?;
+    registry.register(Arc::new(structure::BookmarksTool::new(deps.clone())))?;
+    registry.register(Arc::new(structure::RenameByContentTool::new(deps.clone())))?;
+    registry.register(Arc::new(structure::AttachmentsTool::new(deps.clone())))?;
+    registry.register(Arc::new(structure::PageLabelsTool::new(deps.clone())))?;
     Ok(())
 }
 

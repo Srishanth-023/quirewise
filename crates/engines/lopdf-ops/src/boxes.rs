@@ -19,7 +19,7 @@ fn number(doc: &Document, object: &Object) -> Option<f32> {
 }
 
 /// Looks `key` up on the page and then on its ancestors in the page tree.
-fn inherited<'a>(doc: &'a Document, page: ObjectId, key: &[u8]) -> Option<&'a Object> {
+pub(crate) fn inherited<'a>(doc: &'a Document, page: ObjectId, key: &[u8]) -> Option<&'a Object> {
     let mut id = page;
     // The depth cap stops a cyclic /Parent chain in a hostile file.
     for _ in 0..64 {
@@ -59,6 +59,31 @@ pub fn rotation(doc: &Document, page: ObjectId) -> u16 {
         .unwrap_or(0.0);
     let turns = (raw / 90.0).round() as i64;
     (turns.rem_euclid(4) * 90) as u16
+}
+
+/// The size of the page as displayed, after rotation: `(width, height)` in points.
+pub fn displayed_size(doc: &Document, page: ObjectId) -> (f32, f32) {
+    let [x0, y0, x1, y1] = visible_box(doc, page);
+    let (w, h) = (x1 - x0, y1 - y0);
+    if matches!(rotation(doc, page), 90 | 270) {
+        (h, w)
+    } else {
+        (w, h)
+    }
+}
+
+/// The matrix that maps a coordinate frame with its origin at the bottom left of the displayed
+/// page (x right, y up, as the person sees the page) onto the page's user space. Drawing after
+/// `cm` with this matrix puts things where they look right whatever the page rotation is.
+pub fn display_matrix(doc: &Document, page: ObjectId) -> [f32; 6] {
+    let [x0, y0, x1, y1] = visible_box(doc, page);
+    let (w, h) = (x1 - x0, y1 - y0);
+    match rotation(doc, page) {
+        90 => [0.0, 1.0, -1.0, 0.0, x0 + w, y0],
+        180 => [-1.0, 0.0, 0.0, -1.0, x0 + w, y0 + h],
+        270 => [0.0, -1.0, 1.0, 0.0, x0, y0 + h],
+        _ => [1.0, 0.0, 0.0, 1.0, x0, y0],
+    }
 }
 
 /// Converts a box given as fractions of the displayed page into fractions of the unrotated user

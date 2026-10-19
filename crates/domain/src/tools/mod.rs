@@ -3,10 +3,13 @@
 pub mod combine;
 pub mod common;
 pub mod document;
+pub mod layout;
 pub mod optimize;
 pub mod pages;
 pub mod rotate;
 pub mod secure;
+pub mod stamp;
+pub mod structure;
 
 use core::fmt;
 use core::str::FromStr;
@@ -16,6 +19,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::DomainError;
 pub use combine::{AlternateMixOptions, MergeOptions, OrganizeOptions};
 pub use document::{FlattenOptions, MetadataOptions, RemoveAnnotationsOptions};
+pub use layout::{CropOptions, FlipOptions, GrayscaleOptions, NUpOptions, ResizeOptions};
 pub use optimize::{CompressOptions, LinearizeOptions, RepairOptions};
 pub use pages::{
     ExtractPagesOptions, InsertPagesOptions, RemovePagesOptions, SplitByBookmarksOptions,
@@ -24,6 +28,10 @@ pub use pages::{
 };
 pub use rotate::RotateOptions;
 pub use secure::{ProtectOptions, SanitizeOptions, UnlockOptions};
+pub use stamp::{BatesOptions, HeaderFooterOptions, PageNumbersOptions, WatermarkOptions};
+pub use structure::{
+    AttachmentsOptions, BookmarksOptions, PageLabelsOptions, RenameByContentOptions,
+};
 
 /// Navigation group a tool belongs to (MASTER_PROMPT.md section 3.1).
 #[derive(
@@ -101,11 +109,37 @@ pub enum ToolId {
     Sanitize,
     /// Linearize (row 64).
     Linearize,
+    /// Page numbers (row 33).
+    PageNumbers,
+    /// Header and footer (row 34).
+    HeaderFooter,
+    /// Bates numbering (row 35).
+    Bates,
+    /// Watermark (row 36).
+    Watermark,
+    /// Crop (row 37).
+    Crop,
+    /// Resize pages (row 38).
+    Resize,
+    /// Flip (row 39).
+    Flip,
+    /// N-up (row 40).
+    NUp,
+    /// Grayscale (row 41).
+    Grayscale,
+    /// Bookmarks editor (row 49).
+    Bookmarks,
+    /// Rename by content (row 50).
+    RenameByContent,
+    /// Attachments (row 65).
+    Attachments,
+    /// Page labels (row 66).
+    PageLabels,
 }
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 22] = [
+    pub const ALL: [ToolId; 35] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -128,6 +162,19 @@ impl ToolId {
         ToolId::Unlock,
         ToolId::Sanitize,
         ToolId::Linearize,
+        ToolId::PageNumbers,
+        ToolId::HeaderFooter,
+        ToolId::Bates,
+        ToolId::Watermark,
+        ToolId::Crop,
+        ToolId::Resize,
+        ToolId::Flip,
+        ToolId::NUp,
+        ToolId::Grayscale,
+        ToolId::Bookmarks,
+        ToolId::RenameByContent,
+        ToolId::Attachments,
+        ToolId::PageLabels,
     ];
 
     /// The kebab-case identifier.
@@ -155,6 +202,19 @@ impl ToolId {
             Self::Unlock => "unlock",
             Self::Sanitize => "sanitize",
             Self::Linearize => "linearize",
+            Self::PageNumbers => "page-numbers",
+            Self::HeaderFooter => "header-footer",
+            Self::Bates => "bates",
+            Self::Watermark => "watermark",
+            Self::Crop => "crop",
+            Self::Resize => "resize",
+            Self::Flip => "flip",
+            Self::NUp => "n-up",
+            Self::Grayscale => "grayscale",
+            Self::Bookmarks => "bookmarks",
+            Self::RenameByContent => "rename-by-content",
+            Self::Attachments => "attachments",
+            Self::PageLabels => "page-labels",
         }
     }
 }
@@ -224,6 +284,32 @@ pub enum ToolOptions {
     Sanitize(SanitizeOptions),
     /// Options for [`ToolId::Linearize`].
     Linearize(LinearizeOptions),
+    /// Options for [`ToolId::PageNumbers`].
+    PageNumbers(PageNumbersOptions),
+    /// Options for [`ToolId::HeaderFooter`].
+    HeaderFooter(HeaderFooterOptions),
+    /// Options for [`ToolId::Bates`].
+    Bates(BatesOptions),
+    /// Options for [`ToolId::Watermark`].
+    Watermark(WatermarkOptions),
+    /// Options for [`ToolId::Crop`].
+    Crop(CropOptions),
+    /// Options for [`ToolId::Resize`].
+    Resize(ResizeOptions),
+    /// Options for [`ToolId::Flip`].
+    Flip(FlipOptions),
+    /// Options for [`ToolId::NUp`].
+    NUp(NUpOptions),
+    /// Options for [`ToolId::Grayscale`].
+    Grayscale(GrayscaleOptions),
+    /// Options for [`ToolId::Bookmarks`].
+    Bookmarks(BookmarksOptions),
+    /// Options for [`ToolId::RenameByContent`].
+    RenameByContent(RenameByContentOptions),
+    /// Options for [`ToolId::Attachments`].
+    Attachments(AttachmentsOptions),
+    /// Options for [`ToolId::PageLabels`].
+    PageLabels(PageLabelsOptions),
 }
 
 impl ToolOptions {
@@ -252,6 +338,19 @@ impl ToolOptions {
             Self::Unlock(_) => ToolId::Unlock,
             Self::Sanitize(_) => ToolId::Sanitize,
             Self::Linearize(_) => ToolId::Linearize,
+            Self::PageNumbers(_) => ToolId::PageNumbers,
+            Self::HeaderFooter(_) => ToolId::HeaderFooter,
+            Self::Bates(_) => ToolId::Bates,
+            Self::Watermark(_) => ToolId::Watermark,
+            Self::Crop(_) => ToolId::Crop,
+            Self::Resize(_) => ToolId::Resize,
+            Self::Flip(_) => ToolId::Flip,
+            Self::NUp(_) => ToolId::NUp,
+            Self::Grayscale(_) => ToolId::Grayscale,
+            Self::Bookmarks(_) => ToolId::Bookmarks,
+            Self::RenameByContent(_) => ToolId::RenameByContent,
+            Self::Attachments(_) => ToolId::Attachments,
+            Self::PageLabels(_) => ToolId::PageLabels,
         }
     }
 
@@ -282,6 +381,19 @@ impl ToolOptions {
             ToolId::Unlock => Self::Unlock(UnlockOptions::default()),
             ToolId::Sanitize => Self::Sanitize(SanitizeOptions::default()),
             ToolId::Linearize => Self::Linearize(LinearizeOptions::default()),
+            ToolId::PageNumbers => Self::PageNumbers(PageNumbersOptions::default()),
+            ToolId::HeaderFooter => Self::HeaderFooter(HeaderFooterOptions::default()),
+            ToolId::Bates => Self::Bates(BatesOptions::default()),
+            ToolId::Watermark => Self::Watermark(WatermarkOptions::default()),
+            ToolId::Crop => Self::Crop(CropOptions::default()),
+            ToolId::Resize => Self::Resize(ResizeOptions::default()),
+            ToolId::Flip => Self::Flip(FlipOptions::default()),
+            ToolId::NUp => Self::NUp(NUpOptions::default()),
+            ToolId::Grayscale => Self::Grayscale(GrayscaleOptions::default()),
+            ToolId::Bookmarks => Self::Bookmarks(BookmarksOptions::default()),
+            ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
+            ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
+            ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
         }
     }
 }

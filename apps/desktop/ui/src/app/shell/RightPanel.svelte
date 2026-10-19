@@ -3,6 +3,8 @@
   import Inspect from '../../lib/features/inspect/View.svelte';
   import RegionPicker from '../../lib/features/split-by-text/RegionPicker.svelte';
   import SchemaForm from '../../lib/forms/SchemaForm.svelte';
+  import { formFor, ruleMet } from '../../lib/forms/toolForms';
+  import { toolOptions } from '../../lib/stores/options.svelte';
   import { files } from '../../lib/stores/files.svelte';
   import { tools, toolName } from '../../lib/stores/tools.svelte';
   import type { Suggestion } from '../../lib/ipc/generated';
@@ -20,6 +22,13 @@
     files.suggestions.filter((s) => tools.items.some((tool) => tool.id === suggestionTool[s])),
   );
   const report = $derived(files.selected?.report);
+  /** The region picker shows for tools that ask for one, when their own rule is met. */
+  const picking = $derived.by(() => {
+    const tool = tools.selected;
+    if (!tool) return false;
+    const hint = formFor(tool.id).regionPicker;
+    return !!hint && ruleMet(hint.when, toolOptions.values(tool));
+  });
 </script>
 
 <aside class="panel" aria-label={t('options.title')}>
@@ -42,7 +51,7 @@
       <p class="tool">{toolName(tools.selected)}</p>
       {#key tools.selected.id}
         <SchemaForm tool={tools.selected} />
-        {#if tools.selected.id === 'split-by-text'}
+        {#if picking}
           <RegionPicker tool={tools.selected} />
         {/if}
       {/key}

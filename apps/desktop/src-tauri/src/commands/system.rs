@@ -39,6 +39,28 @@ pub fn pick_files(app: AppHandle) -> Vec<PathBuf> {
         .collect()
 }
 
+/// Picture formats a watermark can use.
+const IMAGE_EXTENSIONS: [&str; 3] = ["png", "jpg", "jpeg"];
+
+/// Shows the system file picker for an option that takes a path: `kind` is `image` for a picture,
+/// anything else for any file. Returns the chosen paths, empty when cancelled.
+#[tauri::command(async)]
+pub fn pick_paths(app: AppHandle, kind: String, multiple: bool) -> Vec<PathBuf> {
+    let mut dialog = app.dialog().file();
+    if kind == "image" {
+        dialog = dialog.add_filter("Pictures", &IMAGE_EXTENSIONS);
+    }
+    let picked = if multiple {
+        dialog.blocking_pick_files().unwrap_or_default()
+    } else {
+        dialog.blocking_pick_file().into_iter().collect()
+    };
+    picked
+        .into_iter()
+        .filter_map(|p| p.into_path().ok())
+        .collect()
+}
+
 fn known_output(state: &AppState, path: &std::path::Path) -> Result<(), AppError> {
     if state.jobs.is_known_output(path) {
         Ok(())

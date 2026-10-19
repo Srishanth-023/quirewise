@@ -11,10 +11,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::error::AppError;
 use crate::inspect::PdfiumFacts;
 use crate::ports::{
-    AssemblyPlan, DocumentInfo, FileStore, FormFlattener, ImageConverter, ImageOptimizer,
-    ImageReport, OutlineItem, OutlineReader, PackageOptions, PageImage, PageImageWriter, PageSize,
-    PdfEdit, PdfEditor, PdfPackager, PdfReader, PdfRepairer, PdfSecurity, PdfVerifier, PdfWriter,
-    PngImage, RenderedImage, Renderer, RepairOutcome, TextExtractor, TocBuilder, TocLine,
+    AssemblyPlan, AttachmentReader, DocumentInfo, FileStore, FormFlattener, HeadingFinder,
+    ImageConverter, ImageOptimizer, ImageReport, OutlineItem, OutlineReader, PackageOptions,
+    PageImage, PageImageWriter, PageSize, PdfEdit, PdfEditor, PdfPackager, PdfReader, PdfRepairer,
+    PdfSecurity, PdfVerifier, PdfWriter, PngImage, ProtectionSource, RenderedImage, Renderer,
+    RepairOutcome, TextExtractor, TocBuilder, TocLine,
 };
 use crate::runtime::{Password, ProgressEvent};
 use crate::tool::{InputDoc, JobContext, OutputArtifact};
@@ -55,6 +56,10 @@ pub struct ToolDeps {
     pub optimizer: Arc<dyn ImageOptimizer>,
     /// Documents made of page pictures.
     pub page_images: Arc<dyn PageImageWriter>,
+    /// Attached files.
+    pub attachments: Arc<dyn AttachmentReader>,
+    /// Heading detection.
+    pub headings: Arc<dyn HeadingFinder>,
 }
 
 impl ToolDeps {
@@ -77,7 +82,9 @@ impl ToolDeps {
             packager: none.clone(),
             repairers: vec![none.clone()],
             optimizer: none.clone(),
-            page_images: none,
+            page_images: none.clone(),
+            attachments: none.clone(),
+            headings: none,
         }
     }
 }
@@ -250,6 +257,37 @@ impl ImageOptimizer for Unavailable {
     ) -> Result<ImageReport, AppError> {
         missing()
     }
+    fn grayscale_images(&self, _: &Path, _: &Path) -> Result<ImageReport, AppError> {
+        missing()
+    }
+}
+
+impl AttachmentReader for Unavailable {
+    fn list(
+        &self,
+        _: &Path,
+        _: Option<&Password>,
+    ) -> Result<Vec<crate::ports::AttachmentInfo>, AppError> {
+        missing()
+    }
+    fn read(
+        &self,
+        _: &Path,
+        _: Option<&Password>,
+        _: &[String],
+    ) -> Result<Vec<crate::ports::Attachment>, AppError> {
+        missing()
+    }
+}
+
+impl HeadingFinder for Unavailable {
+    fn text_lines(
+        &self,
+        _: &Path,
+        _: Option<&Password>,
+    ) -> Result<Vec<domain::tools::structure::TextLine>, AppError> {
+        missing()
+    }
 }
 
 impl PageImageWriter for Unavailable {
@@ -355,13 +393,32 @@ impl Drop for Scratch<'_> {
     }
 }
 
+/// The protection a result keeps: the input's own, when the input is encrypted and its password
+/// is known. A file that opens without a password has nothing to keep (its restrictions, if
+/// any, are dropped like those of any rewritten file).
+pub fn kept_protection(
+    deps: &ToolDeps,
+    input: &InputDoc,
+) -> Result<Option<ProtectionSource>, AppError> {
+    let Some(password) = &input.password else {
+        return Ok(None);
+    };
+    let info = deps.reader.open_info(&input.path, Some(password))?;
+    Ok(info.encrypted.then(|| ProtectionSource {
+        path: input.path.clone(),
+        password: password.clone(),
+    }))
+}
+
 /// The common path of tools that change a document's structure: unlock a scratch copy, apply
-/// `edit`, then repack the result into `tmp`. The output is unencrypted.
+/// `edit`, then repack the result into `tmp`, protected like the input when `protection` is
+/// given and unencrypted otherwise.
 pub fn edit_pipeline(
     ctx: &JobContext<'_>,
     deps: &ToolDeps,
     input: &InputDoc,
     edit: &PdfEdit,
+    protection: Option<&ProtectionSource>,
     tmp: &Path,
 ) -> Result<(), AppError> {
     let unlocked = Scratch::new(ctx, "pdf");
@@ -375,10 +432,33 @@ pub fn edit_pipeline(
         edited.path(),
         None,
         &PackageOptions {
-            linearize: false,
-            object_streams: true,
+            keep_protection: protection.cloned(),
+            ..PackageOptions::new(false, true)
         },
         tmp,
+    )
+}
+
+/// Runs an edit on a copy of the input and publishes the verified result, keeping the input's
+/// protection. This is the path of every tool that is "one edit of the document".
+pub fn publish_edit(
+    ctx: &JobContext<'_>,
+    deps: &ToolDeps,
+    input: &InputDoc,
+    label: &str,
+    expected_pages: u32,
+    edit: &PdfEdit,
+) -> Result<OutputArtifact, AppError> {
+    let protection = kept_protection(deps, input)?;
+    let password = protection.as_ref().map(|p| &p.password);
+    publish_pdf_checked(
+        ctx,
+        deps,
+        input,
+        label,
+        Some(expected_pages),
+        password,
+        &mut |tmp| edit_pipeline(ctx, deps, input, edit, protection.as_ref(), tmp),
     )
 }
 

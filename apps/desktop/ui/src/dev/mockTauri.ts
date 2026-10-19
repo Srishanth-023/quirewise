@@ -64,6 +64,8 @@ async function invoke(cmd: string, args: Record<string, unknown> = {}): Promise<
       return '0.1.0';
     case 'list_tools':
       return new URLSearchParams(location.search).has('tools') ? previewTools : [];
+    case 'pick_paths':
+      return args.kind === 'image' ? ['C:/Docs/logo.png'] : ['C:/Docs/notes.txt'];
     case 'pick_files':
       return ['C:\\Docs\\report.pdf', 'C:\\Docs\\locked.pdf'];
     case 'classify_inputs':

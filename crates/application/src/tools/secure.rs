@@ -5,7 +5,7 @@ use domain::tools::secure::{ProtectOptions, SanitizeOptions, UnlockOptions};
 use domain::{ToolId, ToolOptions};
 
 use super::common::{
-    Progress, ToolDeps, edit_pipeline, first_input, page_count, publish_pdf, publish_pdf_checked,
+    Progress, ToolDeps, first_input, page_count, publish_edit, publish_pdf, publish_pdf_checked,
     wrong_options,
 };
 use crate::error::AppError;
@@ -197,13 +197,13 @@ impl Tool for SanitizeTool {
         let input = first_input(&plan.inputs)?;
         let options = *sanitize_options(&plan.options)?;
         let mut progress = Progress::start(ctx, plan.total_units);
-        let out = publish_pdf(
+        let out = publish_edit(
             ctx,
             &self.deps,
             input,
             self.label(),
             page_count(input),
-            &mut |tmp| edit_pipeline(ctx, &self.deps, input, &PdfEdit::Sanitize(options), tmp),
+            &PdfEdit::Sanitize(options),
         )?;
         progress.advance(1);
         Ok(vec![out])

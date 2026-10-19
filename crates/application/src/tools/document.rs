@@ -7,10 +7,11 @@ use domain::tools::document::{
 use domain::{PageIndex, ToolId, ToolOptions};
 
 use super::common::{
-    Progress, Scratch, ToolDeps, edit_pipeline, first_input, page_count, publish_pdf, wrong_options,
+    Progress, Scratch, ToolDeps, first_input, kept_protection, page_count, publish_edit,
+    publish_pdf_checked, wrong_options,
 };
 use crate::error::AppError;
-use crate::ports::{PageImage, PdfEdit};
+use crate::ports::{PackageOptions, PageImage, PdfEdit};
 use crate::tool::{InputDoc, InputKind, JobContext, OutputArtifact, Plan, Tool};
 
 /// Removes annotations of chosen kinds from chosen pages.
@@ -70,9 +71,7 @@ impl Tool for RemoveAnnotationsTool {
             pages,
         };
         let mut progress = Progress::start(ctx, plan.total_units);
-        let out = publish_pdf(ctx, &self.deps, input, self.label(), count, &mut |tmp| {
-            edit_pipeline(ctx, &self.deps, input, &edit, tmp)
-        })?;
+        let out = publish_edit(ctx, &self.deps, input, self.label(), count, &edit)?;
         progress.advance(1);
         Ok(vec![out])
     }
@@ -129,13 +128,13 @@ impl Tool for EditMetadataTool {
         let input = first_input(&plan.inputs)?;
         let edit = PdfEdit::SetMetadata(metadata_options(&plan.options)?.change()?);
         let mut progress = Progress::start(ctx, plan.total_units);
-        let out = publish_pdf(
+        let out = publish_edit(
             ctx,
             &self.deps,
             input,
             self.label(),
             page_count(input),
-            &mut |tmp| edit_pipeline(ctx, &self.deps, input, &edit, tmp),
+            &edit,
         )?;
         progress.advance(1);
         Ok(vec![out])
@@ -154,7 +153,7 @@ impl FlattenTool {
     }
 
     /// Renders every page to a picture and builds a document from the pictures.
-    fn flatten_everything(
+    pub(super) fn flatten_everything(
         &self,
         ctx: &JobContext<'_>,
         input: &InputDoc,
@@ -245,23 +244,48 @@ impl Tool for FlattenTool {
         let opts = flatten_options(&plan.options)?;
         let count = page_count(input);
         let mut progress = Progress::start(ctx, plan.total_units);
-        let out = publish_pdf(
+        let protection = kept_protection(&self.deps, input)?;
+        let out = publish_pdf_checked(
             ctx,
             &self.deps,
             input,
             self.label(),
-            count,
-            &mut |tmp| match opts.mode {
-                FlattenMode::FormsAndAnnotations => {
+            Some(count),
+            protection.as_ref().map(|p| &p.password),
+            &mut |tmp| {
+                // PDFium and the picture writer produce unprotected files; a protected input
+                // gets its protection back in a final packing step.
+                let staged = Scratch::new(ctx, "pdf");
+                let work = if protection.is_some() {
+                    staged.path()
+                } else {
+                    tmp
+                };
+                match opts.mode {
+                    FlattenMode::FormsAndAnnotations => {
+                        self.deps.flattener.flatten_forms(
+                            &input.path,
+                            input.password.as_ref(),
+                            work,
+                        )?;
+                        progress.advance(u64::from(count));
+                    }
+                    FlattenMode::Everything => {
+                        self.flatten_everything(ctx, input, opts.dpi.value(), &mut progress, work)?;
+                    }
+                }
+                if let Some(keep) = &protection {
+                    let packaging = PackageOptions {
+                        keep_protection: Some(keep.clone()),
+                        ..PackageOptions::new(false, true)
+                    };
+                    // PDFium may have kept the encryption of what it saved, so the password goes
+                    // along; qpdf ignores it for a file that is not encrypted.
                     self.deps
-                        .flattener
-                        .flatten_forms(&input.path, input.password.as_ref(), tmp)?;
-                    progress.advance(u64::from(count));
-                    Ok(())
+                        .packager
+                        .package(work, input.password.as_ref(), &packaging, tmp)?;
                 }
-                FlattenMode::Everything => {
-                    self.flatten_everything(ctx, input, opts.dpi.value(), &mut progress, tmp)
-                }
+                Ok(())
             },
         )?;
         Ok(vec![out])

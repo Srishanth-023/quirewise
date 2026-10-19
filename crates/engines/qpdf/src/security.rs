@@ -99,6 +99,25 @@ impl PdfSecurity for QpdfCli {
     }
 }
 
+/// The flags that choose stream compression, object streams and linearization.
+fn pack_flags(options: &PackageOptions) -> Vec<String> {
+    let mut flags = vec![
+        "--compress-streams=y".to_owned(),
+        "--recompress-flate".to_owned(),
+        "--compression-level=9".to_owned(),
+        if options.object_streams {
+            "--object-streams=generate"
+        } else {
+            "--object-streams=disable"
+        }
+        .to_owned(),
+    ];
+    if options.linearize {
+        flags.push("--linearize".to_owned());
+    }
+    flags
+}
+
 impl PdfPackager for QpdfCli {
     fn package(
         &self,
@@ -107,25 +126,36 @@ impl PdfPackager for QpdfCli {
         options: &PackageOptions,
         dest: &Path,
     ) -> Result<(), AppError> {
+        if let Some(keep) = &options.keep_protection {
+            // The passwords are in the arguments, so they go over standard input.
+            no_line_breaks("password", keep.password.expose())?;
+            if let Some(p) = password {
+                no_line_breaks("password", p.expose())?;
+            }
+            let mut lines: Vec<String> = Vec::new();
+            if let Some(p) = password {
+                lines.push(format!("--password={}", p.expose()));
+            }
+            lines.push(format!(
+                "--copy-encryption={}",
+                absolute(&keep.path).to_string_lossy()
+            ));
+            lines.push(format!(
+                "--encryption-file-password={}",
+                keep.password.expose()
+            ));
+            lines.extend(pack_flags(options));
+            lines.push("--".to_owned());
+            lines.push(absolute(source).to_string_lossy().into_owned());
+            lines.push(absolute(dest).to_string_lossy().into_owned());
+            return self.execute_args_from_stdin(&lines, true).map(|_| ());
+        }
         let mut args: Vec<OsString> = Vec::new();
         if password.is_some() {
             args.push("--password-file=-".into());
         }
         args.push("--decrypt".into());
-        args.push("--compress-streams=y".into());
-        args.push("--recompress-flate".into());
-        args.push("--compression-level=9".into());
-        args.push(
-            if options.object_streams {
-                "--object-streams=generate"
-            } else {
-                "--object-streams=disable"
-            }
-            .into(),
-        );
-        if options.linearize {
-            args.push("--linearize".into());
-        }
+        args.extend(pack_flags(options).into_iter().map(OsString::from));
         args.push(absolute(source).into_os_string());
         args.push(absolute(dest).into_os_string());
         self.execute(args, password, password.is_some()).map(|_| ())
@@ -165,6 +195,7 @@ impl PdfRepairer for QpdfCli {
 mod tests {
     use super::*;
     use crate::CheckOutcome;
+    use application::ports::ProtectionSource;
     use domain::ErrorCode;
     use domain::secret::Secret;
     use domain::tools::secure::{Permissions, ProtectOptions};
@@ -380,10 +411,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let src = write(&dir, "a.pdf", &minimal_pdf(6));
         let dest = dir.path().join("fast.pdf");
-        let options = PackageOptions {
-            linearize: true,
-            object_streams: true,
-        };
+        let options = PackageOptions::new(true, true);
         qpdf().package(&src, None, &options, &dest).unwrap();
         let out = Command::new(qpdf_exe().unwrap())
             .arg("--check-linearization")
@@ -397,10 +425,7 @@ mod tests {
         );
 
         let plain = dir.path().join("plain.pdf");
-        let options = PackageOptions {
-            linearize: false,
-            object_streams: false,
-        };
+        let options = PackageOptions::new(false, false);
         qpdf().package(&src, None, &options, &plain).unwrap();
         let out = Command::new(qpdf_exe().unwrap())
             .arg("--check-linearization")
@@ -431,12 +456,85 @@ mod tests {
             .unwrap();
         let dest = dir.path().join("o.pdf");
         let pw = Password::new("open");
-        let options = PackageOptions {
-            linearize: false,
-            object_streams: true,
-        };
+        let options = PackageOptions::new(false, true);
         qpdf().package(&locked, Some(&pw), &options, &dest).unwrap();
         assert_eq!(qpdf().check(&dest, None).unwrap(), CheckOutcome::Clean);
+    }
+
+    #[test]
+    fn package_can_keep_the_protection_of_the_original() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = write(&dir, "a.pdf", &minimal_pdf(2));
+        let locked = dir.path().join("l.pdf");
+        let restricted = Permissions {
+            copy: false,
+            ..Permissions::default()
+        };
+        qpdf()
+            .protect(
+                &src,
+                None,
+                &plan("open", "boss", restricted, Cipher::Aes256),
+                &locked,
+            )
+            .unwrap();
+        // An edited copy, unprotected, as the edit pipeline hands it over.
+        let edited = dir.path().join("edited.pdf");
+        qpdf()
+            .unlock(&locked, Some(&Password::new("open")), &edited)
+            .unwrap();
+
+        let dest = dir.path().join("again.pdf");
+        let mut options = PackageOptions::new(false, true);
+        options.keep_protection = Some(ProtectionSource {
+            path: locked.clone(),
+            password: Password::new("open"),
+        });
+        qpdf().package(&edited, None, &options, &dest).unwrap();
+
+        // The copy asks for the same password and keeps the same restrictions.
+        let pw = Password::new("open");
+        assert_eq!(qpdf().check(&dest, Some(&pw)).unwrap(), CheckOutcome::Clean);
+        assert!(
+            qpdf().check(&dest, None).is_err(),
+            "it still needs a password"
+        );
+        let report = show_encryption(&dest, "open");
+        assert!(
+            report.contains("extract for any purpose: not allowed"),
+            "{report}"
+        );
+        assert!(
+            report.contains("R = 6") || report.contains("256"),
+            "{report}"
+        );
+        // The owner password still works too.
+        assert!(qpdf().check(&dest, Some(&Password::new("boss"))).is_ok());
+    }
+
+    #[test]
+    fn package_can_repack_an_encrypted_file_and_keep_its_protection_in_one_step() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = write(&dir, "a.pdf", &minimal_pdf(2));
+        let locked = dir.path().join("l.pdf");
+        qpdf()
+            .protect(
+                &src,
+                None,
+                &plan("open", "boss", Permissions::default(), Cipher::Aes256),
+                &locked,
+            )
+            .unwrap();
+        let dest = dir.path().join("fast.pdf");
+        let pw = Password::new("open");
+        let mut options = PackageOptions::new(true, true);
+        options.keep_protection = Some(ProtectionSource {
+            path: locked.clone(),
+            password: pw.clone(),
+        });
+        qpdf().package(&locked, Some(&pw), &options, &dest).unwrap();
+        assert_eq!(qpdf().check(&dest, Some(&pw)).unwrap(), CheckOutcome::Clean);
+        assert!(qpdf().check(&dest, None).is_err());
     }
 
     #[test]

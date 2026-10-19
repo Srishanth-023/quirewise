@@ -24,6 +24,7 @@ export type FieldKind =
   | 'text'
   | 'choice'
   | 'multichoice'
+  | 'lines'
   | 'group'
   | 'list'
   | 'unsupported';
@@ -120,6 +121,9 @@ function buildField(key: string, raw: JsonSchema, root: JsonSchema): Field {
       if (item?.type === 'object') {
         return { ...base, kind: 'list', default: base.default ?? [], children: buildFields(item, root) };
       }
+      if (item?.type === 'string') {
+        return { ...base, kind: 'lines', default: base.default ?? [] };
+      }
       return { ...base, kind: 'unsupported' };
     }
     default:
@@ -184,6 +188,9 @@ export function normalize(values: Values, fields: Field[]): Values {
         break;
       case 'list':
         out[field.key] = ((value ?? []) as Values[]).map((item) => normalize(item, field.children ?? []));
+        break;
+      case 'lines':
+        out[field.key] = ((value ?? []) as string[]).map((line) => line.trim()).filter((line) => line !== '');
         break;
       case 'unsupported':
         // Shapes the form cannot draw (such as the organizer's page list) are owned by a dedicated

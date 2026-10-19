@@ -207,7 +207,13 @@ fn decode(doc: &Document, id: ObjectId) -> Option<(DynamicImage, Pixels)> {
     if u64::from(width) * u64::from(height) > 100_000_000 {
         return None;
     }
-    match single_filter(dict)?.as_slice() {
+    // No filter at all means plain bytes, which is what a freshly converted picture holds.
+    let filter = if dict.has(b"Filter") {
+        single_filter(dict)?
+    } else {
+        Vec::new()
+    };
+    match filter.as_slice() {
         b"DCTDecode" => {
             let image =
                 image::load_from_memory_with_format(&stream.content, ImageFormat::Jpeg).ok()?;
@@ -218,13 +224,17 @@ fn decode(doc: &Document, id: ObjectId) -> Option<(DynamicImage, Pixels)> {
             };
             (comps == kind).then_some((image, kind))
         }
-        b"FlateDecode" => {
+        b"FlateDecode" | b"" => {
             if dict.has(b"DecodeParms") {
                 return None;
             }
-            let raw = stream
-                .decompressed_content_with_limit(MAX_STREAM_EXPANSION)
-                .ok()?;
+            let raw = if filter.is_empty() {
+                stream.content.clone()
+            } else {
+                stream
+                    .decompressed_content_with_limit(MAX_STREAM_EXPANSION)
+                    .ok()?
+            };
             let comps = if kind == Pixels::Rgb { 3 } else { 1 };
             if raw.len() != width as usize * height as usize * comps {
                 return None;
@@ -355,13 +365,91 @@ impl ImageOptimizer for RasterConverter {
                 .dict
                 .set("Filter", Object::Name(b"DCTDecode".to_vec()));
             stream.dict.remove(b"DecodeParms");
-            stream.dict.remove(b"Length");
-            stream.content = jpeg;
+            // `set_content` also writes the new /Length; readers need it to find the data.
+            stream.set_content(jpeg);
             stream.allows_compression = false;
             report.replaced += 1;
         }
         doc.save(dest)
             .map_err(|e| AppError::from_io("write the compressed document", &e))?;
+        Ok(report)
+    }
+
+    fn grayscale_images(&self, source: &Path, dest: &Path) -> Result<ImageReport, AppError> {
+        Self::grayscale_file(source, dest)
+    }
+}
+
+/// Quality of the JPEG written when a JPEG picture is turned gray: close to the camera's own.
+const GRAY_JPEG_QUALITY: u8 = 90;
+
+/// Turns the color pictures of a document gray, whatever their size.
+fn grayscale_pictures(doc: &mut Document) -> ImageReport {
+    let ids: Vec<ObjectId> = doc
+        .objects
+        .iter()
+        .filter(|(_, o)| {
+            matches!(o, Object::Stream(s) if s.dict.get(b"Subtype").and_then(Object::as_name).is_ok_and(|n| n == b"Image"))
+        })
+        .map(|(id, _)| *id)
+        .collect();
+    let mut report = ImageReport {
+        found: ids.len(),
+        replaced: 0,
+    };
+    for id in ids {
+        let Some((image, Pixels::Rgb)) = decode(doc, id) else {
+            continue;
+        };
+        let gray = image.to_luma8();
+        let Ok(Object::Stream(stream)) = doc.get_object_mut(id) else {
+            continue;
+        };
+        let is_jpeg = single_filter(&stream.dict).is_some_and(|f| f == b"DCTDecode");
+        stream
+            .dict
+            .set("ColorSpace", Object::Name(b"DeviceGray".to_vec()));
+        stream.dict.set("BitsPerComponent", 8);
+        stream.dict.remove(b"DecodeParms");
+        if is_jpeg {
+            let Some(jpeg) = encode_jpeg(
+                &DynamicImage::ImageLuma8(gray),
+                Pixels::Gray,
+                GRAY_JPEG_QUALITY,
+            ) else {
+                continue;
+            };
+            stream
+                .dict
+                .set("Filter", Object::Name(b"DCTDecode".to_vec()));
+            stream.set_content(jpeg);
+        } else {
+            // Plain bytes: the repacking step compresses them again.
+            stream.dict.remove(b"Filter");
+            stream.set_content(gray.into_raw());
+        }
+        stream.allows_compression = false;
+        report.replaced += 1;
+    }
+    report
+}
+
+impl RasterConverter {
+    /// The grayscale pass behind [`ImageOptimizer::grayscale_images`].
+    fn grayscale_file(source: &Path, dest: &Path) -> Result<ImageReport, AppError> {
+        let options = LoadOptions {
+            max_decompressed_size: Some(MAX_STREAM_EXPANSION),
+            ..LoadOptions::default()
+        };
+        let mut doc = Document::load_with_options(source, options).map_err(|_| {
+            AppError::new(
+                ErrorCode::PdfDamaged,
+                "This file is damaged or uses an unsupported format. Try the Repair tool.",
+            )
+        })?;
+        let report = grayscale_pictures(&mut doc);
+        doc.save(dest)
+            .map_err(|e| AppError::from_io("write the gray document", &e))?;
         Ok(report)
     }
 }
@@ -480,6 +568,57 @@ mod tests {
             std::fs::metadata(&low_dest).unwrap().len() < std::fs::metadata(&dest).unwrap().len()
                 || high.replaced == 0
         );
+    }
+
+    #[test]
+    fn grayscale_images_changes_every_color_picture_even_when_it_gets_bigger() {
+        let dir = tempfile::tempdir().unwrap();
+        for jpeg in [false, true] {
+            let src = pdf_of(&dir, &noisy(200, 100), jpeg);
+            let dest = dir.path().join(format!("gray-{jpeg}.pdf"));
+            let report = RasterConverter.grayscale_images(&src, &dest).unwrap();
+            assert_eq!((report.found, report.replaced), (1, 1), "jpeg: {jpeg}");
+            let image = only_image(&Document::load(&dest).unwrap());
+            assert_eq!(
+                image.dict.get(b"ColorSpace").unwrap().as_name().unwrap(),
+                b"DeviceGray"
+            );
+            assert_eq!(
+                image.dict.get(b"Width").unwrap().as_i64().unwrap(),
+                200,
+                "no resizing"
+            );
+            // Decoding gives one byte per pixel (or a gray JPEG) and no color is left.
+            let doc = Document::load(&dest).unwrap();
+            let id = doc
+                .objects
+                .iter()
+                .find(|(_, o)| matches!(o, Object::Stream(s) if s.dict.get(b"Subtype").and_then(Object::as_name).is_ok_and(|n| n == b"Image")))
+                .map(|(id, _)| *id)
+                .unwrap();
+            let back = decode(&doc, id).expect("the gray picture decodes");
+            assert_eq!(back.1, Pixels::Gray, "jpeg: {jpeg}");
+        }
+    }
+
+    #[test]
+    fn gray_pictures_and_documents_without_pictures_come_through_unchanged() {
+        let dir = tempfile::tempdir().unwrap();
+        let first = pdf_of(&dir, &noisy(100, 100), false);
+        let gray_once = dir.path().join("g1.pdf");
+        RasterConverter
+            .grayscale_images(&first, &gray_once)
+            .unwrap();
+        let again = dir.path().join("g2.pdf");
+        let report = RasterConverter
+            .grayscale_images(&gray_once, &again)
+            .unwrap();
+        assert_eq!((report.found, report.replaced), (1, 0));
+        let plain = dir.path().join("plain.pdf");
+        std::fs::write(&plain, test_support::minimal_pdf(1)).unwrap();
+        let out = dir.path().join("out.pdf");
+        let report = RasterConverter.grayscale_images(&plain, &out).unwrap();
+        assert_eq!((report.found, report.replaced), (0, 0));
     }
 
     #[test]

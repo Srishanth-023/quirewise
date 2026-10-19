@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '../../i18n';
+  import { t, tDynamic } from '../../i18n';
   import { thumbnail, type Thumb } from '../../components/Thumbnail/thumbnails';
   import { files } from '../../stores/files.svelte';
   import { toolOptions } from '../../stores/options.svelte';
@@ -87,8 +87,8 @@
 </script>
 
 <section class="picker" aria-labelledby={`${tool.id}-region-title`}>
-  <h3 id={`${tool.id}-region-title`}>{t('region.title')}</h3>
-  <p class="help">{t('region.help')}</p>
+  <h3 id={`${tool.id}-region-title`}>{tDynamic(`region.${tool.id}.title`, t('region.title'))}</h3>
+  <p class="help">{tDynamic(`region.${tool.id}.help`, t('region.help'))}</p>
 
   {#if !entry || pageCount === 0}
     <p class="muted">{t('region.needFile')}</p>

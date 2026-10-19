@@ -30,7 +30,7 @@ lopdf edits the object graph and prunes what became unreachable, so removed data
 ## Behavior and limits
 
 - Hidden layers are removed only when the marked content sits in a page content stream, not inside form XObjects (see open question 27).
-- A password-protected input gives an unprotected result: the file is decrypted with the password you entered and written without encryption. Run Protect afterwards to lock it again.
+- A password-protected input stays protected: the original password and restrictions are copied to the result (qpdf `--copy-encryption`). A file that opens without a password has no owner restrictions to keep.
 - Visible text and images are never touched. Sanitize does not redact; use Redact for that.
 - Signatures become invalid.
 

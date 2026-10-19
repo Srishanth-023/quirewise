@@ -147,6 +147,13 @@ export type Secret = string;
  */
 export type Schema = {} | boolean;
 /**
+ * What Attachments does.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "AttachmentAction".
+ */
+export type AttachmentAction = 'list' | 'add' | 'extract' | 'delete';
+/**
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "Base64Bytes".
  */
@@ -173,6 +180,13 @@ export type Cipher = 'aes256' | 'aes128';
  * via the `definition` "CompressPreset".
  */
 export type CompressPreset = 'extreme' | 'recommended' | 'less';
+/**
+ * How Crop finds the part of the page to keep.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "CropMethod".
+ */
+export type CropMethod = 'margins' | 'region' | 'auto';
 /**
  * Stable, user-visible error code. The string form never changes once released.
  *
@@ -205,6 +219,13 @@ export type ErrorCode =
 export type FileStatus =
   'pending' | 'running' | 'done' | 'wrong-password' | 'damaged' | 'out-of-range' | 'cancelled' | 'failed';
 /**
+ * The order pages fill a sheet.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FillOrder".
+ */
+export type FillOrder = 'horizontal' | 'vertical';
+/**
  * Resolution for [`FlattenMode::Everything`], in dots per inch.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -219,12 +240,33 @@ export type FlattenDpi = '75' | '100' | '150' | '220';
  */
 export type FlattenMode = 'forms-and-annotations' | 'everything';
 /**
+ * Which way Flip mirrors the page.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FlipDirection".
+ */
+export type FlipDirection = 'horizontal' | 'vertical';
+/**
+ * A font family offered for stamped text.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "FontFamily".
+ */
+export type FontFamily = 'helvetica' | 'times' | 'courier';
+/**
  * What to do with form fields while merging.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "FormHandling".
  */
 export type FormHandling = 'keep' | 'flatten';
+/**
+ * What Grayscale turns gray.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "GrayscaleScope".
+ */
+export type GrayscaleScope = 'both' | 'images' | 'text';
 /**
  * How a batch maps onto tool runs.
  *
@@ -254,6 +296,27 @@ export type InsertWhere = 'before' | 'after';
  */
 export type JobStatus = 'queued' | 'running' | 'completed' | 'completed-with-errors' | 'cancelled';
 /**
+ * Whether a stamp lies over the page content or beneath it.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Layer".
+ */
+export type Layer = 'above' | 'below';
+/**
+ * Unit of the margins.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "LengthUnit".
+ */
+export type LengthUnit = 'mm' | 'in' | 'pt';
+/**
+ * How a page number is written.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "NumberStyle".
+ */
+export type NumberStyle = 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
+/**
  * A validated naming pattern.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -275,6 +338,29 @@ export type PageRange = string;
  */
 export type PageSizeChoice = 'same-as-neighbor' | 'a4' | 'letter' | 'legal' | 'a3';
 /**
+ * A paper size for Resize.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "PaperSize".
+ */
+export type PaperSize = 'a4' | 'letter' | 'legal' | 'a3' | 'custom';
+/**
+ * Where a stamp sits on the page: a 3 by 3 grid.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Position".
+ */
+export type Position =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'middle-left'
+  | 'center'
+  | 'middle-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right';
+/**
  * A rotation in quarter turns, clockwise.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -286,6 +372,13 @@ export type RightAngle = '0' | '90' | '180' | '270';
  * via the `definition` "Schema".
  */
 export type Schema1 = {} | boolean;
+/**
+ * Pages per sheet for N-up.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SheetCount".
+ */
+export type SheetCount = '2' | '4' | '8' | '16' | '32';
 /**
  * Orientation of the cut for Split in half.
  *
@@ -344,7 +437,20 @@ export type ToolId =
   | 'protect'
   | 'unlock'
   | 'sanitize'
-  | 'linearize';
+  | 'linearize'
+  | 'page-numbers'
+  | 'header-footer'
+  | 'bates'
+  | 'watermark'
+  | 'crop'
+  | 'resize'
+  | 'flip'
+  | 'n-up'
+  | 'grayscale'
+  | 'bookmarks'
+  | 'rename-by-content'
+  | 'attachments'
+  | 'page-labels';
 /**
  * Options for any tool. The tag is the tool id.
  *
@@ -666,7 +772,441 @@ export type ToolOptions =
        */
       enabled?: boolean;
       tool: 'linearize';
+    }
+  | {
+      /**
+       * Bold. Default off.
+       */
+      bold?: boolean;
+      /**
+       * Text color as `#RRGGBB`. Default black.
+       */
+      color?: string;
+      /**
+       * Mirror the position on left-hand (even) pages, for two-sided printing. Default off.
+       */
+      facing_pages?: boolean;
+      /**
+       * Font family. Default Helvetica.
+       */
+      font?: 'helvetica' | 'times' | 'courier';
+      /**
+       * Italic. Default off.
+       */
+      italic?: boolean;
+      /**
+       * Move right by this many points. Default 0.
+       */
+      offset_x_pt?: number;
+      /**
+       * Move up by this many points. Default 0.
+       */
+      offset_y_pt?: number;
+      /**
+       * Pages to number: `all`, `even`, `odd` or a range such as `2-`. Default `all`.
+       */
+      pages?: string;
+      /**
+       * Place on the page. Default bottom center.
+       */
+      position?:
+        | 'top-left'
+        | 'top-center'
+        | 'top-right'
+        | 'middle-left'
+        | 'center'
+        | 'middle-right'
+        | 'bottom-left'
+        | 'bottom-center'
+        | 'bottom-right';
+      /**
+       * Font size in points. Default 10.
+       */
+      size_pt?: number;
+      /**
+       * Leave the first page without a number and do not count it. Default off.
+       */
+      skip_first_page?: boolean;
+      /**
+       * The number shown on the first numbered page. Default 1.
+       */
+      start_number?: number;
+      /**
+       * How the number is written. Default arabic.
+       */
+      style?: 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
+      /**
+       * Text with `{page}`, `{pages}`, `{date}` and `{filename}`. Default `{page}`.
+       */
+      template?: string;
+      tool: 'page-numbers';
+    }
+  | {
+      /**
+       * Bold. Default off.
+       */
+      bold?: boolean;
+      /**
+       * Text color as `#RRGGBB`. Default black.
+       */
+      color?: string;
+      /**
+       * Font family. Default Helvetica.
+       */
+      font?: 'helvetica' | 'times' | 'courier';
+      /**
+       * Footer text in the center.
+       */
+      footer_center?: string;
+      /**
+       * Footer text at the left.
+       */
+      footer_left?: string;
+      /**
+       * Footer text at the right.
+       */
+      footer_right?: string;
+      /**
+       * Header text in the center.
+       */
+      header_center?: string;
+      /**
+       * Header text at the left. Tokens: `{page}`, `{pages}`, `{date}`, `{filename}`.
+       */
+      header_left?: string;
+      /**
+       * Header text at the right.
+       */
+      header_right?: string;
+      /**
+       * Italic. Default off.
+       */
+      italic?: boolean;
+      /**
+       * Distance from the page edge in points. Default 36.
+       */
+      margin_pt?: number;
+      /**
+       * Pages to mark. Default `all`.
+       */
+      pages?: string;
+      /**
+       * Font size in points. Default 10.
+       */
+      size_pt?: number;
+      tool: 'header-footer';
+    }
+  | {
+      /**
+       * Bold. Default off.
+       */
+      bold?: boolean;
+      /**
+       * Text color as `#RRGGBB`. Default black.
+       */
+      color?: string;
+      /**
+       * Keep counting from one file to the next, in the order of the file list. Default on.
+       */
+      continue_across_files?: boolean;
+      /**
+       * Digits the number is padded to with zeros, 1 to 12. Default 6.
+       */
+      digits?: number;
+      /**
+       * Font family. Default Helvetica.
+       */
+      font?: 'helvetica' | 'times' | 'courier';
+      /**
+       * Italic. Default off.
+       */
+      italic?: boolean;
+      /**
+       * Move right by this many points. Default 0.
+       */
+      offset_x_pt?: number;
+      /**
+       * Move up by this many points. Default 0.
+       */
+      offset_y_pt?: number;
+      /**
+       * Place on the page. Default bottom right.
+       */
+      position?:
+        | 'top-left'
+        | 'top-center'
+        | 'top-right'
+        | 'middle-left'
+        | 'center'
+        | 'middle-right'
+        | 'bottom-left'
+        | 'bottom-center'
+        | 'bottom-right';
+      /**
+       * Text before the number, such as `ACME-`. Default none.
+       */
+      prefix?: string;
+      /**
+       * Font size in points. Default 10.
+       */
+      size_pt?: number;
+      /**
+       * The first number. Default 1.
+       */
+      start?: number;
+      /**
+       * Text after the number. Default none.
+       */
+      suffix?: string;
+      tool: 'bates';
+    }
+  | {
+      /**
+       * Bold. Default off.
+       */
+      bold?: boolean;
+      /**
+       * Text color as `#RRGGBB`. Default gray.
+       */
+      color?: string;
+      /**
+       * Font family. Default Helvetica.
+       */
+      font?: 'helvetica' | 'times' | 'courier';
+      /**
+       * Path of a PNG or JPEG file, for a picture watermark.
+       */
+      image_path?: string | null;
+      /**
+       * Width of the picture as a percent of the page width, 1 to 100. Default 50.
+       */
+      image_width_percent?: number;
+      /**
+       * Italic. Default off.
+       */
+      italic?: boolean;
+      /**
+       * Text or picture. Default text.
+       */
+      kind?: 'text' | 'image';
+      /**
+       * Over or under the page content. Default above.
+       */
+      layer?: 'above' | 'below';
+      /**
+       * Move right by this many points. Default 0.
+       */
+      offset_x_pt?: number;
+      /**
+       * Move up by this many points. Default 0.
+       */
+      offset_y_pt?: number;
+      /**
+       * Pages to mark. Default `all`.
+       */
+      pages?: string;
+      /**
+       * Place on the page. Default center.
+       */
+      position?:
+        | 'top-left'
+        | 'top-center'
+        | 'top-right'
+        | 'middle-left'
+        | 'center'
+        | 'middle-right'
+        | 'bottom-left'
+        | 'bottom-center'
+        | 'bottom-right';
+      /**
+       * Counter-clockwise rotation in degrees, 0 to 360. Default 0.
+       */
+      rotation_deg?: number;
+      /**
+       * Font size in points. Default 48.
+       */
+      size_pt?: number;
+      /**
+       * The text, for a text watermark.
+       */
+      text?: string;
+      /**
+       * Repeat the mark across the whole page. Default off.
+       */
+      tile?: boolean;
+      tool: 'watermark';
+      /**
+       * How see-through the mark is, 1 to 100. Default 50.
+       */
+      transparency?: number;
+    }
+  | {
+      /**
+       * Also cut the media box, so other programs see the smaller page. Default off.
+       */
+      apply_to_media_box?: boolean;
+      /**
+       * Space left around the content, in millimeters, for the auto method. Default 2.
+       */
+      auto_padding_mm?: number;
+      margins?: Margins;
+      /**
+       * How to choose what to keep. Default margins.
+       */
+      method?: 'margins' | 'region' | 'auto';
+      /**
+       * Pages to crop: `all`, `even`, `odd` or a range. Default `all`.
+       */
+      pages?: string;
+      /**
+       * The box to keep, for the region method.
+       */
+      region?: Region | null;
+      tool: 'crop';
+      /**
+       * Unit of the margins. Default millimeters.
+       */
+      unit?: 'mm' | 'in' | 'pt';
+    }
+  | {
+      /**
+       * Height in millimeters, for a custom size. Default 297.
+       */
+      custom_height_mm?: number;
+      /**
+       * Width in millimeters, for a custom size. Default 210.
+       */
+      custom_width_mm?: number;
+      /**
+       * Empty space around the content, in millimeters. Default 0.
+       */
+      margin_mm?: number;
+      /**
+       * Turn the target size to match each page's orientation (default), so a landscape page
+       * stays landscape.
+       */
+      match_orientation?: boolean;
+      /**
+       * Scale the content to fit the new page (default). Off keeps its size, centered.
+       */
+      scale_content?: boolean;
+      /**
+       * Target paper size. Default A4.
+       */
+      size?: 'a4' | 'letter' | 'legal' | 'a3' | 'custom';
+      tool: 'resize';
+    }
+  | {
+      /**
+       * Direction. Default horizontal.
+       */
+      direction?: 'horizontal' | 'vertical';
+      /**
+       * Pages to flip: `all`, `even`, `odd` or a range. Default `all`.
+       */
+      pages?: string;
+      tool: 'flip';
+    }
+  | {
+      /**
+       * The order pages fill a sheet. Default horizontal.
+       */
+      order?: 'horizontal' | 'vertical';
+      /**
+       * Pages per sheet. Default 2.
+       */
+      per_sheet?: '2' | '4' | '8' | '16' | '32';
+      /**
+       * Keep the sheet the size of the first page, shrinking the pages (default). Off makes the
+       * sheet as large as the grid of full-size pages.
+       */
+      preserve_page_size?: boolean;
+      /**
+       * Fill each row from the right, for right-to-left languages. Default off.
+       */
+      right_to_left?: boolean;
+      tool: 'n-up';
+    }
+  | {
+      /**
+       * What to turn gray. Default pictures and text.
+       */
+      apply_to?: 'both' | 'images' | 'text';
+      /**
+       * Resolution of the picture when `raster_fallback` is on. Default 150.
+       */
+      dpi?: '75' | '100' | '150' | '220';
+      /**
+       * Render every page as a gray picture instead. Catches every color, but text can no longer
+       * be selected. Default off.
+       */
+      raster_fallback?: boolean;
+      tool: 'grayscale';
+    }
+  | {
+      /**
+       * Build the list from the large text of the document instead. Default off.
+       */
+      auto_generate?: boolean;
+      /**
+       * Deepest level of generated bookmarks, 1 to 6. Default 3.
+       */
+      auto_max_level?: number;
+      /**
+       * The complete bookmark list of the result, replacing the current one.
+       */
+      bookmarks?: BookmarkEntry[];
+      tool: 'bookmarks';
+    }
+  | {
+      /**
+       * The page to read, counting from 1. Default 1.
+       */
+      page?: number;
+      /**
+       * The new name, with `{text}` for the text read and `{filename}`, `{date}` and the other
+       * naming tokens. Default `{text}`.
+       */
+      pattern?: string;
+      /**
+       * The box that holds the text to read, drawn on the page preview.
+       */
+      region?: Region | null;
+      tool: 'rename-by-content';
+    }
+  | {
+      /**
+       * What to do. Default list.
+       */
+      action?: 'list' | 'add' | 'extract' | 'delete';
+      /**
+       * Paths of the files to attach, for add.
+       */
+      files?: string[];
+      /**
+       * Names of the attachments to extract (none means all) or to delete.
+       */
+      names?: string[];
+      tool: 'attachments';
+    }
+  | {
+      /**
+       * The runs, each starting at a page. Pages before the first run are labeled 1, 2, 3.
+       */
+      ranges?: LabelRange[];
+      /**
+       * Remove all page labels instead. Default off.
+       */
+      remove_all?: boolean;
+      tool: 'page-labels';
     };
+/**
+ * What a watermark shows.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "WatermarkKind".
+ */
+export type WatermarkKind = 'text' | 'image';
 
 /**
  * Every type the UI needs, so one schema export generates all TypeScript types.
@@ -1340,6 +1880,433 @@ export interface RunBatchRequest {
          */
         enabled?: boolean;
         tool: 'linearize';
+      }
+    | {
+        /**
+         * Bold. Default off.
+         */
+        bold?: boolean;
+        /**
+         * Text color as `#RRGGBB`. Default black.
+         */
+        color?: string;
+        /**
+         * Mirror the position on left-hand (even) pages, for two-sided printing. Default off.
+         */
+        facing_pages?: boolean;
+        /**
+         * Font family. Default Helvetica.
+         */
+        font?: 'helvetica' | 'times' | 'courier';
+        /**
+         * Italic. Default off.
+         */
+        italic?: boolean;
+        /**
+         * Move right by this many points. Default 0.
+         */
+        offset_x_pt?: number;
+        /**
+         * Move up by this many points. Default 0.
+         */
+        offset_y_pt?: number;
+        /**
+         * Pages to number: `all`, `even`, `odd` or a range such as `2-`. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Place on the page. Default bottom center.
+         */
+        position?:
+          | 'top-left'
+          | 'top-center'
+          | 'top-right'
+          | 'middle-left'
+          | 'center'
+          | 'middle-right'
+          | 'bottom-left'
+          | 'bottom-center'
+          | 'bottom-right';
+        /**
+         * Font size in points. Default 10.
+         */
+        size_pt?: number;
+        /**
+         * Leave the first page without a number and do not count it. Default off.
+         */
+        skip_first_page?: boolean;
+        /**
+         * The number shown on the first numbered page. Default 1.
+         */
+        start_number?: number;
+        /**
+         * How the number is written. Default arabic.
+         */
+        style?: 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
+        /**
+         * Text with `{page}`, `{pages}`, `{date}` and `{filename}`. Default `{page}`.
+         */
+        template?: string;
+        tool: 'page-numbers';
+      }
+    | {
+        /**
+         * Bold. Default off.
+         */
+        bold?: boolean;
+        /**
+         * Text color as `#RRGGBB`. Default black.
+         */
+        color?: string;
+        /**
+         * Font family. Default Helvetica.
+         */
+        font?: 'helvetica' | 'times' | 'courier';
+        /**
+         * Footer text in the center.
+         */
+        footer_center?: string;
+        /**
+         * Footer text at the left.
+         */
+        footer_left?: string;
+        /**
+         * Footer text at the right.
+         */
+        footer_right?: string;
+        /**
+         * Header text in the center.
+         */
+        header_center?: string;
+        /**
+         * Header text at the left. Tokens: `{page}`, `{pages}`, `{date}`, `{filename}`.
+         */
+        header_left?: string;
+        /**
+         * Header text at the right.
+         */
+        header_right?: string;
+        /**
+         * Italic. Default off.
+         */
+        italic?: boolean;
+        /**
+         * Distance from the page edge in points. Default 36.
+         */
+        margin_pt?: number;
+        /**
+         * Pages to mark. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Font size in points. Default 10.
+         */
+        size_pt?: number;
+        tool: 'header-footer';
+      }
+    | {
+        /**
+         * Bold. Default off.
+         */
+        bold?: boolean;
+        /**
+         * Text color as `#RRGGBB`. Default black.
+         */
+        color?: string;
+        /**
+         * Keep counting from one file to the next, in the order of the file list. Default on.
+         */
+        continue_across_files?: boolean;
+        /**
+         * Digits the number is padded to with zeros, 1 to 12. Default 6.
+         */
+        digits?: number;
+        /**
+         * Font family. Default Helvetica.
+         */
+        font?: 'helvetica' | 'times' | 'courier';
+        /**
+         * Italic. Default off.
+         */
+        italic?: boolean;
+        /**
+         * Move right by this many points. Default 0.
+         */
+        offset_x_pt?: number;
+        /**
+         * Move up by this many points. Default 0.
+         */
+        offset_y_pt?: number;
+        /**
+         * Place on the page. Default bottom right.
+         */
+        position?:
+          | 'top-left'
+          | 'top-center'
+          | 'top-right'
+          | 'middle-left'
+          | 'center'
+          | 'middle-right'
+          | 'bottom-left'
+          | 'bottom-center'
+          | 'bottom-right';
+        /**
+         * Text before the number, such as `ACME-`. Default none.
+         */
+        prefix?: string;
+        /**
+         * Font size in points. Default 10.
+         */
+        size_pt?: number;
+        /**
+         * The first number. Default 1.
+         */
+        start?: number;
+        /**
+         * Text after the number. Default none.
+         */
+        suffix?: string;
+        tool: 'bates';
+      }
+    | {
+        /**
+         * Bold. Default off.
+         */
+        bold?: boolean;
+        /**
+         * Text color as `#RRGGBB`. Default gray.
+         */
+        color?: string;
+        /**
+         * Font family. Default Helvetica.
+         */
+        font?: 'helvetica' | 'times' | 'courier';
+        /**
+         * Path of a PNG or JPEG file, for a picture watermark.
+         */
+        image_path?: string | null;
+        /**
+         * Width of the picture as a percent of the page width, 1 to 100. Default 50.
+         */
+        image_width_percent?: number;
+        /**
+         * Italic. Default off.
+         */
+        italic?: boolean;
+        /**
+         * Text or picture. Default text.
+         */
+        kind?: 'text' | 'image';
+        /**
+         * Over or under the page content. Default above.
+         */
+        layer?: 'above' | 'below';
+        /**
+         * Move right by this many points. Default 0.
+         */
+        offset_x_pt?: number;
+        /**
+         * Move up by this many points. Default 0.
+         */
+        offset_y_pt?: number;
+        /**
+         * Pages to mark. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Place on the page. Default center.
+         */
+        position?:
+          | 'top-left'
+          | 'top-center'
+          | 'top-right'
+          | 'middle-left'
+          | 'center'
+          | 'middle-right'
+          | 'bottom-left'
+          | 'bottom-center'
+          | 'bottom-right';
+        /**
+         * Counter-clockwise rotation in degrees, 0 to 360. Default 0.
+         */
+        rotation_deg?: number;
+        /**
+         * Font size in points. Default 48.
+         */
+        size_pt?: number;
+        /**
+         * The text, for a text watermark.
+         */
+        text?: string;
+        /**
+         * Repeat the mark across the whole page. Default off.
+         */
+        tile?: boolean;
+        tool: 'watermark';
+        /**
+         * How see-through the mark is, 1 to 100. Default 50.
+         */
+        transparency?: number;
+      }
+    | {
+        /**
+         * Also cut the media box, so other programs see the smaller page. Default off.
+         */
+        apply_to_media_box?: boolean;
+        /**
+         * Space left around the content, in millimeters, for the auto method. Default 2.
+         */
+        auto_padding_mm?: number;
+        margins?: Margins;
+        /**
+         * How to choose what to keep. Default margins.
+         */
+        method?: 'margins' | 'region' | 'auto';
+        /**
+         * Pages to crop: `all`, `even`, `odd` or a range. Default `all`.
+         */
+        pages?: string;
+        /**
+         * The box to keep, for the region method.
+         */
+        region?: Region | null;
+        tool: 'crop';
+        /**
+         * Unit of the margins. Default millimeters.
+         */
+        unit?: 'mm' | 'in' | 'pt';
+      }
+    | {
+        /**
+         * Height in millimeters, for a custom size. Default 297.
+         */
+        custom_height_mm?: number;
+        /**
+         * Width in millimeters, for a custom size. Default 210.
+         */
+        custom_width_mm?: number;
+        /**
+         * Empty space around the content, in millimeters. Default 0.
+         */
+        margin_mm?: number;
+        /**
+         * Turn the target size to match each page's orientation (default), so a landscape page
+         * stays landscape.
+         */
+        match_orientation?: boolean;
+        /**
+         * Scale the content to fit the new page (default). Off keeps its size, centered.
+         */
+        scale_content?: boolean;
+        /**
+         * Target paper size. Default A4.
+         */
+        size?: 'a4' | 'letter' | 'legal' | 'a3' | 'custom';
+        tool: 'resize';
+      }
+    | {
+        /**
+         * Direction. Default horizontal.
+         */
+        direction?: 'horizontal' | 'vertical';
+        /**
+         * Pages to flip: `all`, `even`, `odd` or a range. Default `all`.
+         */
+        pages?: string;
+        tool: 'flip';
+      }
+    | {
+        /**
+         * The order pages fill a sheet. Default horizontal.
+         */
+        order?: 'horizontal' | 'vertical';
+        /**
+         * Pages per sheet. Default 2.
+         */
+        per_sheet?: '2' | '4' | '8' | '16' | '32';
+        /**
+         * Keep the sheet the size of the first page, shrinking the pages (default). Off makes the
+         * sheet as large as the grid of full-size pages.
+         */
+        preserve_page_size?: boolean;
+        /**
+         * Fill each row from the right, for right-to-left languages. Default off.
+         */
+        right_to_left?: boolean;
+        tool: 'n-up';
+      }
+    | {
+        /**
+         * What to turn gray. Default pictures and text.
+         */
+        apply_to?: 'both' | 'images' | 'text';
+        /**
+         * Resolution of the picture when `raster_fallback` is on. Default 150.
+         */
+        dpi?: '75' | '100' | '150' | '220';
+        /**
+         * Render every page as a gray picture instead. Catches every color, but text can no longer
+         * be selected. Default off.
+         */
+        raster_fallback?: boolean;
+        tool: 'grayscale';
+      }
+    | {
+        /**
+         * Build the list from the large text of the document instead. Default off.
+         */
+        auto_generate?: boolean;
+        /**
+         * Deepest level of generated bookmarks, 1 to 6. Default 3.
+         */
+        auto_max_level?: number;
+        /**
+         * The complete bookmark list of the result, replacing the current one.
+         */
+        bookmarks?: BookmarkEntry[];
+        tool: 'bookmarks';
+      }
+    | {
+        /**
+         * The page to read, counting from 1. Default 1.
+         */
+        page?: number;
+        /**
+         * The new name, with `{text}` for the text read and `{filename}`, `{date}` and the other
+         * naming tokens. Default `{text}`.
+         */
+        pattern?: string;
+        /**
+         * The box that holds the text to read, drawn on the page preview.
+         */
+        region?: Region | null;
+        tool: 'rename-by-content';
+      }
+    | {
+        /**
+         * What to do. Default list.
+         */
+        action?: 'list' | 'add' | 'extract' | 'delete';
+        /**
+         * Paths of the files to attach, for add.
+         */
+        files?: string[];
+        /**
+         * Names of the attachments to extract (none means all) or to delete.
+         */
+        names?: string[];
+        tool: 'attachments';
+      }
+    | {
+        /**
+         * The runs, each starting at a page. Pages before the first run are labeled 1, 2, 3.
+         */
+        ranges?: LabelRange[];
+        /**
+         * Remove all page labels instead. Default off.
+         */
+        remove_all?: boolean;
+        tool: 'page-labels';
       };
   /**
    * Output folder, or `None` for next to each source.
@@ -1370,7 +2337,20 @@ export interface RunBatchRequest {
     | 'protect'
     | 'unlock'
     | 'sanitize'
-    | 'linearize';
+    | 'linearize'
+    | 'page-numbers'
+    | 'header-footer'
+    | 'bates'
+    | 'watermark'
+    | 'crop'
+    | 'resize'
+    | 'flip'
+    | 'n-up'
+    | 'grayscale'
+    | 'bookmarks'
+    | 'rename-by-content'
+    | 'attachments'
+    | 'page-labels';
 }
 /**
  * One file the user added, with an optional password for this session.
@@ -1470,6 +2450,71 @@ export interface Permissions2 {
    * Print the document.
    */
   print?: boolean;
+}
+/**
+ * Distances to cut off, for the margins method.
+ */
+export interface Margins {
+  /**
+   * Cut off the bottom.
+   */
+  bottom?: number;
+  /**
+   * Cut off the left.
+   */
+  left?: number;
+  /**
+   * Cut off the right.
+   */
+  right?: number;
+  /**
+   * Cut off the top.
+   */
+  top?: number;
+}
+/**
+ * One bookmark.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "BookmarkEntry".
+ */
+export interface BookmarkEntry {
+  /**
+   * Nesting depth, 1 for the top level.
+   */
+  level: number;
+  /**
+   * The page it jumps to, counting from 1.
+   */
+  page: number;
+  /**
+   * The text in the bookmark panel.
+   */
+  title: string;
+}
+/**
+ * One run of pages that share a numbering.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "LabelRange".
+ */
+export interface LabelRange {
+  /**
+   * The first page of the run, counting from 1.
+   */
+  from_page?: number;
+  /**
+   * Text before each number, such as `A-`. Default none.
+   */
+  prefix?: string;
+  /**
+   * The number of the first page of the run. Default 1.
+   */
+  start?: number;
+  /**
+   * How the numbers are written. Default arabic.
+   */
+  style?: 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
 }
 /**
  * User preferences stored in `settings.toml`. Never holds passwords or keys.
@@ -1602,7 +2647,20 @@ export interface ToolDescriptor {
     | 'protect'
     | 'unlock'
     | 'sanitize'
-    | 'linearize';
+    | 'linearize'
+    | 'page-numbers'
+    | 'header-footer'
+    | 'bates'
+    | 'watermark'
+    | 'crop'
+    | 'resize'
+    | 'flip'
+    | 'n-up'
+    | 'grayscale'
+    | 'bookmarks'
+    | 'rename-by-content'
+    | 'attachments'
+    | 'page-labels';
   /**
    * How a batch maps onto runs: one per file, or all files together.
    */
@@ -1636,6 +2694,30 @@ export interface ImageSummary1 {
    * Pages that were scanned. Large documents are sampled from the start.
    */
   scanned_pages: number;
+}
+/**
+ * Distances to cut off each edge.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Margins".
+ */
+export interface Margins1 {
+  /**
+   * Cut off the bottom.
+   */
+  bottom?: number;
+  /**
+   * Cut off the left.
+   */
+  left?: number;
+  /**
+   * Cut off the right.
+   */
+  right?: number;
+  /**
+   * Cut off the top.
+   */
+  top?: number;
 }
 /**
  * What a person who opens a protected file may do. Everything is allowed by default.

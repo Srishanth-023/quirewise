@@ -23,7 +23,7 @@ The page's `/Annots` array is filtered by annotation subtype, and the removed ob
 
 ## Behavior and limits
 
-- A password-protected input gives an unprotected result: the file is decrypted with the password you entered and written without encryption. Run Protect afterwards to lock it again.
+- A password-protected input stays protected: the original password and restrictions are copied to the result (qpdf `--copy-encryption`). A file that opens without a password has no owner restrictions to keep.
 - Form fields and signature fields are never removed, so filled forms and signed files keep working. Use Flatten to bake form fields into the page.
 - Text that was highlighted keeps its look in the page content; only the highlight mark goes.
 

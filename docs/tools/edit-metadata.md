@@ -26,7 +26,7 @@ lopdf rewrites the Info dictionary and the XMP packet so that the two agree. An 
 ## Behavior and limits
 
 - The form does not prefill the current values (see open question 26).
-- A password-protected input gives an unprotected result: the file is decrypted with the password you entered and written without encryption. Run Protect afterwards to lock it again.
+- A password-protected input stays protected: the original password and restrictions are copied to the result (qpdf `--copy-encryption`). A file that opens without a password has no owner restrictions to keep.
 - The XMP packet is rewritten, so a PDF/A claim in it is lost.
 - Dates must parse; a bad date is rejected before any work starts.
 

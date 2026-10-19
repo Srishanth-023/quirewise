@@ -5,13 +5,19 @@
 #![forbid(unsafe_code)]
 
 mod annotations;
+mod attachments;
 mod boxes;
 mod edit;
 mod encryption;
+mod grayscale;
+mod labels;
+mod layout;
 mod metadata;
 mod outline;
+mod pageres;
 mod sanitize;
 mod scan;
+mod stamp;
 mod toc;
 
 pub use toc::LopdfToc;
@@ -19,7 +25,9 @@ pub use toc::LopdfToc;
 use application::AppError;
 use application::Password;
 use application::inspect::StructureReport;
-use application::ports::{PdfEdit, PdfEditor, StructureFacts};
+use application::ports::{
+    Attachment, AttachmentInfo, AttachmentReader, PdfEdit, PdfEditor, StructureFacts,
+};
 use domain::ErrorCode;
 use lopdf::{Document, LoadOptions};
 use std::fs;
@@ -51,6 +59,31 @@ impl PdfEditor for LopdfEditor {
         doc.save(dest)
             .map_err(|e| AppError::from_io("write the edited document", &e))?;
         Ok(())
+    }
+}
+
+/// [`AttachmentReader`] over lopdf.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct LopdfAttachments;
+
+impl AttachmentReader for LopdfAttachments {
+    fn list(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+    ) -> Result<Vec<AttachmentInfo>, AppError> {
+        let doc = LopdfStructure::load(path, password)?;
+        Ok(attachments::list(&doc))
+    }
+
+    fn read(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        names: &[String],
+    ) -> Result<Vec<Attachment>, AppError> {
+        let doc = LopdfStructure::load(path, password)?;
+        attachments::read(&doc, names)
     }
 }
 

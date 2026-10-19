@@ -6,7 +6,8 @@
   import { formFields, toolOptions } from '../stores/options.svelte';
   import FieldInput from './FieldInput.svelte';
   import type { Field, Values } from './schema';
-  import { formFor } from './toolForms';
+  import { formFor, ruleMet } from './toolForms';
+  import { itemDefaults } from './schema';
 
   interface Props {
     tool: ToolDescriptor;
@@ -20,10 +21,45 @@
   const drawable = (field: Field): boolean => field.kind !== 'unsupported';
 
   /** Hidden fields wait for the value of the field they depend on. */
-  const visible = (field: Field): boolean => {
-    const rule = hints.visibleWhen?.[field.key];
-    return !rule || values[rule.field] === rule.equals;
-  };
+  const visible = (field: Field): boolean => ruleMet(hints.visibleWhen?.[field.key], values);
+
+  const isRows = (field: Field): boolean => field.kind === 'list' && !!hints.rows?.includes(field.key);
+
+  function rowsOf(field: Field): Values[] {
+    const current = values[field.key];
+    return Array.isArray(current) ? (current as Values[]) : [];
+  }
+
+  /** A new row starts from the schema defaults; numbers without one start at their minimum or 1. */
+  function addRow(field: Field): void {
+    const row = itemDefaults(field);
+    for (const child of field.children ?? []) {
+      if ((child.kind === 'integer' || child.kind === 'number') && typeof row[child.key] !== 'number') {
+        row[child.key] = child.min ?? 1;
+      }
+    }
+    toolOptions.set(tool, field.key, [...rowsOf(field), row]);
+  }
+
+  function removeRow(field: Field, index: number): void {
+    toolOptions.set(tool, field.key, rowsOf(field).filter((_, i) => i !== index));
+  }
+
+  function moveRow(field: Field, index: number, by: number): void {
+    const rows = [...rowsOf(field)];
+    const target = index + by;
+    if (target < 0 || target >= rows.length) return;
+    [rows[index], rows[target]] = [rows[target] as Values, rows[index] as Values];
+    toolOptions.set(tool, field.key, rows);
+  }
+
+  function setCell(field: Field, index: number, key: string, value: unknown): void {
+    toolOptions.set(
+      tool,
+      field.key,
+      rowsOf(field).map((row, i) => (i === index ? { ...row, [key]: value } : row)),
+    );
+  }
 
   function groupValues(field: Field): Values {
     const current = values[field.key];
@@ -50,6 +86,31 @@
           />
         {/each}
       </fieldset>
+    {:else if isRows(field)}
+      <section class="rows" aria-label={listLabel(field)}>
+        <h3>{listLabel(field)}</h3>
+        {#each rowsOf(field) as row, index (index)}
+          <fieldset>
+            <legend>{t('rows.item', { n: index + 1 })}</legend>
+            {#each field.children ?? [] as child (child.key)}
+              <FieldInput
+                field={child}
+                value={row[child.key]}
+                toolId={tool.id}
+                id={`${tool.id}-${field.key}-${index}-${child.key}`}
+
+                onchange={(v) => setCell(field, index, child.key, v)}
+              />
+            {/each}
+            <div class="row-actions">
+              <button type="button" disabled={index === 0} onclick={() => moveRow(field, index, -1)}>{t('rows.up')}</button>
+              <button type="button" disabled={index === rowsOf(field).length - 1} onclick={() => moveRow(field, index, 1)}>{t('rows.down')}</button>
+              <button type="button" onclick={() => removeRow(field, index)}>{t('rows.remove')}</button>
+            </div>
+          </fieldset>
+        {/each}
+        <button type="button" class="add" onclick={() => addRow(field)}>{t('rows.add')}</button>
+      </section>
     {:else if field.kind === 'list'}
       <!-- One group of settings per file, in the order of the file list. -->
       {#if files.entries.length > 0}
@@ -81,6 +142,8 @@
         limits={hints.limits?.[field.key]}
         secret={hints.secret?.includes(field.key)}
         clearable={hints.clearable?.includes(field.key)}
+        color={hints.color?.includes(field.key)}
+        picker={hints.picker?.[field.key]}
         onchange={(v) => toolOptions.set(tool, field.key, v)}
       />
     {/if}
@@ -101,6 +164,29 @@
   h3 {
     margin: 0 0 var(--space-3);
     font-size: var(--text-base);
+  }
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .row-actions button,
+  .add {
+    align-self: flex-start;
+    min-height: 32px;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--text);
+  }
+  .row-actions button:disabled {
+    color: var(--text-muted);
   }
   .per-file {
     display: flex;

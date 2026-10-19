@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import {
   analysis,
+  attachmentsSchema,
+  bookmarksSchema,
   byTextSchema,
+  cropSchema,
   editMetadataSchema,
   everyNSchema,
   flattenSchema,
@@ -13,6 +16,7 @@ import {
   removeAnnotationsSchema,
   report,
   rotateSchema,
+  watermarkSchema,
 } from './fixtures';
 
 const ipc = vi.hoisted(() => ({
@@ -25,6 +29,7 @@ const ipc = vi.hoisted(() => ({
   recentAdd: vi.fn(),
   runBatch: vi.fn(),
   getSettings: vi.fn(),
+  pickPaths: vi.fn(),
 }));
 
 vi.mock('../lib/ipc/client', () => ({
@@ -57,6 +62,10 @@ const list = [
     options_schema: removeAnnotationsSchema,
   },
   { id: 'flatten', group: 'document', label: 'flat', input_mode: 'per-file', options_schema: flattenSchema },
+  { id: 'watermark', group: 'edit', label: 'marked', input_mode: 'per-file', options_schema: watermarkSchema },
+  { id: 'bookmarks', group: 'edit', label: 'bookmarked', input_mode: 'per-file', options_schema: bookmarksSchema },
+  { id: 'attachments', group: 'edit', label: 'attached', input_mode: 'per-file', options_schema: attachmentsSchema },
+  { id: 'crop', group: 'edit', label: 'cropped', input_mode: 'per-file', options_schema: cropSchema },
 ];
 
 beforeEach(() => {
@@ -209,6 +218,78 @@ describe('forms for the optimize and security tools', () => {
     expect(screen.queryByRole('group', { name: 'Picture resolution' })).toBeNull();
     await fireEvent.click(screen.getByLabelText('Everything (every page becomes a picture)'));
     expect(await screen.findByRole('group', { name: 'Picture resolution' })).toBeTruthy();
+  });
+});
+
+describe('forms for the edit tools', () => {
+  it('shows the text or picture fields by kind, with a color control and a picture picker', async () => {
+    await open('Watermark', ['C:\\a.pdf']);
+    const color = (await screen.findByLabelText('Color')) as HTMLInputElement;
+    expect(color.type).toBe('color');
+    expect(color.value).toBe('#808080');
+    expect(screen.queryByLabelText('Picture (PNG or JPEG)')).toBeNull();
+    expect(await violations()).toEqual([]);
+
+    await fireEvent.click(screen.getByLabelText('Picture'));
+    const path = (await screen.findByLabelText('Picture (PNG or JPEG)')) as HTMLInputElement;
+    expect(screen.queryByLabelText('Color')).toBeNull();
+    ipc.pickPaths.mockResolvedValue(['C:\\logo.png']);
+    await fireEvent.click(screen.getByRole('button', { name: 'Browse...' }));
+    await waitFor(() => expect(path.value).toBe('C:\\logo.png'));
+    expect(ipc.pickPaths).toHaveBeenCalledWith('image', false);
+    await fireEvent.click(screen.getByRole('button', { name: /Run Watermark on 1 file/ }));
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    expect(ipc.runBatch.mock.calls[0]?.[0].options).toMatchObject({
+      tool: 'watermark',
+      kind: 'image',
+      image_path: 'C:\\logo.png',
+    });
+  });
+
+  it('edits bookmarks as rows that can be added, moved and removed', async () => {
+    await open('Bookmarks', ['C:\\a.pdf']);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
+    await fireEvent.input(screen.getByLabelText('Title', { selector: '#bookmarks-bookmarks-0-title' }), {
+      target: { value: 'Intro' },
+    });
+    await fireEvent.input(screen.getByLabelText('Title', { selector: '#bookmarks-bookmarks-1-title' }), {
+      target: { value: 'Scope' },
+    });
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Move up' })[1] as HTMLElement);
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[1] as HTMLElement);
+    expect(await violations()).toEqual([]);
+    await fireEvent.click(screen.getByRole('button', { name: /Run Bookmarks on 1 file/ }));
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    expect(ipc.runBatch.mock.calls[0]?.[0].options).toMatchObject({
+      tool: 'bookmarks',
+      bookmarks: [{ title: 'Scope', level: 1, page: 1 }],
+    });
+  });
+
+  it('turns lines of text into a list and asks for them only for the matching action', async () => {
+    await open('Attachments', ['C:\\a.pdf']);
+    await screen.findByRole('group', { name: 'What to do' });
+    expect(screen.queryByLabelText('Files to attach')).toBeNull();
+    expect(screen.queryByLabelText('Attachment names')).toBeNull();
+    await fireEvent.click(screen.getByLabelText('Extract to files'));
+    const names = (await screen.findByLabelText('Attachment names')) as HTMLTextAreaElement;
+    await fireEvent.input(names, { target: { value: 'a.txt\n\n b.csv ' } });
+    await fireEvent.click(screen.getByRole('button', { name: /Run Attachments on 1 file/ }));
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    expect(ipc.runBatch.mock.calls[0]?.[0].options).toMatchObject({
+      tool: 'attachments',
+      action: 'extract',
+      names: ['a.txt', 'b.csv'],
+    });
+  });
+
+  it('shows the region picker for crop only while the method is region', async () => {
+    await open('Crop', ['C:\\a.pdf']);
+    await screen.findByRole('group', { name: 'How to crop' });
+    expect(screen.queryByText('Area to keep')).toBeNull();
+    await fireEvent.click(screen.getByLabelText('Keep a box I draw'));
+    expect(await screen.findByText('Area to keep')).toBeTruthy();
   });
 });
 

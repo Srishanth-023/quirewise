@@ -84,9 +84,9 @@ describe('buildFields', () => {
   });
 
   it('marks shapes it cannot render as unsupported and passes their values through', () => {
-    const odd: JsonSchema = { type: 'object', properties: { x: { type: 'array', items: { type: 'string' } } } };
+    const odd: JsonSchema = { type: 'object', properties: { x: { type: 'array', items: { type: 'number' } } } };
     expect(buildFields(odd)[0]?.kind).toBe('unsupported');
-    expect(normalize({ x: ['a'] }, buildFields(odd))).toEqual({ x: ['a'] });
+    expect(normalize({ x: [1] }, buildFields(odd))).toEqual({ x: [1] });
   });
 });
 
@@ -109,5 +109,14 @@ describe('values', () => {
     const fields = buildFields(merge);
     const out = normalize({ bookmark_per_file: false, per_file: [{ pages: '1-2', rotation: '90' }] }, fields);
     expect(out).toEqual({ bookmark_per_file: false, per_file: [{ pages: '1-2', rotation: '90' }] });
+  });
+});
+
+describe('lists of text', () => {
+  it('become lines whose blank entries and padding are dropped', () => {
+    const schema: JsonSchema = { type: 'object', properties: { names: { type: 'array', items: { type: 'string' }, default: [] } } };
+    const fields = buildFields(schema);
+    expect(fields[0]?.kind).toBe('lines');
+    expect(normalize({ names: ['a', '', '  b  '] }, fields)).toEqual({ names: ['a', 'b'] });
   });
 });

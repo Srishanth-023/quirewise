@@ -178,3 +178,56 @@ export const flattenSchema = {
     FlattenMode: choices(['forms-and-annotations', 'everything']),
   },
 };
+
+/** Watermark: a kind that switches between text and picture fields, a color and a picture picker. */
+export const watermarkSchema = {
+  type: 'object',
+  properties: {
+    color: { type: 'string', default: '#808080' },
+    image_path: nullableText,
+    kind: { $ref: '#/$defs/WatermarkKind', default: 'text' },
+    pages: { $ref: '#/$defs/PageRange', default: 'all' },
+    text: { type: 'string', default: '' },
+  },
+  $defs: { WatermarkKind: choices(['text', 'image']), PageRange: pageRange },
+};
+
+/** Bookmarks: a switch, and rows with a level, a page and a title. */
+export const bookmarksSchema = {
+  type: 'object',
+  properties: {
+    auto_generate: { type: 'boolean', default: false },
+    bookmarks: { type: 'array', default: [], items: { $ref: '#/$defs/BookmarkEntry' } },
+  },
+  $defs: {
+    BookmarkEntry: {
+      type: 'object',
+      properties: {
+        level: { type: 'integer', minimum: 1 },
+        page: { type: 'integer', minimum: 1 },
+        title: { type: 'string' },
+      },
+    },
+  },
+};
+
+/** Attachments: an action, and lists of text lines for the paths and names. */
+export const attachmentsSchema = {
+  type: 'object',
+  properties: {
+    action: { $ref: '#/$defs/AttachmentAction', default: 'list' },
+    files: { type: 'array', default: [], items: { type: 'string' } },
+    names: { type: 'array', default: [], items: { type: 'string' } },
+  },
+  $defs: { AttachmentAction: choices(['list', 'add', 'extract', 'delete']) },
+};
+
+/** Crop: a method, whose region is drawn on the page only for one value. */
+export const cropSchema = {
+  type: 'object',
+  properties: {
+    method: { $ref: '#/$defs/CropMethod', default: 'margins' },
+    region: byTextSchema.properties.region,
+  },
+  $defs: { CropMethod: choices(['margins', 'region', 'auto']), ...byTextSchema.$defs },
+};
