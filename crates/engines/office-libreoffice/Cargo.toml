@@ -9,5 +9,14 @@ repository.workspace = true
 authors.workspace = true
 publish = false
 
+[dependencies]
+domain.workspace = true
+application.workspace = true
+zip = { version = "9", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+test-support.workspace = true
+tempfile = "3"
+
 [lints]
 workspace = true

@@ -25,6 +25,9 @@ quirewise-engine-pdfium = { path = "../engines/pdfium" }
 quirewise-engine-qpdf = { path = "../engines/qpdf" }
 quirewise-engine-lopdf-ops = { path = "../engines/lopdf-ops" }
 quirewise-engine-raster = { path = "../engines/raster" }
+quirewise-engine-office-libreoffice = { path = "../engines/office-libreoffice" }
+quirewise-engine-office-msoffice = { path = "../engines/office-msoffice" }
+quirewise-engine-html-webview2 = { path = "../engines/html-webview2" }
 
 [dev-dependencies]
 test-support.workspace = true

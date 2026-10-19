@@ -9,10 +9,11 @@ use domain::tools::common::{FractionBox, Region, RightAngle};
 use domain::tools::convert::{ImagesToPdfOptions, PictureColor, PictureFormat, TiffCompression};
 use domain::tools::document::{AnnotationKind, MetadataChange};
 use domain::tools::layout::{FlipDirection, NUpOptions};
+use domain::tools::office::SheetOrientation;
 use domain::tools::optimize::CompressSettings;
 use domain::tools::secure::{ProtectPlan, SanitizeOptions};
 use domain::tools::structure::{LabelRange, TextLine};
-use domain::{Dpi, PageIndex};
+use domain::{Dpi, PageIndex, PageRange};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
@@ -689,16 +690,97 @@ pub trait OcrEngine: Send + Sync {
     fn recognize(&self, image: &RenderedImage, languages: &[String]) -> Result<String, AppError>;
 }
 
-/// Converts Office documents to PDF.
-pub trait OfficeConverter: Send + Sync {
-    /// Converts `source` to a PDF at `dest`.
-    fn convert_to_pdf(&self, source: &Path, dest: &Path) -> Result<(), AppError>;
+/// The kind of Office document a conversion starts from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OfficeKind {
+    /// A word processor document.
+    Word,
+    /// A presentation.
+    Slides,
+    /// A spreadsheet.
+    Sheet,
 }
 
-/// Converts HTML to PDF.
+/// What an Office conversion should do beyond turning the document into pages.
+#[derive(Debug, Clone, PartialEq)]
+pub struct OfficeRequest {
+    /// What kind of document it is.
+    pub kind: OfficeKind,
+    /// For presentations: include hidden slides.
+    pub include_hidden_slides: bool,
+    /// For spreadsheets: the sheets to print, by position. `all` prints every visible sheet.
+    pub sheets: PageRange,
+    /// For spreadsheets: shrink sheets so every column fits the page width.
+    pub fit_to_page_width: bool,
+    /// For spreadsheets: page turn.
+    pub orientation: SheetOrientation,
+}
+
+impl OfficeRequest {
+    /// A request with no extra options for `kind`.
+    pub fn plain(kind: OfficeKind) -> Self {
+        Self {
+            kind,
+            include_hidden_slides: false,
+            sheets: PageRange::all(),
+            fit_to_page_width: false,
+            orientation: SheetOrientation::Auto,
+        }
+    }
+}
+
+/// Converts Office documents to PDF with one program (Microsoft Office or LibreOffice).
+pub trait OfficeConverter: Send + Sync {
+    /// The program's name, for messages.
+    fn name(&self) -> &'static str;
+
+    /// True when the program can convert documents of `kind` on this computer right now.
+    fn is_available(&self, kind: OfficeKind) -> bool;
+
+    /// Converts `source` to a PDF at `dest`. `scratch` is a folder for temporary files. The
+    /// conversion stops with `QW-JOB-CANCELLED` soon after `cancel` is set.
+    fn convert(
+        &self,
+        source: &Path,
+        request: &OfficeRequest,
+        scratch: &Path,
+        dest: &Path,
+        cancel: &crate::runtime::CancellationToken,
+    ) -> Result<(), AppError>;
+}
+
+/// The two ways to turn an Office document into a PDF.
+#[derive(Clone)]
+pub struct OfficeEngines {
+    /// Microsoft Office on this computer.
+    pub microsoft: std::sync::Arc<dyn OfficeConverter>,
+    /// LibreOffice, from a component or an installed copy.
+    pub libre: std::sync::Arc<dyn OfficeConverter>,
+}
+
+/// What a web page printout starts from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HtmlSource {
+    /// A file on this computer.
+    File(PathBuf),
+    /// A web address.
+    Url(String),
+}
+
+/// Prints web pages to PDF with the web view that ships with Windows.
 pub trait HtmlConverter: Send + Sync {
-    /// Prints a local file or consented URL to a PDF at `dest`.
-    fn html_to_pdf(&self, source: &str, dest: &Path) -> Result<(), AppError>;
+    /// True when the web view is installed.
+    fn is_available(&self) -> bool;
+
+    /// Loads `source` and prints it to a PDF at `dest` as `options` say. Pictures, styles and
+    /// scripts that live on the internet are only fetched when `options.allow_network` is set.
+    fn print(
+        &self,
+        source: &HtmlSource,
+        options: &domain::tools::HtmlToPdfOptions,
+        dest: &Path,
+        cancel: &crate::runtime::CancellationToken,
+    ) -> Result<(), AppError>;
 }
 
 /// Produces CMS signatures. Private keys never leave the implementation.

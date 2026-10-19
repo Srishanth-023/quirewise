@@ -9,5 +9,14 @@ repository.workspace = true
 authors.workspace = true
 publish = false
 
+[dependencies]
+domain.workspace = true
+application.workspace = true
+
+[dev-dependencies]
+test-support.workspace = true
+tempfile = "3"
+lopdf = { version = "0.45.0", default-features = false }
+
 [lints]
 workspace = true

@@ -17,6 +17,14 @@ pub enum InputKind {
     Pdf,
     /// A raster image (JPEG, PNG, GIF, BMP, TIFF, WebP, HEIC).
     Image,
+    /// A word processor document (Word, OpenDocument text, RTF).
+    Word,
+    /// A presentation (PowerPoint, OpenDocument presentation).
+    Slides,
+    /// A spreadsheet (Excel, OpenDocument spreadsheet).
+    Sheet,
+    /// A web page saved as a file.
+    Html,
 }
 
 /// How a batch maps onto tool runs.
@@ -161,6 +169,12 @@ pub trait Tool: Send + Sync {
     /// runner then skips opening the input to count pages and the tool must cope without them.
     fn reads_pages_first(&self) -> bool {
         true
+    }
+
+    /// True when the run needs no input file with these options, for example an HTML tool that
+    /// prints a web address.
+    fn runs_without_files(&self, _opts: &ToolOptions) -> bool {
+        false
     }
 
     /// JSON Schema of the options, used to generate the option form.

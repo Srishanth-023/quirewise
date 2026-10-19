@@ -118,6 +118,11 @@ pub enum DomainError {
         /// What is wrong with the value.
         reason: String,
     },
+    /// A web address was given without the permission to use the internet.
+    #[error(
+        "Printing a web address needs the internet. Turn on \"Allow the page to load from the internet\" to agree, or choose a file instead."
+    )]
+    NetworkConsent,
     /// A path is not allowed.
     #[error(
         "This path is not allowed: {reason}. Choose a regular file or folder on a local or mapped drive."
@@ -136,6 +141,7 @@ impl DomainError {
             Self::RangeOutOfBounds { .. } => ErrorCode::RangeOutOfBounds,
             Self::OptionInvalid { .. } => ErrorCode::OptionInvalid,
             Self::PathDenied { .. } => ErrorCode::PathDenied,
+            Self::NetworkConsent => ErrorCode::NetworkConsentRequired,
         }
     }
 

@@ -5,6 +5,7 @@ pub mod common;
 pub mod convert;
 pub mod document;
 pub mod layout;
+pub mod office;
 pub mod optimize;
 pub mod pages;
 pub mod rotate;
@@ -25,6 +26,7 @@ pub use convert::{
 };
 pub use document::{FlattenOptions, MetadataOptions, RemoveAnnotationsOptions};
 pub use layout::{CropOptions, FlipOptions, GrayscaleOptions, NUpOptions, ResizeOptions};
+pub use office::{ExcelToPdfOptions, HtmlToPdfOptions, PowerPointToPdfOptions, WordToPdfOptions};
 pub use optimize::{CompressOptions, LinearizeOptions, RepairOptions};
 pub use pages::{
     ExtractPagesOptions, InsertPagesOptions, RemovePagesOptions, SplitByBookmarksOptions,
@@ -140,6 +142,14 @@ pub enum ToolId {
     Attachments,
     /// Page labels (row 66).
     PageLabels,
+    /// Word to PDF (row 19).
+    WordToPdf,
+    /// PowerPoint to PDF (row 20).
+    PowerpointToPdf,
+    /// Excel to PDF (row 21).
+    ExcelToPdf,
+    /// HTML to PDF (row 22).
+    HtmlToPdf,
     /// Images to PDF (row 18).
     ImagesToPdf,
     /// PDF to images (row 23).
@@ -156,7 +166,7 @@ pub enum ToolId {
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 41] = [
+    pub const ALL: [ToolId; 45] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -192,6 +202,10 @@ impl ToolId {
         ToolId::RenameByContent,
         ToolId::Attachments,
         ToolId::PageLabels,
+        ToolId::WordToPdf,
+        ToolId::PowerpointToPdf,
+        ToolId::ExcelToPdf,
+        ToolId::HtmlToPdf,
         ToolId::ImagesToPdf,
         ToolId::PdfToImages,
         ToolId::ExtractImages,
@@ -238,6 +252,10 @@ impl ToolId {
             Self::RenameByContent => "rename-by-content",
             Self::Attachments => "attachments",
             Self::PageLabels => "page-labels",
+            Self::WordToPdf => "word-to-pdf",
+            Self::PowerpointToPdf => "powerpoint-to-pdf",
+            Self::ExcelToPdf => "excel-to-pdf",
+            Self::HtmlToPdf => "html-to-pdf",
             Self::ImagesToPdf => "images-to-pdf",
             Self::PdfToImages => "pdf-to-images",
             Self::ExtractImages => "extract-images",
@@ -339,6 +357,14 @@ pub enum ToolOptions {
     Attachments(AttachmentsOptions),
     /// Options for [`ToolId::PageLabels`].
     PageLabels(PageLabelsOptions),
+    /// Options for [`ToolId::WordToPdf`].
+    WordToPdf(WordToPdfOptions),
+    /// Options for [`ToolId::PowerpointToPdf`].
+    PowerpointToPdf(PowerPointToPdfOptions),
+    /// Options for [`ToolId::ExcelToPdf`].
+    ExcelToPdf(ExcelToPdfOptions),
+    /// Options for [`ToolId::HtmlToPdf`].
+    HtmlToPdf(HtmlToPdfOptions),
     /// Options for [`ToolId::ImagesToPdf`].
     ImagesToPdf(ImagesToPdfOptions),
     /// Options for [`ToolId::PdfToImages`].
@@ -392,6 +418,10 @@ impl ToolOptions {
             Self::RenameByContent(_) => ToolId::RenameByContent,
             Self::Attachments(_) => ToolId::Attachments,
             Self::PageLabels(_) => ToolId::PageLabels,
+            Self::WordToPdf(_) => ToolId::WordToPdf,
+            Self::PowerpointToPdf(_) => ToolId::PowerpointToPdf,
+            Self::ExcelToPdf(_) => ToolId::ExcelToPdf,
+            Self::HtmlToPdf(_) => ToolId::HtmlToPdf,
             Self::ImagesToPdf(_) => ToolId::ImagesToPdf,
             Self::PdfToImages(_) => ToolId::PdfToImages,
             Self::ExtractImages(_) => ToolId::ExtractImages,
@@ -441,6 +471,10 @@ impl ToolOptions {
             ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
             ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
             ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
+            ToolId::WordToPdf => Self::WordToPdf(WordToPdfOptions::default()),
+            ToolId::PowerpointToPdf => Self::PowerpointToPdf(PowerPointToPdfOptions::default()),
+            ToolId::ExcelToPdf => Self::ExcelToPdf(ExcelToPdfOptions::default()),
+            ToolId::HtmlToPdf => Self::HtmlToPdf(HtmlToPdfOptions::default()),
             ToolId::ImagesToPdf => Self::ImagesToPdf(ImagesToPdfOptions::default()),
             ToolId::PdfToImages => Self::PdfToImages(PdfToImagesOptions::default()),
             ToolId::ExtractImages => Self::ExtractImages(ExtractImagesOptions::default()),

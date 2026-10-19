@@ -2,16 +2,21 @@
 //! use cases need. Engines never import each other, so any combination happens here.
 
 use application::inspect::InspectDocument;
-use application::ports::{Clock, FileStore, Logger, PdfReader, PdfVerifier};
+use application::ports::{
+    Clock, ComponentStore, FileStore, Logger, OfficeEngines, PdfReader, PdfVerifier,
+};
 use application::query::QueryService;
 use application::tools::{ToolDeps, register_all};
 use application::{AppError, Password, RunTool, ToolRegistry};
 use domain::ErrorCode;
 use domain::limits::SafetyLimits;
-use infrastructure::NativePaths;
+use infrastructure::{AppPaths, FsComponentStore, NativePaths};
+use quirewise_engine_html_webview2::EdgePrinter;
 use quirewise_engine_lopdf_ops::{
     LopdfAttachments, LopdfEditor, LopdfImages, LopdfStructure, LopdfToc,
 };
+use quirewise_engine_office_libreoffice::LibreOffice;
+use quirewise_engine_office_msoffice::MsOffice;
 use quirewise_engine_pdfium::PdfiumEngine;
 use quirewise_engine_qpdf::QpdfCli;
 use quirewise_engine_raster::RasterConverter;
@@ -27,6 +32,8 @@ pub struct Engines {
     pub pdfium: PdfiumEngine,
     /// qpdf sidecar: checks and page copying.
     pub qpdf: QpdfCli,
+    /// Components installed on demand, such as LibreOffice.
+    pub components: Arc<dyn ComponentStore>,
 }
 
 impl Engines {
@@ -35,6 +42,11 @@ impl Engines {
         Ok(Self {
             pdfium: PdfiumEngine::load(&paths.pdfium_dir)?,
             qpdf: QpdfCli::new(paths.qpdf_exe.clone()),
+            components: Arc::new(FsComponentStore::new(
+                AppPaths::from_environment()
+                    .map(|p| p.components_dir)
+                    .unwrap_or_default(),
+            )),
         })
     }
 }
@@ -108,6 +120,11 @@ pub fn tool_deps(engines: &Engines) -> ToolDeps {
         headings: Arc::new(engines.pdfium),
         pictures: Arc::new(RasterConverter),
         extractor: Arc::new(LopdfImages),
+        office: OfficeEngines {
+            microsoft: Arc::new(MsOffice::new()),
+            libre: Arc::new(LibreOffice::new(Some(Arc::clone(&engines.components)))),
+        },
+        html: Arc::new(EdgePrinter::new()),
     }
 }
 

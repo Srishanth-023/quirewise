@@ -106,6 +106,14 @@ pub enum Suggestion {
     Merge,
     /// Images were dropped: suggest Images to PDF.
     ImagesToPdf,
+    /// Word documents were dropped: suggest Word to PDF.
+    WordToPdf,
+    /// Presentations were dropped: suggest PowerPoint to PDF.
+    PowerPointToPdf,
+    /// Spreadsheets were dropped: suggest Excel to PDF.
+    ExcelToPdf,
+    /// Web pages were dropped: suggest HTML to PDF.
+    HtmlToPdf,
 }
 
 /// Facts that PDFium provides.
@@ -185,11 +193,20 @@ pub struct DocumentReport {
 
 /// Suggestions for a batch of dropped files, from their kinds alone.
 pub fn suggest_for_batch(kinds: &[InputKind]) -> Vec<Suggestion> {
-    let pdfs = kinds.iter().filter(|k| **k == InputKind::Pdf).count();
-    let images = kinds.len() - pdfs;
+    let count = |kind: InputKind| kinds.iter().filter(|k| **k == kind).count();
+    let pdfs = count(InputKind::Pdf);
     let mut out = Vec::new();
-    if images > 0 && pdfs == 0 {
-        out.push(Suggestion::ImagesToPdf);
+    for (kind, suggestion) in [
+        (InputKind::Image, Suggestion::ImagesToPdf),
+        (InputKind::Word, Suggestion::WordToPdf),
+        (InputKind::Slides, Suggestion::PowerPointToPdf),
+        (InputKind::Sheet, Suggestion::ExcelToPdf),
+        (InputKind::Html, Suggestion::HtmlToPdf),
+    ] {
+        // A batch of one kind of file gets the tool for that kind.
+        if count(kind) == kinds.len() {
+            out.push(suggestion);
+        }
     }
     if pdfs >= 2 {
         out.push(Suggestion::Merge);
@@ -457,5 +474,14 @@ mod tests {
         assert_eq!(suggest_for_batch(&[Pdf, Pdf]), vec![Suggestion::Merge]);
         assert!(suggest_for_batch(&[Pdf]).is_empty());
         assert!(suggest_for_batch(&[Pdf, Image]).is_empty());
+        assert_eq!(
+            suggest_for_batch(&[InputKind::Word]),
+            vec![Suggestion::WordToPdf]
+        );
+        assert_eq!(
+            suggest_for_batch(&[InputKind::Sheet, InputKind::Sheet]),
+            vec![Suggestion::ExcelToPdf]
+        );
+        assert!(suggest_for_batch(&[InputKind::Word, InputKind::Sheet]).is_empty());
     }
 }

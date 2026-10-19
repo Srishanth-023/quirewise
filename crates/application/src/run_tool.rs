@@ -115,7 +115,9 @@ impl RunTool {
             .first()
             .and_then(|i| i.path.parent())
             .map(Path::to_path_buf)
-            .ok_or_else(|| AppError::internal("choosing the output folder"))
+            .ok_or_else(|| {
+                domain::DomainError::option("output folder", "choose where the result goes").into()
+            })
     }
 }
 
@@ -135,7 +137,7 @@ impl UnitRunner for RunTool {
                 domain::DomainError::option("options", "they belong to a different tool").into(),
             );
         }
-        if request.inputs.is_empty() {
+        if request.inputs.is_empty() && !tool.runs_without_files(&request.options) {
             return Err(domain::DomainError::option("files", "add at least one file").into());
         }
         cancel.check()?;

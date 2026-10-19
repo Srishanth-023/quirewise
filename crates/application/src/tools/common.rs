@@ -12,7 +12,8 @@ use crate::error::AppError;
 use crate::inspect::PdfiumFacts;
 use crate::ports::{
     AssemblyPlan, AttachmentReader, DocumentInfo, ExtractReport, ExtractedImage, FileStore,
-    FormFlattener, HeadingFinder, ImageConverter, ImageExtractor, ImageOptimizer, ImageReport,
+    FormFlattener, HeadingFinder, HtmlConverter, HtmlSource, ImageConverter, ImageExtractor,
+    ImageOptimizer, ImageReport, OfficeConverter, OfficeEngines, OfficeKind, OfficeRequest,
     OutlineItem, OutlineReader, PackageOptions, PageImage, PageImageWriter, PageSize, PdfEdit,
     PdfEditor, PdfPackager, PdfReader, PdfRepairer, PdfSecurity, PdfVerifier, PdfWriter,
     PictureSpec, PictureWriter, PngImage, ProtectionSource, RenderedImage, Renderer, RepairOutcome,
@@ -66,6 +67,10 @@ pub struct ToolDeps {
     pub pictures: Arc<dyn PictureWriter>,
     /// Pictures taken out of documents.
     pub extractor: Arc<dyn ImageExtractor>,
+    /// Office documents to PDF.
+    pub office: OfficeEngines,
+    /// Web pages to PDF.
+    pub html: Arc<dyn HtmlConverter>,
 }
 
 impl ToolDeps {
@@ -92,7 +97,12 @@ impl ToolDeps {
             attachments: none.clone(),
             headings: none.clone(),
             pictures: none.clone(),
-            extractor: none,
+            extractor: none.clone(),
+            office: OfficeEngines {
+                microsoft: none.clone(),
+                libre: none.clone(),
+            },
+            html: none,
         }
     }
 }
@@ -180,6 +190,40 @@ impl PictureWriter for Unavailable {
         missing()
     }
     fn check_picture(&self, _: &Path, _: PictureFormat, _: u32) -> Result<(), AppError> {
+        missing()
+    }
+}
+
+impl OfficeConverter for Unavailable {
+    fn name(&self) -> &'static str {
+        "Office"
+    }
+    fn is_available(&self, _: OfficeKind) -> bool {
+        false
+    }
+    fn convert(
+        &self,
+        _: &Path,
+        _: &OfficeRequest,
+        _: &Path,
+        _: &Path,
+        _: &crate::runtime::CancellationToken,
+    ) -> Result<(), AppError> {
+        missing()
+    }
+}
+
+impl HtmlConverter for Unavailable {
+    fn is_available(&self) -> bool {
+        false
+    }
+    fn print(
+        &self,
+        _: &HtmlSource,
+        _: &domain::tools::HtmlToPdfOptions,
+        _: &Path,
+        _: &crate::runtime::CancellationToken,
+    ) -> Result<(), AppError> {
         missing()
     }
 }

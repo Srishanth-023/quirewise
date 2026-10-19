@@ -6,6 +6,7 @@ mod convert;
 mod document;
 mod insert;
 mod layout;
+mod office;
 mod optimize;
 mod rotate;
 mod secure;
@@ -35,6 +36,10 @@ pub fn register_all(
     registry.register(Arc::new(convert::PdfToTextTool::new(deps.clone())))?;
     registry.register(Arc::new(convert::TiffToPdfTool::new(deps.clone())))?;
     registry.register(Arc::new(convert::PdfToTiffTool::new(deps.clone())))?;
+    registry.register(Arc::new(office::WordToPdfTool::new(deps.clone())))?;
+    registry.register(Arc::new(office::PowerPointToPdfTool::new(deps.clone())))?;
+    registry.register(Arc::new(office::ExcelToPdfTool::new(deps.clone())))?;
+    registry.register(Arc::new(office::HtmlToPdfTool::new(deps.clone())))?;
     registry.register(Arc::new(combine::AlternateMixTool::new(deps.clone())))?;
     registry.register(Arc::new(combine::OrganizeTool::new(deps.clone())))?;
     registry.register(Arc::new(select::SplitRangesTool::new(deps.clone())))?;

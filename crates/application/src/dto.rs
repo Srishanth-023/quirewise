@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 use crate::error::AppError;
-use crate::input::{SNIFF_BYTES, sniff};
+use crate::input::{SNIFF_BYTES, classify};
 use crate::inspect::{DocumentReport, Suggestion, suggest_for_batch};
 use crate::ports::FileStore;
 use crate::query::Thumbnail;
@@ -66,6 +66,14 @@ pub enum InputKindDto {
     Pdf,
     /// A raster image.
     Image,
+    /// A word processor document.
+    Word,
+    /// A presentation.
+    Slides,
+    /// A spreadsheet.
+    Sheet,
+    /// A web page saved as a file.
+    Html,
 }
 
 impl From<InputKind> for InputKindDto {
@@ -73,6 +81,10 @@ impl From<InputKind> for InputKindDto {
         match kind {
             InputKind::Pdf => Self::Pdf,
             InputKind::Image => Self::Image,
+            InputKind::Word => Self::Word,
+            InputKind::Slides => Self::Slides,
+            InputKind::Sheet => Self::Sheet,
+            InputKind::Html => Self::Html,
         }
     }
 }
@@ -124,10 +136,10 @@ fn classify_one(files: &dyn FileStore, path: &Path) -> Result<InputKind, AppErro
     )?;
     let canonical = files.canonicalize(path)?;
     let head = files.read_head(&canonical, SNIFF_BYTES)?;
-    sniff(&head).ok_or_else(|| {
+    classify(&head, &canonical).ok_or_else(|| {
         AppError::new(
             domain::ErrorCode::InputNotPdf,
-            "This file is not a PDF or a supported image.",
+            "This file is not a PDF, an image, an Office document or a web page Quirewise can convert.",
         )
     })
 }

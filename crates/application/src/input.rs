@@ -37,6 +37,39 @@ pub fn sniff(head: &[u8]) -> Option<InputKind> {
     is_image.then_some(InputKind::Image)
 }
 
+const ZIP_MAGIC: &[u8] = b"PK\x03\x04";
+const OLE_MAGIC: &[u8] = &[0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+
+/// Detects the kind of a file from its first bytes and its extension.
+///
+/// PDFs and images are recognized by their bytes alone. Office files are zip archives or OLE
+/// containers, which many unrelated formats share, so the extension says which program's file it
+/// is; the bytes must still match the container the extension promises.
+pub fn classify(head: &[u8], path: &Path) -> Option<InputKind> {
+    if let Some(kind) = sniff(head) {
+        return Some(kind);
+    }
+    let extension = path
+        .extension()
+        .map(|e| e.to_string_lossy().to_ascii_lowercase())?;
+    let zip = head.starts_with(ZIP_MAGIC);
+    let ole = head.starts_with(OLE_MAGIC);
+    let rtf = head.starts_with(b"{\\rtf");
+    match extension.as_str() {
+        "docx" | "docm" | "dotx" | "dotm" | "odt" | "ott" if zip => Some(InputKind::Word),
+        "doc" | "dot" if ole => Some(InputKind::Word),
+        "rtf" if rtf => Some(InputKind::Word),
+        "pptx" | "pptm" | "ppsx" | "ppsm" | "potx" | "potm" | "odp" | "otp" if zip => {
+            Some(InputKind::Slides)
+        }
+        "ppt" | "pps" | "pot" if ole => Some(InputKind::Slides),
+        "xlsx" | "xlsm" | "xltx" | "xltm" | "xlsb" | "ods" | "ots" if zip => Some(InputKind::Sheet),
+        "xls" | "xlt" if ole => Some(InputKind::Sheet),
+        "html" | "htm" | "xhtml" if !head.contains(&0) => Some(InputKind::Html),
+        _ => None,
+    }
+}
+
 /// Validates one input path and returns it as an [`InputDoc`] with a canonical path.
 ///
 /// Errors: `QW-PATH-DENIED` (policy, missing, too large) and `QW-INPUT-NOT-PDF` (unknown kind
@@ -59,7 +92,7 @@ pub fn validate_input(
         ));
     }
     let head = files.read_head(&canonical, SNIFF_BYTES)?;
-    let kind = sniff(&head).ok_or_else(not_supported)?;
+    let kind = classify(&head, &canonical).ok_or_else(not_supported)?;
     if !accepts.contains(&kind) {
         return Err(not_supported());
     }
@@ -90,6 +123,31 @@ mod tests {
         assert_eq!(sniff(b"II*\0"), Some(InputKind::Image));
         assert_eq!(sniff(b"PK\x03\x04"), None);
         assert_eq!(sniff(b""), None);
+    }
+
+    #[test]
+    fn office_files_are_told_apart_by_extension_and_container() {
+        let zip = b"PK\x03\x04rest";
+        let ole = [0xD0u8, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1, 0, 0];
+        let kind = |head: &[u8], name: &str| classify(head, Path::new(name));
+        assert_eq!(kind(zip, "a.docx"), Some(InputKind::Word));
+        assert_eq!(kind(zip, "A.DOCX"), Some(InputKind::Word));
+        assert_eq!(kind(&ole, "a.doc"), Some(InputKind::Word));
+        assert_eq!(kind(b"{\\rtf1\\ansi", "a.rtf"), Some(InputKind::Word));
+        assert_eq!(kind(zip, "a.pptx"), Some(InputKind::Slides));
+        assert_eq!(kind(&ole, "a.ppt"), Some(InputKind::Slides));
+        assert_eq!(kind(zip, "a.xlsx"), Some(InputKind::Sheet));
+        assert_eq!(kind(zip, "a.ods"), Some(InputKind::Sheet));
+        assert_eq!(kind(&ole, "a.xls"), Some(InputKind::Sheet));
+        assert_eq!(kind(b"<html><body>", "a.html"), Some(InputKind::Html));
+        // A zip that is not an office file, and an office name on the wrong container.
+        assert_eq!(kind(zip, "a.zip"), None);
+        assert_eq!(kind(&ole, "a.docx"), None);
+        assert_eq!(kind(zip, "a.doc"), None);
+        assert_eq!(kind(b"not rtf", "a.rtf"), None);
+        assert_eq!(kind(b"\0\0binary", "a.html"), None);
+        // Bytes win over a misleading name.
+        assert_eq!(kind(b"%PDF-1.7", "a.docx"), Some(InputKind::Pdf));
     }
 
     #[test]
