@@ -2,6 +2,9 @@
 
 mod combine;
 mod common;
+mod compare;
+mod comparediff;
+mod comparereport;
 mod convert;
 mod document;
 mod editor;
@@ -81,6 +84,7 @@ pub fn register_all(
     registry.register(Arc::new(secure::UnlockTool::new(deps.clone())))?;
     registry.register(Arc::new(secure::SanitizeTool::new(deps.clone())))?;
     registry.register(Arc::new(redact::RedactTool::new(deps.clone())))?;
+    registry.register(Arc::new(compare::CompareTool::new(deps.clone())))?;
     registry.register(Arc::new(stamp::PageNumbersTool::new(deps.clone())))?;
     registry.register(Arc::new(stamp::HeaderFooterTool::new(deps.clone())))?;
     registry.register(Arc::new(stamp::BatesTool::new(deps.clone())))?;

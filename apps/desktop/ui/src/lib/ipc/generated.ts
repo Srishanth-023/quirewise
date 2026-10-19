@@ -377,6 +377,13 @@ export type Bytes = number;
  */
 export type Cipher = 'aes256' | 'aes128';
 /**
+ * What to compare.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "CompareMode".
+ */
+export type CompareMode = 'both' | 'text' | 'visual';
+/**
  * How hard Compress works. Presets set the image quality and resolution; the advanced options
  * override them one by one.
  *
@@ -958,6 +965,7 @@ export type ToolId =
   | 'rename-by-content'
   | 'attachments'
   | 'page-labels'
+  | 'compare'
   | 'redact'
   | 'edit-pdf'
   | 'annotate'
@@ -1730,6 +1738,31 @@ export type ToolOptions =
        */
       remove_all?: boolean;
       tool: 'page-labels';
+    }
+  | {
+      /**
+       * Resolution of the pictures the pages are compared at. Default 100.
+       */
+      dpi?: number;
+      /**
+       * Treat runs of spaces and tabs as one space, and ignore blank lines. Default on.
+       */
+      ignore_whitespace?: boolean;
+      /**
+       * What to compare. Default both the text and the look of the pages.
+       */
+      mode?: 'both' | 'text' | 'visual';
+      /**
+       * Pages to compare, by number in both files: `all`, `even`, `odd` or a range such as
+       * `1,3-5`. Default `all`.
+       */
+      pages?: string;
+      /**
+       * How much the color of a pixel may differ, in percent of the full range, before the pixel
+       * counts as changed. Default 2.
+       */
+      tolerance_percent?: number;
+      tool: 'compare';
     }
   | {
       /**
@@ -4158,6 +4191,31 @@ export interface RunBatchRequest {
       }
     | {
         /**
+         * Resolution of the pictures the pages are compared at. Default 100.
+         */
+        dpi?: number;
+        /**
+         * Treat runs of spaces and tabs as one space, and ignore blank lines. Default on.
+         */
+        ignore_whitespace?: boolean;
+        /**
+         * What to compare. Default both the text and the look of the pages.
+         */
+        mode?: 'both' | 'text' | 'visual';
+        /**
+         * Pages to compare, by number in both files: `all`, `even`, `odd` or a range such as
+         * `1,3-5`. Default `all`.
+         */
+        pages?: string;
+        /**
+         * How much the color of a pixel may differ, in percent of the full range, before the pixel
+         * counts as changed. Default 2.
+         */
+        tolerance_percent?: number;
+        tool: 'compare';
+      }
+    | {
+        /**
          * Rectangles drawn on pages.
          */
         areas?: RedactArea[];
@@ -4649,6 +4707,7 @@ export interface RunBatchRequest {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'compare'
     | 'redact'
     | 'edit-pdf'
     | 'annotate'
@@ -5107,6 +5166,7 @@ export interface ToolDescriptor {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'compare'
     | 'redact'
     | 'edit-pdf'
     | 'annotate'

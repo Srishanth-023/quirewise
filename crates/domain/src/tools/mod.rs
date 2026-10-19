@@ -2,6 +2,7 @@
 
 pub mod combine;
 pub mod common;
+pub mod compare;
 pub mod convert;
 pub mod document;
 pub mod editor;
@@ -24,6 +25,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::DomainError;
 pub use combine::{AlternateMixOptions, MergeOptions, OrganizeOptions};
+pub use compare::CompareOptions;
 pub use convert::{
     ExtractImagesOptions, ImagesToPdfOptions, PdfToImagesOptions, PdfToTextOptions,
     PdfToTiffOptions, TiffToPdfOptions,
@@ -155,6 +157,8 @@ pub enum ToolId {
     Attachments,
     /// Page labels (row 66).
     PageLabels,
+    /// Compare (row 55).
+    Compare,
     /// Redact (row 54).
     Redact,
     /// Edit PDF (row 42).
@@ -207,7 +211,7 @@ pub enum ToolId {
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 59] = [
+    pub const ALL: [ToolId; 60] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -243,6 +247,7 @@ impl ToolId {
         ToolId::RenameByContent,
         ToolId::Attachments,
         ToolId::PageLabels,
+        ToolId::Compare,
         ToolId::Redact,
         ToolId::EditPdf,
         ToolId::Annotate,
@@ -307,6 +312,7 @@ impl ToolId {
             Self::RenameByContent => "rename-by-content",
             Self::Attachments => "attachments",
             Self::PageLabels => "page-labels",
+            Self::Compare => "compare",
             Self::Redact => "redact",
             Self::EditPdf => "edit-pdf",
             Self::Annotate => "annotate",
@@ -426,6 +432,8 @@ pub enum ToolOptions {
     Attachments(AttachmentsOptions),
     /// Options for [`ToolId::PageLabels`].
     PageLabels(PageLabelsOptions),
+    /// Options for [`ToolId::Compare`].
+    Compare(CompareOptions),
     /// Options for [`ToolId::Redact`].
     Redact(RedactOptions),
     /// Options for [`ToolId::EditPdf`].
@@ -515,6 +523,7 @@ impl ToolOptions {
             Self::RenameByContent(_) => ToolId::RenameByContent,
             Self::Attachments(_) => ToolId::Attachments,
             Self::PageLabels(_) => ToolId::PageLabels,
+            Self::Compare(_) => ToolId::Compare,
             Self::Redact(_) => ToolId::Redact,
             Self::EditPdf(_) => ToolId::EditPdf,
             Self::Annotate(_) => ToolId::Annotate,
@@ -582,6 +591,7 @@ impl ToolOptions {
             ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
             ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
             ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
+            ToolId::Compare => Self::Compare(CompareOptions::default()),
             ToolId::Redact => Self::Redact(RedactOptions::default()),
             ToolId::EditPdf => Self::EditPdf(EditPdfOptions::default()),
             ToolId::Annotate => Self::Annotate(AnnotateOptions::default()),

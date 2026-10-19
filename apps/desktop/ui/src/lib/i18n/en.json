@@ -880,5 +880,17 @@
   "option.redact.pages": "Pages to search",
   "option.redact.pages.hint": "For example 1,3-5, even, odd or all. Areas you draw always apply to their own page.",
   "option.redact.fill_color": "Color of the boxes",
-  "option.redact.strip_metadata": "Clear the document information and XMP metadata"
+  "option.redact.strip_metadata": "Clear the document information and XMP metadata",
+  "tool.compare": "Compare",
+  "option.compare.mode": "What to compare",
+  "choice.compare.mode.both": "The text and the look of the pages",
+  "choice.compare.mode.text": "The text only",
+  "choice.compare.mode.visual": "The look of the pages only",
+  "option.compare.tolerance_percent": "How much a color may differ (percent)",
+  "option.compare.tolerance_percent.hint": "Pixels that differ by less than this are not counted as changed. 2 ignores tiny shading differences.",
+  "option.compare.ignore_whitespace": "Ignore spacing and blank lines in the text",
+  "option.compare.pages": "Pages to compare",
+  "option.compare.pages.hint": "Page numbers are the same in both files, for example 1,3-5, even, odd or all. Add the original first, then the changed file.",
+  "option.compare.dpi": "Resolution of the page pictures (dpi)",
+  "option.compare.dpi.hint": "100 is enough to see changes. Use more to see very small ones."
 }

@@ -103,3 +103,4 @@ The Word, PowerPoint and Excel files are written with the `zip` and `image` crat
 | Component | License | Use |
 |---|---|---|
 | regex | MIT or Apache-2.0 | Searches the text of pages for Redact (linear time, so a pattern cannot hang a run) |
+| similar | Apache-2.0 | Line differences for Compare |
