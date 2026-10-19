@@ -10,6 +10,8 @@ mod heic;
 mod imagepdf;
 mod pages;
 mod pictures;
+mod scan;
+mod scanpdf;
 mod tiffio;
 
 use application::AppError;
@@ -64,6 +66,8 @@ struct Prepared {
     bits: u8,
     /// Quarter turns clockwise (0, 90, 180 or 270) that show the pixels upright.
     turns: u16,
+    /// Extra settings of the filter, such as the width of a CCITT Group 4 image.
+    decode_parms: Option<lopdf::Dictionary>,
 }
 
 /// JPEG bytes can be embedded directly when they are 8-bit gray or RGB.
@@ -84,6 +88,7 @@ fn prepare_jpeg(bytes: &[u8]) -> Option<Prepared> {
         alpha: None,
         bits: 8,
         turns: 0,
+        decode_parms: None,
     })
 }
 
@@ -106,6 +111,7 @@ fn prepare_decoded(image: DynamicImage) -> Result<Prepared, AppError> {
             alpha: Some(flate(&alpha)?),
             bits: 8,
             turns: 0,
+            decode_parms: None,
         });
     }
     let (color_space, raw) = if image.color().has_color() {
@@ -122,6 +128,7 @@ fn prepare_decoded(image: DynamicImage) -> Result<Prepared, AppError> {
         alpha: None,
         bits: 8,
         turns: 0,
+        decode_parms: None,
     })
 }
 

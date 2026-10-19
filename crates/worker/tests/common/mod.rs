@@ -3,7 +3,7 @@
 // Test helpers outside `#[test]` functions may unwrap: a failure should stop the test at once.
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use application::ports::{PdfReader, Renderer, TextExtractor};
+use application::ports::{OcrEngine, PdfReader, Renderer, TextExtractor};
 use application::{
     AppError, CancellationToken, InputDoc, NoProgress, OutputArtifact, Password, UnitRequest,
     UnitRunner,
@@ -13,7 +13,7 @@ use domain::tools::common::Region;
 use domain::{Dpi, PageIndex, ToolOptions};
 use infrastructure::{AtomicFileStore, NativePaths, SystemClock, TracingLogger};
 use quirewise_engine_pdfium::PdfiumEngine;
-use quirewise_worker::engine::{Engines, build_services};
+use quirewise_worker::engine::{Engines, build_services, tool_deps};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -23,6 +23,7 @@ pub struct Lab {
     pub dir: tempfile::TempDir,
     pub runner: Arc<dyn UnitRunner>,
     pub engine: PdfiumEngine,
+    pub ocr: Arc<dyn OcrEngine>,
 }
 
 /// What a rendered page looks like in numbers.
@@ -59,8 +60,18 @@ impl Lab {
         Self {
             dir,
             runner: services.runner,
+            ocr: tool_deps(&engines).ocr,
             engine: engines.pdfium,
         }
+    }
+
+    /// True when Tesseract and the language are installed, so OCR tests can run.
+    pub fn ocr_ready(&self, language: &str) -> bool {
+        self.ocr.is_available()
+            && self
+                .ocr
+                .languages()
+                .is_ok_and(|l| l.iter().any(|x| x == language))
     }
 
     pub fn put(&self, name: &str, bytes: &[u8]) -> PathBuf {

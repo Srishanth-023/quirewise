@@ -21,5 +21,12 @@
       "url": "https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2-msvc-arm64.zip",
       "sha256": "2b5d7740a2513d8a841116692dc2cf7efe83f35262386ebab18bed35fbf15ab1"
     }
+  },
+  "tessdata": {
+    "_comment": "tessdata_fast language files from github.com/tesseract-ocr/tessdata_fast (main). SHA-256 values were computed on 2026-10-19 from the downloads and are re-verified on every fetch.",
+    "eng": {
+      "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata",
+      "sha256": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
+    }
   }
 }

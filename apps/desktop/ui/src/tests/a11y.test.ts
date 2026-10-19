@@ -15,6 +15,8 @@ const ipc = vi.hoisted(() => ({
   recentClear: vi.fn(),
   getSettings: vi.fn(),
   componentsInstalled: vi.fn(),
+  ocrLanguages: vi.fn(),
+  scanAvailable: vi.fn(),
   saveSettings: vi.fn(),
 }));
 
@@ -47,6 +49,8 @@ beforeEach(() => {
   ipc.recentAdd.mockResolvedValue(undefined);
   ipc.getSettings.mockResolvedValue({ theme: 'system', remember_recent_files: true });
   ipc.componentsInstalled.mockResolvedValue([]);
+  ipc.ocrLanguages.mockResolvedValue(['eng', 'deu']);
+  ipc.scanAvailable.mockResolvedValue(false);
 });
 
 /** Structural accessibility rules. Color contrast needs real layout, so contrast.test.ts covers it. */

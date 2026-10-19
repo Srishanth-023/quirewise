@@ -21,6 +21,8 @@ export interface ToolForm {
   picker?: Record<string, 'image' | 'files'>;
   /** Lists of objects edited as rows the person can add, remove and move. */
   rows?: string[];
+  /** Language lists drawn as a choice of the installed recognition languages. */
+  languagePicker?: string[];
   /** Draw the region picker over the first page; `when` limits it to one value of another field. */
   regionPicker?: { when?: ShowRule };
 }
@@ -311,6 +313,27 @@ export const toolForms: Record<string, ToolForm> = {
     visibleWhen: {
       ...only(['custom_width_mm', 'custom_height_mm'], { field: 'page_size', equals: 'custom' }),
     },
+  },
+  ocr: {
+    order: ['languages', 'output', 'skip_pages_with_text', 'deskew', 'pages', 'dpi'],
+    languagePicker: ['languages'],
+    limits: { dpi: { min: 100, max: 600 } },
+  },
+  deskew: {
+    order: ['mode', 'pages', 'max_angle_deg', 'angles'],
+    rows: ['angles'],
+    limits: { max_angle_deg: { min: 1, max: 45 } },
+    visibleWhen: {
+      pages: { field: 'mode', equals: 'auto' },
+      max_angle_deg: { field: 'mode', equals: 'auto' },
+      angles: { field: 'mode', equals: 'manual' },
+    },
+  },
+  'scan-to-pdf': {
+    order: ['auto_crop', 'perspective_fix', 'color', 'dpi', 'ocr', 'languages'],
+    languagePicker: ['languages'],
+    limits: { dpi: { min: 100, max: 600 } },
+    visibleWhen: { languages: { field: 'ocr', equals: true } },
   },
   'insert-pages': {
     order: ['mode', 'pages', 'position', 'count', 'page_size'],

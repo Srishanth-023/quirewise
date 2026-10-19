@@ -28,6 +28,7 @@ quirewise-engine-raster = { path = "../engines/raster" }
 quirewise-engine-office-libreoffice = { path = "../engines/office-libreoffice" }
 quirewise-engine-office-msoffice = { path = "../engines/office-msoffice" }
 quirewise-engine-html-webview2 = { path = "../engines/html-webview2" }
+quirewise-engine-ocr-tesseract = { path = "../engines/ocr-tesseract" }
 
 [dev-dependencies]
 test-support.workspace = true

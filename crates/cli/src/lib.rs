@@ -307,7 +307,7 @@ pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
             let query = DocumentQuery::Inspect { path, password };
             match queries.query(&query, &CancellationToken::new())? {
                 QueryResult::Inspect(report) => json(&*report),
-                QueryResult::Thumbnail(_) => Err(AppError::internal("inspecting the file")),
+                _ => Err(AppError::internal("inspecting the file")),
             }
         }
         Command::Thumbnail {

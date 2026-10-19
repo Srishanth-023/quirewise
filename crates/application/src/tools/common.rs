@@ -13,11 +13,12 @@ use crate::inspect::PdfiumFacts;
 use crate::ports::{
     AssemblyPlan, AttachmentReader, DocumentInfo, ExtractReport, ExtractedImage, FileStore,
     FormFlattener, HeadingFinder, HtmlConverter, HtmlSource, ImageConverter, ImageExtractor,
-    ImageOptimizer, ImageReport, OfficeConverter, OfficeEngines, OfficeKind, OfficeRequest,
-    OutlineItem, OutlineReader, PackageOptions, PageImage, PageImageWriter, PageSize, PdfEdit,
-    PdfEditor, PdfPackager, PdfReader, PdfRepairer, PdfSecurity, PdfVerifier, PdfWriter,
-    PictureSpec, PictureWriter, PngImage, ProtectionSource, RenderedImage, Renderer, RepairOutcome,
-    TextExtractor, TiffPages, TiffSpec, TocBuilder, TocLine,
+    ImageOptimizer, ImageReport, OcrEngine, OfficeConverter, OfficeEngines, OfficeKind,
+    OfficeRequest, OutlineItem, OutlineReader, PackageOptions, PageImage, PageImageWriter,
+    PageSize, PdfEdit, PdfEditor, PdfPackager, PdfReader, PdfRepairer, PdfSecurity, PdfVerifier,
+    PdfWriter, PictureSpec, PictureWriter, PngImage, ProtectionSource, RenderedImage, Renderer,
+    RepairOutcome, ScanPageWriter, SkewDetector, TextExtractor, TiffPages, TiffSpec, TocBuilder,
+    TocLine,
 };
 use crate::runtime::{Password, ProgressEvent};
 use crate::tool::{InputDoc, JobContext, OutputArtifact};
@@ -71,6 +72,12 @@ pub struct ToolDeps {
     pub office: OfficeEngines,
     /// Web pages to PDF.
     pub html: Arc<dyn HtmlConverter>,
+    /// Text recognition.
+    pub ocr: Arc<dyn OcrEngine>,
+    /// Tilt of scanned pages.
+    pub skew: Arc<dyn SkewDetector>,
+    /// Pictures of pages to PDF.
+    pub scans: Arc<dyn ScanPageWriter>,
 }
 
 impl ToolDeps {
@@ -102,7 +109,10 @@ impl ToolDeps {
                 microsoft: none.clone(),
                 libre: none.clone(),
             },
-            html: none,
+            html: none.clone(),
+            ocr: none.clone(),
+            skew: none.clone(),
+            scans: none,
         }
     }
 }
@@ -209,6 +219,58 @@ impl OfficeConverter for Unavailable {
         _: &Path,
         _: &crate::runtime::CancellationToken,
     ) -> Result<(), AppError> {
+        missing()
+    }
+}
+
+impl OcrEngine for Unavailable {
+    fn is_available(&self) -> bool {
+        false
+    }
+    fn languages(&self) -> Result<Vec<String>, AppError> {
+        Ok(Vec::new())
+    }
+    fn recognize(
+        &self,
+        _: &RenderedImage,
+        _: &[String],
+        _: Dpi,
+        _: &Path,
+        _: &crate::runtime::CancellationToken,
+    ) -> Result<String, AppError> {
+        missing()
+    }
+    fn text_layer(
+        &self,
+        _: &RenderedImage,
+        _: &[String],
+        _: Dpi,
+        _: &Path,
+        _: &Path,
+        _: &crate::runtime::CancellationToken,
+    ) -> Result<(), AppError> {
+        missing()
+    }
+}
+
+impl SkewDetector for Unavailable {
+    fn skew(&self, _: &RenderedImage, _: f32) -> Result<Option<f32>, AppError> {
+        missing()
+    }
+    fn rotate(&self, _: &RenderedImage, _: f32) -> Result<RenderedImage, AppError> {
+        missing()
+    }
+}
+
+impl ScanPageWriter for Unavailable {
+    fn scans_to_pdf(
+        &self,
+        _: &[PathBuf],
+        _: &domain::tools::recognize::ScanToPdfOptions,
+        _: &Path,
+        _: &Path,
+        _: &crate::runtime::CancellationToken,
+    ) -> Result<u32, AppError> {
         missing()
     }
 }

@@ -25,7 +25,7 @@ pub fn inspect_document(
     let query = DocumentQuery::Inspect { path, password };
     match state.queries.query(&query, &CancellationToken::new())? {
         QueryResult::Inspect(report) => Ok(*report),
-        QueryResult::Thumbnail(_) => Err(AppError::internal("inspecting the file")),
+        _ => Err(AppError::internal("inspecting the file")),
     }
 }
 
@@ -46,6 +46,18 @@ pub fn render_thumbnail(
     };
     match state.queries.query(&query, &CancellationToken::new())? {
         QueryResult::Thumbnail(thumbnail) => Ok(thumbnail),
-        QueryResult::Inspect(_) => Err(AppError::internal("rendering the page")),
+        _ => Err(AppError::internal("rendering the page")),
+    }
+}
+
+/// The text recognition languages that are installed, as Tesseract codes such as `eng`.
+#[tauri::command(async)]
+pub fn ocr_languages(state: State<'_, AppState>) -> Result<Vec<String>, AppError> {
+    match state
+        .queries
+        .query(&DocumentQuery::OcrLanguages, &CancellationToken::new())?
+    {
+        QueryResult::OcrLanguages(list) => Ok(list),
+        _ => Err(AppError::internal("listing the languages")),
     }
 }

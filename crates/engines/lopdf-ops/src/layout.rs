@@ -123,6 +123,33 @@ pub fn flip_pages(
     Ok(())
 }
 
+/// Turns the content of pages about the center of the page as the person sees it. The content
+/// is wrapped in a matrix, so pictures and text keep their quality; the page keeps its size, and
+/// annotations stay where they were.
+pub fn deskew_pages(doc: &mut Document, turns: &[(PageIndex, f32)]) -> Result<(), AppError> {
+    for (index, degrees) in turns {
+        if degrees.abs() < f32::EPSILON {
+            continue;
+        }
+        let id = page_object(doc, index.get())?;
+        let (w, h) = displayed_size(doc, id);
+        let (cx, cy) = (w / 2.0, h / 2.0);
+        let (s, c) = degrees.to_radians().sin_cos();
+        // Counter-clockwise about the center, in the displayed frame (x right, y up).
+        let turn = [c, s, -s, c, cx - cx * c + cy * s, cy - cx * s - cy * c];
+        let shown = display_matrix(doc, id);
+        // User space to the displayed frame, turn, and back to user space.
+        let matrix = multiply(multiply(invert(shown), turn), shown);
+        wrap_content(
+            doc,
+            id,
+            Some(format!("q\n{}", cm(matrix)).into_bytes()),
+            Some(b"Q\n".to_vec()),
+        )?;
+    }
+    Ok(())
+}
+
 /// Sets the media box of the listed pages to the crop box they were just given.
 pub fn crop_media_box(doc: &mut Document, pages: &[PageIndex]) -> Result<(), AppError> {
     for index in pages {
@@ -255,6 +282,67 @@ mod tests {
         let id = doc.get_pages()[&(page + 1)];
         let [a, b, c, d] = visible_box(doc, id);
         [a, b, c, d]
+    }
+
+    fn apply(m: [f32; 6], x: f32, y: f32) -> (f32, f32) {
+        (m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5])
+    }
+
+    /// The matrix of the last `cm` on a page.
+    fn last_cm(doc: &Document, page: u32) -> [f32; 6] {
+        let content = content_of(doc, page);
+        let line = content
+            .lines()
+            .find(|l| l.ends_with(" cm"))
+            .expect("a cm line");
+        let n: Vec<f32> = line
+            .trim_end_matches(" cm")
+            .split_whitespace()
+            .map(|v| v.parse().unwrap())
+            .collect();
+        [n[0], n[1], n[2], n[3], n[4], n[5]]
+    }
+
+    #[test]
+    fn deskew_turns_content_about_the_center_of_the_displayed_page() {
+        for rotate in [0u32, 90, 180, 270] {
+            let mut doc =
+                Document::load_mem(&pdfs::pdf_with_geometry(&[(400, 600, rotate)])).unwrap();
+            deskew_pages(&mut doc, &[(PageIndex::new(0), 90.0)]).unwrap();
+            let m = last_cm(&doc, 0);
+            let id = doc.get_pages()[&1];
+            let shown = display_matrix(&doc, id);
+            let (w, h) = displayed_size(&doc, id);
+            // A point right of the center in the displayed frame ends up above it after a
+            // counter-clockwise quarter turn.
+            let user_of = |x: f32, y: f32| apply(shown, x, y);
+            let before = user_of(w / 2.0 + 100.0, h / 2.0);
+            let after = user_of(w / 2.0, h / 2.0 + 100.0);
+            let got = apply(m, before.0, before.1);
+            assert!(
+                (got.0 - after.0).abs() < 1e-2 && (got.1 - after.1).abs() < 1e-2,
+                "rotation {rotate}: {got:?} vs {after:?}"
+            );
+            // The center stays where it is.
+            let center = user_of(w / 2.0, h / 2.0);
+            let moved = apply(m, center.0, center.1);
+            assert!((moved.0 - center.0).abs() < 1e-2 && (moved.1 - center.1).abs() < 1e-2);
+        }
+    }
+
+    #[test]
+    fn deskew_leaves_other_pages_and_zero_angles_alone() {
+        let mut doc =
+            Document::load_mem(&pdfs::pdf_with_geometry(&[(300, 400, 0), (300, 400, 0)])).unwrap();
+        let before = content_of(&doc, 1);
+        deskew_pages(
+            &mut doc,
+            &[(PageIndex::new(0), 3.0), (PageIndex::new(1), 0.0)],
+        )
+        .unwrap();
+        assert!(content_of(&doc, 0).contains(" cm"));
+        assert_eq!(content_of(&doc, 1), before);
+        assert!(deskew_pages(&mut doc, &[(PageIndex::new(9), 1.0)]).is_err());
     }
 
     #[test]

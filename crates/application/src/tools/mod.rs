@@ -8,6 +8,7 @@ mod insert;
 mod layout;
 mod office;
 mod optimize;
+mod recognize;
 mod rotate;
 mod secure;
 mod select;
@@ -40,6 +41,9 @@ pub fn register_all(
     registry.register(Arc::new(office::PowerPointToPdfTool::new(deps.clone())))?;
     registry.register(Arc::new(office::ExcelToPdfTool::new(deps.clone())))?;
     registry.register(Arc::new(office::HtmlToPdfTool::new(deps.clone())))?;
+    registry.register(Arc::new(recognize::OcrTool::new(deps.clone())))?;
+    registry.register(Arc::new(recognize::DeskewTool::new(deps.clone())))?;
+    registry.register(Arc::new(recognize::ScanToPdfTool::new(deps.clone())))?;
     registry.register(Arc::new(combine::AlternateMixTool::new(deps.clone())))?;
     registry.register(Arc::new(combine::OrganizeTool::new(deps.clone())))?;
     registry.register(Arc::new(select::SplitRangesTool::new(deps.clone())))?;

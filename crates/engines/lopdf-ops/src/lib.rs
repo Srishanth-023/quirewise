@@ -19,6 +19,7 @@ mod pageres;
 mod sanitize;
 mod scan;
 mod stamp;
+mod textlayer;
 mod toc;
 
 pub use toc::LopdfToc;

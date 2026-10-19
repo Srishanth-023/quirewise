@@ -238,6 +238,14 @@ pub enum PdfEdit {
         /// Which pages.
         pages: Vec<PageIndex>,
     },
+    /// Several edits, one after the other.
+    Sequence(Vec<PdfEdit>),
+    /// Turns the content of pages about the center of the page as displayed. The angle is in
+    /// degrees, counter-clockwise; the page keeps its size.
+    Deskew(Vec<(PageIndex, f32)>),
+    /// Draws the single page of each file over the page it is listed with. The recognizer writes
+    /// these pages with invisible text, so a scanned page becomes searchable.
+    TextLayers(Vec<(PageIndex, PathBuf)>),
     /// Puts several pages on each sheet.
     NUp(NUpOptions),
     /// Turns colored text and lines gray (pictures are handled separately).
@@ -460,6 +468,33 @@ pub trait TiffPages {
 
     /// Completes the file.
     fn finish(self: Box<Self>) -> Result<(), AppError>;
+}
+
+/// Measures how far a scanned page is tilted.
+pub trait SkewDetector: Send + Sync {
+    /// The angle in degrees that turns the content counter-clockwise until its text lines run
+    /// level, or `None` when the page has too little to go by. Tilts larger than
+    /// `max_angle_deg` are not looked for.
+    fn skew(&self, image: &RenderedImage, max_angle_deg: f32) -> Result<Option<f32>, AppError>;
+
+    /// The picture turned counter-clockwise by `degrees` about its center, on the same canvas,
+    /// with white where the picture no longer reaches.
+    fn rotate(&self, image: &RenderedImage, degrees: f32) -> Result<RenderedImage, AppError>;
+}
+
+/// Turns pictures of pages into a PDF.
+pub trait ScanPageWriter: Send + Sync {
+    /// Cuts away the background, stands tilted pages upright, reduces the colors as asked and
+    /// writes one page per picture to `dest`. Returns how many pages it wrote. The resolution in
+    /// `options` sets the page size.
+    fn scans_to_pdf(
+        &self,
+        images: &[PathBuf],
+        options: &domain::tools::recognize::ScanToPdfOptions,
+        scratch: &Path,
+        dest: &Path,
+        cancel: &crate::runtime::CancellationToken,
+    ) -> Result<u32, AppError>;
 }
 
 /// Writes rendered pages as picture files.
@@ -686,8 +721,33 @@ pub trait TextExtractor: Send + Sync {
 
 /// Optical character recognition.
 pub trait OcrEngine: Send + Sync {
-    /// Recognizes text in an image using Tesseract language codes such as `eng`.
-    fn recognize(&self, image: &RenderedImage, languages: &[String]) -> Result<String, AppError>;
+    /// True when the recognizer is installed.
+    fn is_available(&self) -> bool;
+
+    /// Codes of the languages that are installed, such as `eng`.
+    fn languages(&self) -> Result<Vec<String>, AppError>;
+
+    /// The text of a page picture read at `dpi`. `scratch` is a folder for temporary files.
+    fn recognize(
+        &self,
+        image: &RenderedImage,
+        languages: &[String],
+        dpi: Dpi,
+        scratch: &Path,
+        cancel: &crate::runtime::CancellationToken,
+    ) -> Result<String, AppError>;
+
+    /// Writes a one-page PDF at `dest` that holds only the invisible text of the page picture.
+    /// Its page is as large as the picture is at `dpi`.
+    fn text_layer(
+        &self,
+        image: &RenderedImage,
+        languages: &[String],
+        dpi: Dpi,
+        scratch: &Path,
+        dest: &Path,
+        cancel: &crate::runtime::CancellationToken,
+    ) -> Result<(), AppError>;
 }
 
 /// The kind of Office document a conversion starts from.

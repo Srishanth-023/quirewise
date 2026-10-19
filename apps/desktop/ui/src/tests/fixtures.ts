@@ -257,3 +257,45 @@ export const htmlSchema = {
   },
   $defs: { PaperSize: choices(['a4', 'letter', 'custom']) },
 };
+
+/** OCR: a list of language codes, a choice and switches. */
+export const ocrSchema = {
+  type: 'object',
+  properties: {
+    deskew: { type: 'boolean', default: false },
+    languages: { type: 'array', default: ['eng'], items: { type: 'string' } },
+    output: { $ref: '#/$defs/OcrOutput', default: 'pdf' },
+    pages: { $ref: '#/$defs/PageRange', default: 'all' },
+    skip_pages_with_text: { type: 'boolean', default: true },
+  },
+  $defs: { OcrOutput: choices(['pdf', 'text']), PageRange: pageRange },
+};
+
+/** Deskew: a mode that decides between measuring and typed angles. */
+export const deskewSchema = {
+  type: 'object',
+  properties: {
+    angles: { type: 'array', default: [], items: { $ref: '#/$defs/PageAngle' } },
+    max_angle_deg: { type: 'number', default: 15 },
+    mode: { $ref: '#/$defs/DeskewMode', default: 'auto' },
+    pages: { $ref: '#/$defs/PageRange', default: 'all' },
+  },
+  $defs: {
+    DeskewMode: choices(['auto', 'manual']),
+    PageRange: pageRange,
+    PageAngle: {
+      type: 'object',
+      properties: { degrees: { type: 'number' }, page: { type: 'integer' } },
+    },
+  },
+};
+
+/** Scan to PDF: languages matter only when OCR is on. */
+export const scanSchema = {
+  type: 'object',
+  properties: {
+    auto_crop: { type: 'boolean', default: true },
+    languages: { type: 'array', default: ['eng'], items: { type: 'string' } },
+    ocr: { type: 'boolean', default: false },
+  },
+};

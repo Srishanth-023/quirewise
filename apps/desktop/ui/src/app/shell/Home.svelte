@@ -2,6 +2,7 @@
   import { t } from '../../lib/i18n';
   import DropZone from '../../lib/components/DropZone/DropZone.svelte';
   import Recent from '../../lib/features/recent/View.svelte';
+  import Scan from '../../lib/features/scan/View.svelte';
 
   interface Props {
     dragging: boolean;
@@ -14,6 +15,7 @@
 <div class="home">
   <DropZone active={dragging} {onchoose} />
   <p class="note">{t('about.summary')}</p>
+  <Scan />
   <Recent />
 </div>
 

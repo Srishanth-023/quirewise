@@ -452,6 +452,7 @@ fn prepare(
             alpha: alpha.map(|a| flate(&a)).transpose()?,
             bits,
             turns: 0,
+            decode_parms: None,
         })
     };
     let split = |samples: usize, bytes: &[u8]| -> (Vec<u8>, Vec<u8>) {

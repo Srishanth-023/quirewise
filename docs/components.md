@@ -9,8 +9,12 @@ installs these on demand, with the person's consent, and checks every download b
 | Id | Used by | Notes |
 |---|---|---|
 | `libreoffice` | Word, PowerPoint and Excel to PDF when Microsoft Office is not installed | A copy of LibreOffice already installed on the computer is used too, so nothing is downloaded for it |
+| `tesseract` | OCR, Scan to PDF with OCR | `tesseract.exe` and its libraries in one folder, per architecture (`scripts/build-tesseract.ps1`) |
+| `tessdata-<code>` | The same | One language, a `<code>.traineddata` file (tessdata_fast); `chi_sim` is `tessdata-chi-sim`. `scripts/fetch-tessdata.ps1` gets them for development |
 
-More components (OCR languages, PDF/A validation, local AI) arrive with their tools.
+More components (PDF/A validation, local AI) arrive with their tools.
+
+Every OCR run builds a private data folder with links to the language files it needs, so languages from different components can be combined; the folder and its links are removed afterwards. In a development tree the program is found in `vendor\tesseract\<arch>` and the languages in its `tessdata` folder.
 
 ## Where things live
 

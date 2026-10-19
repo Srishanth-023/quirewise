@@ -7,17 +7,20 @@ import {
   bookmarksSchema,
   byTextSchema,
   cropSchema,
+  deskewSchema,
   editMetadataSchema,
   everyNSchema,
   flattenSchema,
   htmlSchema,
   mergeSchema,
   organizeSchema,
+  ocrSchema,
   pdfToImagesSchema,
   protectSchema,
   removeAnnotationsSchema,
   report,
   rotateSchema,
+  scanSchema,
   watermarkSchema,
 } from './fixtures';
 
@@ -32,6 +35,8 @@ const ipc = vi.hoisted(() => ({
   runBatch: vi.fn(),
   getSettings: vi.fn(),
   componentsInstalled: vi.fn(),
+  ocrLanguages: vi.fn(),
+  scanAvailable: vi.fn(),
   pickPaths: vi.fn(),
 }));
 
@@ -72,6 +77,9 @@ const list = [
   { id: 'crop', group: 'edit', label: 'cropped', input_mode: 'per-file', options_schema: cropSchema },
   { id: 'pdf-to-images', group: 'convert-from-pdf', label: 'images', input_mode: 'per-file', options_schema: pdfToImagesSchema },
   { id: 'html-to-pdf', group: 'convert-to-pdf', label: 'web page', input_mode: 'per-file', options_schema: htmlSchema },
+  { id: 'ocr', group: 'optimize', label: 'ocr', input_mode: 'per-file', options_schema: ocrSchema },
+  { id: 'deskew', group: 'optimize', label: 'straightened', input_mode: 'per-file', options_schema: deskewSchema },
+  { id: 'scan-to-pdf', group: 'convert-to-pdf', label: 'scan', input_mode: 'all-together', options_schema: scanSchema },
 ];
 
 beforeEach(() => {
@@ -87,6 +95,8 @@ beforeEach(() => {
   ipc.recentAdd.mockResolvedValue(undefined);
   ipc.getSettings.mockResolvedValue({ theme: 'system', remember_recent_files: true });
   ipc.componentsInstalled.mockResolvedValue([]);
+  ipc.ocrLanguages.mockResolvedValue(['eng', 'deu']);
+  ipc.scanAvailable.mockResolvedValue(false);
   ipc.runBatch.mockResolvedValue(1);
   jobs.running = false;
   jobs.status = null;
@@ -338,6 +348,61 @@ describe('forms for the conversion tools', () => {
       allow_network: true,
       page_size: 'custom',
     });
+  });
+});
+
+describe('forms for the scan tools', () => {
+  it('offers the installed languages, keeps one chosen and sends the codes', async () => {
+    await open('OCR', ['C:\\a.pdf']);
+    const english = (await screen.findByLabelText(/English/)) as HTMLInputElement;
+    const german = screen.getByLabelText(/German/) as HTMLInputElement;
+    expect(english.checked).toBe(true);
+    expect(german.checked).toBe(false);
+    // The only chosen language cannot be switched off.
+    expect(english.disabled).toBe(true);
+    await fireEvent.click(german);
+    expect(english.disabled).toBe(false);
+    expect(await violations()).toEqual([]);
+    await fireEvent.click(screen.getByRole('button', { name: /Run OCR on 1 file/ }));
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    expect(ipc.runBatch.mock.calls[0]?.[0].options).toMatchObject({
+      tool: 'ocr',
+      languages: ['eng', 'deu'],
+      output: 'pdf',
+      skip_pages_with_text: true,
+    });
+  });
+
+  it('says so when no language is installed', async () => {
+    ipc.ocrLanguages.mockResolvedValue([]);
+    await open('OCR', ['C:\\a.pdf']);
+    expect(await screen.findByText(/No language is installed/)).toBeTruthy();
+  });
+
+  it('shows the angle list only for manual deskew', async () => {
+    await open('Deskew', ['C:\\a.pdf']);
+    await screen.findByRole('group', { name: 'How to find the angle' });
+    expect(screen.queryByRole('button', { name: 'Add entry' })).toBeNull();
+    expect(screen.getByLabelText('Largest tilt to correct (degrees)')).toBeTruthy();
+    await fireEvent.click(screen.getByLabelText('Use the angles I type'));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    expect(screen.queryByLabelText('Largest tilt to correct (degrees)')).toBeNull();
+    await fireEvent.input(screen.getByLabelText('Turn (degrees)'), { target: { value: '-2.5' } });
+    await fireEvent.click(screen.getByRole('button', { name: /Run Deskew on 1 file/ }));
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    expect(ipc.runBatch.mock.calls[0]?.[0].options).toMatchObject({
+      tool: 'deskew',
+      mode: 'manual',
+      angles: [{ page: 1, degrees: -2.5 }],
+    });
+  });
+
+  it('asks for languages in Scan to PDF only when the PDF is made searchable', async () => {
+    await open('Scan to PDF', ['C:\\a.png']);
+    await screen.findByLabelText('Cut away what is not paper');
+    expect(screen.queryByLabelText(/English/)).toBeNull();
+    await fireEvent.click(screen.getByLabelText('Make the PDF searchable'));
+    expect(await screen.findByLabelText(/English/)).toBeTruthy();
   });
 });
 

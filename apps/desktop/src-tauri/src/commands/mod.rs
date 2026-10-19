@@ -7,5 +7,6 @@ pub mod components;
 pub mod documents;
 pub mod jobs;
 pub mod recent;
+pub mod scan;
 pub mod settings;
 pub mod system;

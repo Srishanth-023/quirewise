@@ -5,6 +5,7 @@
   import { toolName } from '../stores/tools.svelte';
   import { formFields, toolOptions } from '../stores/options.svelte';
   import FieldInput from './FieldInput.svelte';
+  import LanguagePicker from './LanguagePicker.svelte';
   import type { Field, Values } from './schema';
   import { formFor, ruleMet } from './toolForms';
   import { itemDefaults } from './schema';
@@ -35,7 +36,8 @@
     const row = itemDefaults(field);
     for (const child of field.children ?? []) {
       if ((child.kind === 'integer' || child.kind === 'number') && typeof row[child.key] !== 'number') {
-        row[child.key] = child.min ?? 1;
+        // A page or a count starts at 1; an amount such as an angle starts at nothing.
+        row[child.key] = child.min ?? (child.kind === 'integer' ? 1 : 0);
       }
     }
     toolOptions.set(tool, field.key, [...rowsOf(field), row]);
@@ -133,6 +135,13 @@
           {/each}
         </section>
       {/if}
+    {:else if hints.languagePicker?.includes(field.key)}
+      <LanguagePicker
+        id={`${tool.id}-${field.key}`}
+        label={listLabel(field)}
+        value={Array.isArray(values[field.key]) ? (values[field.key] as string[]) : []}
+        onchange={(v) => toolOptions.set(tool, field.key, v)}
+      />
     {:else}
       <FieldInput
         {field}

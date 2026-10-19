@@ -8,6 +8,7 @@ pub mod layout;
 pub mod office;
 pub mod optimize;
 pub mod pages;
+pub mod recognize;
 pub mod rotate;
 pub mod secure;
 pub mod stamp;
@@ -33,6 +34,7 @@ pub use pages::{
     SplitBySizeOptions, SplitByTextOptions, SplitEveryNOptions, SplitInHalfOptions,
     SplitRangesOptions,
 };
+pub use recognize::{DeskewOptions, OcrOptions, ScanToPdfOptions};
 pub use rotate::RotateOptions;
 pub use secure::{ProtectOptions, SanitizeOptions, UnlockOptions};
 pub use stamp::{BatesOptions, HeaderFooterOptions, PageNumbersOptions, WatermarkOptions};
@@ -142,6 +144,12 @@ pub enum ToolId {
     Attachments,
     /// Page labels (row 66).
     PageLabels,
+    /// OCR (row 16).
+    Ocr,
+    /// Deskew (row 17).
+    Deskew,
+    /// Scan to PDF (row 13).
+    ScanToPdf,
     /// Word to PDF (row 19).
     WordToPdf,
     /// PowerPoint to PDF (row 20).
@@ -166,7 +174,7 @@ pub enum ToolId {
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 45] = [
+    pub const ALL: [ToolId; 48] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -202,6 +210,9 @@ impl ToolId {
         ToolId::RenameByContent,
         ToolId::Attachments,
         ToolId::PageLabels,
+        ToolId::Ocr,
+        ToolId::Deskew,
+        ToolId::ScanToPdf,
         ToolId::WordToPdf,
         ToolId::PowerpointToPdf,
         ToolId::ExcelToPdf,
@@ -252,6 +263,9 @@ impl ToolId {
             Self::RenameByContent => "rename-by-content",
             Self::Attachments => "attachments",
             Self::PageLabels => "page-labels",
+            Self::Ocr => "ocr",
+            Self::Deskew => "deskew",
+            Self::ScanToPdf => "scan-to-pdf",
             Self::WordToPdf => "word-to-pdf",
             Self::PowerpointToPdf => "powerpoint-to-pdf",
             Self::ExcelToPdf => "excel-to-pdf",
@@ -357,6 +371,12 @@ pub enum ToolOptions {
     Attachments(AttachmentsOptions),
     /// Options for [`ToolId::PageLabels`].
     PageLabels(PageLabelsOptions),
+    /// Options for [`ToolId::Ocr`].
+    Ocr(OcrOptions),
+    /// Options for [`ToolId::Deskew`].
+    Deskew(DeskewOptions),
+    /// Options for [`ToolId::ScanToPdf`].
+    ScanToPdf(ScanToPdfOptions),
     /// Options for [`ToolId::WordToPdf`].
     WordToPdf(WordToPdfOptions),
     /// Options for [`ToolId::PowerpointToPdf`].
@@ -418,6 +438,9 @@ impl ToolOptions {
             Self::RenameByContent(_) => ToolId::RenameByContent,
             Self::Attachments(_) => ToolId::Attachments,
             Self::PageLabels(_) => ToolId::PageLabels,
+            Self::Ocr(_) => ToolId::Ocr,
+            Self::Deskew(_) => ToolId::Deskew,
+            Self::ScanToPdf(_) => ToolId::ScanToPdf,
             Self::WordToPdf(_) => ToolId::WordToPdf,
             Self::PowerpointToPdf(_) => ToolId::PowerpointToPdf,
             Self::ExcelToPdf(_) => ToolId::ExcelToPdf,
@@ -471,6 +494,9 @@ impl ToolOptions {
             ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
             ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
             ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
+            ToolId::Ocr => Self::Ocr(OcrOptions::default()),
+            ToolId::Deskew => Self::Deskew(DeskewOptions::default()),
+            ToolId::ScanToPdf => Self::ScanToPdf(ScanToPdfOptions::default()),
             ToolId::WordToPdf => Self::WordToPdf(WordToPdfOptions::default()),
             ToolId::PowerpointToPdf => Self::PowerpointToPdf(PowerPointToPdfOptions::default()),
             ToolId::ExcelToPdf => Self::ExcelToPdf(ExcelToPdfOptions::default()),

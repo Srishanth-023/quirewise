@@ -106,6 +106,9 @@ impl PageBuilder {
             "BitsPerComponent" => i64::from(prepared.bits),
             "Filter" => prepared.filter,
         };
+        if let Some(parms) = prepared.decode_parms {
+            dict.set("DecodeParms", Object::Dictionary(parms));
+        }
         if let Some(alpha) = prepared.alpha {
             let mask = doc.add_object(Stream::new(
                 dictionary! {

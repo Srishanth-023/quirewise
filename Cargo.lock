@@ -3487,6 +3487,7 @@ dependencies = [
 name = "quirewise-desktop"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "quirewise-application",
  "quirewise-domain",
  "quirewise-infrastructure",
@@ -3496,6 +3497,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
+ "tempfile",
 ]
 
 [[package]]
@@ -3546,6 +3548,12 @@ dependencies = [
 [[package]]
 name = "quirewise-engine-ocr-tesseract"
 version = "0.1.0"
+dependencies = [
+ "image",
+ "quirewise-application",
+ "quirewise-domain",
+ "tempfile",
+]
 
 [[package]]
 name = "quirewise-engine-office-libreoffice"
@@ -3654,6 +3662,7 @@ dependencies = [
  "quirewise-domain",
  "quirewise-engine-html-webview2",
  "quirewise-engine-lopdf-ops",
+ "quirewise-engine-ocr-tesseract",
  "quirewise-engine-office-libreoffice",
  "quirewise-engine-office-msoffice",
  "quirewise-engine-pdfium",

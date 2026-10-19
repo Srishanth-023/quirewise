@@ -13,7 +13,7 @@ use std::sync::Arc;
 use crate::error::AppError;
 use crate::input::validate_input;
 use crate::inspect::{DocumentReport, InspectDocument};
-use crate::ports::{FileStore, PdfReader, Renderer};
+use crate::ports::{FileStore, OcrEngine, PdfReader, Renderer};
 use crate::runtime::{CancellationToken, Password};
 use crate::tool::InputKind;
 
@@ -78,6 +78,8 @@ pub enum DocumentQuery {
         /// Longest edge in pixels, 16 to 2048.
         max_edge: u32,
     },
+    /// The text recognition languages that are installed.
+    OcrLanguages,
 }
 
 /// A rendered page.
@@ -101,6 +103,8 @@ pub enum QueryResult {
     Inspect(Box<DocumentReport>),
     /// Thumbnail result.
     Thumbnail(Thumbnail),
+    /// Codes of the installed text recognition languages, such as `eng`.
+    OcrLanguages(Vec<String>),
 }
 
 /// Runs document queries. Implemented in-process by [`QueryService`] and over IPC by the
@@ -119,6 +123,7 @@ pub struct QueryService {
     files: Arc<dyn FileStore>,
     reader: Arc<dyn PdfReader>,
     renderer: Arc<dyn Renderer>,
+    ocr: Arc<dyn OcrEngine>,
     inspect: InspectDocument,
     limits: SafetyLimits,
 }
@@ -129,6 +134,7 @@ impl QueryService {
         files: Arc<dyn FileStore>,
         reader: Arc<dyn PdfReader>,
         renderer: Arc<dyn Renderer>,
+        ocr: Arc<dyn OcrEngine>,
         inspect: InspectDocument,
         limits: SafetyLimits,
     ) -> Self {
@@ -136,6 +142,7 @@ impl QueryService {
             files,
             reader,
             renderer,
+            ocr,
             inspect,
             limits,
         }
@@ -150,6 +157,7 @@ impl QueryRunner for QueryService {
     ) -> Result<QueryResult, AppError> {
         cancel.check()?;
         match query {
+            DocumentQuery::OcrLanguages => self.ocr.languages().map(QueryResult::OcrLanguages),
             DocumentQuery::Inspect { path, password } => self
                 .inspect
                 .run(path, password.as_ref())
@@ -255,6 +263,7 @@ mod tests {
             files,
             Arc::new(StubReader::default().with("C:\\a.pdf", 3)),
             Arc::new(FakeRenderer),
+            crate::tools::ToolDeps::unavailable().ocr,
             inspect,
             SafetyLimits::default(),
         )

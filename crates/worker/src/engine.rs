@@ -10,11 +10,12 @@ use application::tools::{ToolDeps, register_all};
 use application::{AppError, Password, RunTool, ToolRegistry};
 use domain::ErrorCode;
 use domain::limits::SafetyLimits;
-use infrastructure::{AppPaths, FsComponentStore, NativePaths};
+use infrastructure::{AppPaths, FsComponentStore, NativePaths, native::arch_dir};
 use quirewise_engine_html_webview2::EdgePrinter;
 use quirewise_engine_lopdf_ops::{
     LopdfAttachments, LopdfEditor, LopdfImages, LopdfStructure, LopdfToc,
 };
+use quirewise_engine_ocr_tesseract::Tesseract;
 use quirewise_engine_office_libreoffice::LibreOffice;
 use quirewise_engine_office_msoffice::MsOffice;
 use quirewise_engine_pdfium::PdfiumEngine;
@@ -97,6 +98,19 @@ impl PdfVerifier for CompositeVerifier {
     }
 }
 
+/// Folders next to the app that may hold Tesseract: the installed layout and a development tree.
+fn tesseract_folders() -> Vec<PathBuf> {
+    let Ok(exe) = std::env::current_exe() else {
+        return Vec::new();
+    };
+    let mut folders = Vec::new();
+    for root in exe.ancestors().skip(1).take(7) {
+        folders.push(root.join("native").join("tesseract"));
+        folders.push(root.join("vendor").join("tesseract").join(arch_dir()));
+    }
+    folders
+}
+
 /// The ports every tool is built on, backed by the loaded engines.
 pub fn tool_deps(engines: &Engines) -> ToolDeps {
     ToolDeps {
@@ -125,6 +139,12 @@ pub fn tool_deps(engines: &Engines) -> ToolDeps {
             libre: Arc::new(LibreOffice::new(Some(Arc::clone(&engines.components)))),
         },
         html: Arc::new(EdgePrinter::new()),
+        ocr: Arc::new(Tesseract::new(
+            Some(Arc::clone(&engines.components)),
+            tesseract_folders(),
+        )),
+        skew: Arc::new(RasterConverter),
+        scans: Arc::new(RasterConverter),
     }
 }
 
@@ -141,7 +161,8 @@ pub fn build_services(
     std::fs::create_dir_all(&temp_dir)
         .map_err(|e| AppError::from_io("create the scratch folder", &e))?;
     let mut registry = ToolRegistry::new();
-    register_all(&mut registry, &tool_deps(engines))?;
+    let deps = tool_deps(engines);
+    register_all(&mut registry, &deps)?;
     let reader: Arc<dyn PdfReader> = Arc::new(engines.pdfium);
     let inspect = InspectDocument::new(
         Arc::clone(&files),
@@ -153,6 +174,7 @@ pub fn build_services(
         Arc::clone(&files),
         Arc::clone(&reader),
         Arc::new(engines.pdfium),
+        deps.ocr.clone(),
         inspect,
         limits,
     );

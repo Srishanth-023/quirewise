@@ -196,6 +196,13 @@ export type CompressPreset = 'extreme' | 'recommended' | 'less';
  */
 export type CropMethod = 'margins' | 'region' | 'auto';
 /**
+ * How Deskew finds the angle of each page.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "DeskewMode".
+ */
+export type DeskewMode = 'auto' | 'manual';
+/**
  * Dots per inch, limited to a range PDFium can render sensibly.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -360,6 +367,13 @@ export type LengthUnit = 'mm' | 'in' | 'pt';
  * via the `definition` "NumberStyle".
  */
 export type NumberStyle = 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
+/**
+ * What OCR writes.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "OcrOutput".
+ */
+export type OcrOutput = 'pdf' | 'text';
 /**
  * Which program converts the document.
  *
@@ -544,6 +558,9 @@ export type ToolId =
   | 'rename-by-content'
   | 'attachments'
   | 'page-labels'
+  | 'ocr'
+  | 'deskew'
+  | 'scan-to-pdf'
   | 'word-to-pdf'
   | 'powerpoint-to-pdf'
   | 'excel-to-pdf'
@@ -1302,6 +1319,79 @@ export type ToolOptions =
        */
       remove_all?: boolean;
       tool: 'page-labels';
+    }
+  | {
+      /**
+       * Straighten tilted pages before reading them. Default off.
+       */
+      deskew?: boolean;
+      /**
+       * Resolution pages are read at, 100 to 600. Default 300.
+       */
+      dpi?: number;
+      /**
+       * Tesseract language codes, such as `eng` or `deu`. Default `eng`.
+       */
+      languages?: string[];
+      /**
+       * A searchable PDF or a text file. Default PDF.
+       */
+      output?: 'pdf' | 'text';
+      /**
+       * Pages to read. Default `all`.
+       */
+      pages?: string;
+      /**
+       * Leave pages that already have text alone. Default on.
+       */
+      skip_pages_with_text?: boolean;
+      tool: 'ocr';
+    }
+  | {
+      /**
+       * The angles of single pages, for manual deskew.
+       */
+      angles?: PageAngle[];
+      /**
+       * The largest tilt that is corrected automatically, in degrees, 1 to 45. Default 15.
+       */
+      max_angle_deg?: number;
+      /**
+       * Measure the tilt (default) or use the typed angles.
+       */
+      mode?: 'auto' | 'manual';
+      /**
+       * Pages to straighten, for automatic deskew. Default `all`.
+       */
+      pages?: string;
+      tool: 'deskew';
+    }
+  | {
+      /**
+       * Cut away what is not paper around the page. Default on.
+       */
+      auto_crop?: boolean;
+      /**
+       * Colors of the pages. Default color.
+       */
+      color?: 'color' | 'gray' | 'black-white';
+      /**
+       * Resolution of the scan, which sets the page size, 100 to 600. Default 300.
+       */
+      dpi?: number;
+      /**
+       * Languages for `ocr`. Default `eng`.
+       */
+      languages?: string[];
+      /**
+       * Make the PDF searchable. Default off.
+       */
+      ocr?: boolean;
+      /**
+       * Straighten pages photographed at an angle. Default on.
+       */
+      perspective_fix?: boolean;
+      tool: 'scan-to-pdf';
     }
   | {
       /**
@@ -2663,6 +2753,79 @@ export interface RunBatchRequest {
       }
     | {
         /**
+         * Straighten tilted pages before reading them. Default off.
+         */
+        deskew?: boolean;
+        /**
+         * Resolution pages are read at, 100 to 600. Default 300.
+         */
+        dpi?: number;
+        /**
+         * Tesseract language codes, such as `eng` or `deu`. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * A searchable PDF or a text file. Default PDF.
+         */
+        output?: 'pdf' | 'text';
+        /**
+         * Pages to read. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Leave pages that already have text alone. Default on.
+         */
+        skip_pages_with_text?: boolean;
+        tool: 'ocr';
+      }
+    | {
+        /**
+         * The angles of single pages, for manual deskew.
+         */
+        angles?: PageAngle[];
+        /**
+         * The largest tilt that is corrected automatically, in degrees, 1 to 45. Default 15.
+         */
+        max_angle_deg?: number;
+        /**
+         * Measure the tilt (default) or use the typed angles.
+         */
+        mode?: 'auto' | 'manual';
+        /**
+         * Pages to straighten, for automatic deskew. Default `all`.
+         */
+        pages?: string;
+        tool: 'deskew';
+      }
+    | {
+        /**
+         * Cut away what is not paper around the page. Default on.
+         */
+        auto_crop?: boolean;
+        /**
+         * Colors of the pages. Default color.
+         */
+        color?: 'color' | 'gray' | 'black-white';
+        /**
+         * Resolution of the scan, which sets the page size, 100 to 600. Default 300.
+         */
+        dpi?: number;
+        /**
+         * Languages for `ocr`. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Make the PDF searchable. Default off.
+         */
+        ocr?: boolean;
+        /**
+         * Straighten pages photographed at an angle. Default on.
+         */
+        perspective_fix?: boolean;
+        tool: 'scan-to-pdf';
+      }
+    | {
+        /**
          * The program that converts the file. Default auto.
          */
         engine?: 'auto' | 'libre-office' | 'ms-office';
@@ -2899,6 +3062,9 @@ export interface RunBatchRequest {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'ocr'
+    | 'deskew'
+    | 'scan-to-pdf'
     | 'word-to-pdf'
     | 'powerpoint-to-pdf'
     | 'excel-to-pdf'
@@ -3075,6 +3241,22 @@ export interface LabelRange {
   style?: 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
 }
 /**
+ * An angle for one page, for manual deskew.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "PageAngle".
+ */
+export interface PageAngle {
+  /**
+   * How far to turn the content counter-clockwise, in degrees. Negative turns it clockwise.
+   */
+  degrees: number;
+  /**
+   * The page, counting from 1.
+   */
+  page: number;
+}
+/**
  * User preferences stored in `settings.toml`. Never holds passwords or keys.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -3219,6 +3401,9 @@ export interface ToolDescriptor {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'ocr'
+    | 'deskew'
+    | 'scan-to-pdf'
     | 'word-to-pdf'
     | 'powerpoint-to-pdf'
     | 'excel-to-pdf'
