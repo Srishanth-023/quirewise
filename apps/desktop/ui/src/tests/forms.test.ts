@@ -9,6 +9,7 @@ import {
   cropSchema,
   deskewSchema,
   editMetadataSchema,
+  excelSchema,
   everyNSchema,
   flattenSchema,
   htmlSchema,
@@ -21,6 +22,7 @@ import {
   report,
   rotateSchema,
   scanSchema,
+  slidesSchema,
   watermarkSchema,
 } from './fixtures';
 
@@ -80,6 +82,8 @@ const list = [
   { id: 'ocr', group: 'optimize', label: 'ocr', input_mode: 'per-file', options_schema: ocrSchema },
   { id: 'deskew', group: 'optimize', label: 'straightened', input_mode: 'per-file', options_schema: deskewSchema },
   { id: 'scan-to-pdf', group: 'convert-to-pdf', label: 'scan', input_mode: 'all-together', options_schema: scanSchema },
+  { id: 'pdf-to-powerpoint', group: 'convert-from-pdf', label: 'powerpoint', input_mode: 'per-file', options_schema: slidesSchema },
+  { id: 'pdf-to-excel', group: 'convert-from-pdf', label: 'excel', input_mode: 'per-file', options_schema: excelSchema },
 ];
 
 beforeEach(() => {
@@ -481,5 +485,47 @@ describe('file order for combining tools', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Sort by date' }));
     // Oldest first, and the file without a date goes last.
     expect(files.entries.map((e) => e.name)).toEqual(['part 10.pdf', 'Part 2.pdf', 'undated.pdf']);
+  });
+});
+
+describe('forms for the tools that make editable documents', () => {
+  it('shows the picture resolution only for image slides and the languages only while reading pages', async () => {
+    await open('PDF to PowerPoint', ['C:\\a.pdf']);
+    await screen.findByRole('group', { name: 'Slides' });
+    expect(screen.queryByLabelText('Picture resolution (dpi)')).toBeNull();
+    expect(await screen.findByLabelText(/English/)).toBeTruthy();
+    await fireEvent.click(screen.getByLabelText('Never'));
+    await waitFor(() => expect(screen.queryByLabelText(/English/)).toBeNull());
+    await fireEvent.click(screen.getByLabelText(/One picture per slide/));
+    expect(await screen.findByLabelText('Picture resolution (dpi)')).toBeTruthy();
+    // Reading pages applies to editable text only.
+    expect(screen.queryByRole('group', { name: 'Read scanned pages (OCR)' })).toBeNull();
+    expect(await violations()).toEqual([]);
+    await fireEvent.click(screen.getByRole('button', { name: /Run PDF to PowerPoint on 1 file/ }));
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    expect(ipc.runBatch.mock.calls[0]?.[0].options).toMatchObject({
+      tool: 'pdf-to-powerpoint',
+      mode: 'image-slides',
+      ocr: 'off',
+      dpi: 150,
+    });
+  });
+
+  it('offers the way tables are found and where they go, with readable names', async () => {
+    await open('PDF to Excel', ['C:\\a.pdf']);
+    await screen.findByRole('group', { name: 'Save as' });
+    expect(screen.getByLabelText('Excel workbook')).toBeTruthy();
+    expect(screen.getByLabelText('One sheet for each table')).toBeTruthy();
+    await fireEvent.click(screen.getByLabelText('Lines only'));
+    await fireEvent.click(screen.getByLabelText('CSV files, one for each sheet'));
+    expect(await violations()).toEqual([]);
+    await fireEvent.click(screen.getByRole('button', { name: /Run PDF to Excel on 1 file/ }));
+    await waitFor(() => expect(ipc.runBatch).toHaveBeenCalled());
+    expect(ipc.runBatch.mock.calls[0]?.[0].options).toMatchObject({
+      tool: 'pdf-to-excel',
+      format: 'csv',
+      detection: 'lattice',
+      grouping: 'per-table',
+    });
   });
 });

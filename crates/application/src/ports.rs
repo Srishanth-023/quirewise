@@ -719,6 +719,112 @@ pub trait TextExtractor: Send + Sync {
     ) -> Result<String, AppError>;
 }
 
+/// A picture from a page, ready to be put in a document.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PictureBytes {
+    /// Width in pixels.
+    pub width: u32,
+    /// Height in pixels.
+    pub height: u32,
+    /// True when `bytes` is a JPEG file, false for a PNG file.
+    pub jpeg: bool,
+    /// The encoded file.
+    pub bytes: Vec<u8>,
+}
+
+/// Reads what is on a page for the tools that rebuild it as another document.
+pub trait LayoutReader: Send + Sync {
+    /// The text, the lines that may be table borders and the pictures of one page, in points on
+    /// the page as displayed (origin top left, y down).
+    fn page_content(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        page: PageIndex,
+    ) -> Result<domain::layout::PageContent, AppError>;
+
+    /// The `index`-th picture of a page, as listed in its content.
+    fn picture(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        page: PageIndex,
+        index: usize,
+    ) -> Result<PictureBytes, AppError>;
+}
+
+/// Where a document writer gets a picture: the page number (from 1) and the picture's index.
+pub type PictureSource<'a> = dyn FnMut(u32, usize) -> Result<PictureBytes, AppError> + 'a;
+
+/// One sheet of a workbook: a name and rows of text. The writer turns text that is a number into a
+/// number.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SheetData {
+    /// Sheet name; the writer makes it valid and unique.
+    pub name: String,
+    /// The rows; they need not be equally long.
+    pub rows: Vec<Vec<String>>,
+}
+
+/// Writes the editable formats Word, PowerPoint and Excel open.
+pub trait DocumentWriter: Send + Sync {
+    /// A Word document. `exact` places every block in a frame where it was on the page; otherwise
+    /// the text flows.
+    fn write_docx(
+        &self,
+        pages: &[domain::layout::PageLayout],
+        title: &str,
+        exact: bool,
+        pictures: &mut PictureSource<'_>,
+        dest: &Path,
+    ) -> Result<(), AppError>;
+
+    /// A presentation with one slide per page: text boxes, tables and pictures.
+    fn write_pptx(
+        &self,
+        pages: &[domain::layout::PageLayout],
+        title: &str,
+        pictures: &mut PictureSource<'_>,
+        dest: &Path,
+    ) -> Result<(), AppError>;
+
+    /// A presentation with one picture per slide. `sizes` are the page sizes in points;
+    /// `image` gives the picture of the page at that position.
+    fn write_image_pptx(
+        &self,
+        sizes: &[(f32, f32)],
+        title: &str,
+        image: &mut dyn FnMut(usize) -> Result<RenderedImage, AppError>,
+        dest: &Path,
+    ) -> Result<(), AppError>;
+
+    /// A workbook.
+    fn write_xlsx(&self, sheets: &[SheetData], dest: &Path) -> Result<(), AppError>;
+
+    /// Reopens a file the writer made and checks that it is a complete package with its main
+    /// part. `parts` is the number of slides or sheets it must hold, or 0 when that does not apply.
+    fn verify(&self, path: &Path, parts: u32) -> Result<(), AppError>;
+}
+
+/// A word read from a page picture, in pixels of that picture.
+#[derive(Debug, Clone, PartialEq)]
+pub struct OcrWord {
+    /// The text.
+    pub text: String,
+    /// Left edge.
+    pub left: f32,
+    /// Top edge.
+    pub top: f32,
+    /// Width.
+    pub width: f32,
+    /// Height.
+    pub height: f32,
+    /// Which line of the page the word is on; words with the same number share a line.
+    pub line: u32,
+    /// How sure the recognizer is, 0 to 100.
+    pub confidence: f32,
+}
+
 /// Optical character recognition.
 pub trait OcrEngine: Send + Sync {
     /// True when the recognizer is installed.
@@ -736,6 +842,16 @@ pub trait OcrEngine: Send + Sync {
         scratch: &Path,
         cancel: &crate::runtime::CancellationToken,
     ) -> Result<String, AppError>;
+
+    /// The words of a page picture read at `dpi`, with their boxes.
+    fn words(
+        &self,
+        image: &RenderedImage,
+        languages: &[String],
+        dpi: Dpi,
+        scratch: &Path,
+        cancel: &crate::runtime::CancellationToken,
+    ) -> Result<Vec<OcrWord>, AppError>;
 
     /// Writes a one-page PDF at `dest` that holds only the invisible text of the page picture.
     /// Its page is as large as the picture is at `dpi`.

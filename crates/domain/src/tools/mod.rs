@@ -4,6 +4,7 @@ pub mod combine;
 pub mod common;
 pub mod convert;
 pub mod document;
+pub mod export;
 pub mod layout;
 pub mod office;
 pub mod optimize;
@@ -26,6 +27,10 @@ pub use convert::{
     PdfToTiffOptions, TiffToPdfOptions,
 };
 pub use document::{FlattenOptions, MetadataOptions, RemoveAnnotationsOptions};
+pub use export::{
+    PdfToExcelOptions, PdfToHtmlOptions, PdfToMarkdownOptions, PdfToPowerPointOptions,
+    PdfToWordOptions,
+};
 pub use layout::{CropOptions, FlipOptions, GrayscaleOptions, NUpOptions, ResizeOptions};
 pub use office::{ExcelToPdfOptions, HtmlToPdfOptions, PowerPointToPdfOptions, WordToPdfOptions};
 pub use optimize::{CompressOptions, LinearizeOptions, RepairOptions};
@@ -144,6 +149,16 @@ pub enum ToolId {
     Attachments,
     /// Page labels (row 66).
     PageLabels,
+    /// PDF to Word (row 25).
+    PdfToWord,
+    /// PDF to PowerPoint (row 26).
+    PdfToPowerpoint,
+    /// PDF to Excel (row 27).
+    PdfToExcel,
+    /// PDF to Markdown (row 29).
+    PdfToMarkdown,
+    /// PDF to HTML (row 67).
+    PdfToHtml,
     /// OCR (row 16).
     Ocr,
     /// Deskew (row 17).
@@ -174,7 +189,7 @@ pub enum ToolId {
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 48] = [
+    pub const ALL: [ToolId; 53] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -210,6 +225,11 @@ impl ToolId {
         ToolId::RenameByContent,
         ToolId::Attachments,
         ToolId::PageLabels,
+        ToolId::PdfToWord,
+        ToolId::PdfToPowerpoint,
+        ToolId::PdfToExcel,
+        ToolId::PdfToMarkdown,
+        ToolId::PdfToHtml,
         ToolId::Ocr,
         ToolId::Deskew,
         ToolId::ScanToPdf,
@@ -263,6 +283,11 @@ impl ToolId {
             Self::RenameByContent => "rename-by-content",
             Self::Attachments => "attachments",
             Self::PageLabels => "page-labels",
+            Self::PdfToWord => "pdf-to-word",
+            Self::PdfToPowerpoint => "pdf-to-powerpoint",
+            Self::PdfToExcel => "pdf-to-excel",
+            Self::PdfToMarkdown => "pdf-to-markdown",
+            Self::PdfToHtml => "pdf-to-html",
             Self::Ocr => "ocr",
             Self::Deskew => "deskew",
             Self::ScanToPdf => "scan-to-pdf",
@@ -371,6 +396,16 @@ pub enum ToolOptions {
     Attachments(AttachmentsOptions),
     /// Options for [`ToolId::PageLabels`].
     PageLabels(PageLabelsOptions),
+    /// Options for [`ToolId::PdfToWord`].
+    PdfToWord(PdfToWordOptions),
+    /// Options for [`ToolId::PdfToPowerpoint`].
+    PdfToPowerpoint(PdfToPowerPointOptions),
+    /// Options for [`ToolId::PdfToExcel`].
+    PdfToExcel(PdfToExcelOptions),
+    /// Options for [`ToolId::PdfToMarkdown`].
+    PdfToMarkdown(PdfToMarkdownOptions),
+    /// Options for [`ToolId::PdfToHtml`].
+    PdfToHtml(PdfToHtmlOptions),
     /// Options for [`ToolId::Ocr`].
     Ocr(OcrOptions),
     /// Options for [`ToolId::Deskew`].
@@ -438,6 +473,11 @@ impl ToolOptions {
             Self::RenameByContent(_) => ToolId::RenameByContent,
             Self::Attachments(_) => ToolId::Attachments,
             Self::PageLabels(_) => ToolId::PageLabels,
+            Self::PdfToWord(_) => ToolId::PdfToWord,
+            Self::PdfToPowerpoint(_) => ToolId::PdfToPowerpoint,
+            Self::PdfToExcel(_) => ToolId::PdfToExcel,
+            Self::PdfToMarkdown(_) => ToolId::PdfToMarkdown,
+            Self::PdfToHtml(_) => ToolId::PdfToHtml,
             Self::Ocr(_) => ToolId::Ocr,
             Self::Deskew(_) => ToolId::Deskew,
             Self::ScanToPdf(_) => ToolId::ScanToPdf,
@@ -494,6 +534,11 @@ impl ToolOptions {
             ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
             ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
             ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
+            ToolId::PdfToWord => Self::PdfToWord(PdfToWordOptions::default()),
+            ToolId::PdfToPowerpoint => Self::PdfToPowerpoint(PdfToPowerPointOptions::default()),
+            ToolId::PdfToExcel => Self::PdfToExcel(PdfToExcelOptions::default()),
+            ToolId::PdfToMarkdown => Self::PdfToMarkdown(PdfToMarkdownOptions::default()),
+            ToolId::PdfToHtml => Self::PdfToHtml(PdfToHtmlOptions::default()),
             ToolId::Ocr => Self::Ocr(OcrOptions::default()),
             ToolId::Deskew => Self::Deskew(DeskewOptions::default()),
             ToolId::ScanToPdf => Self::ScanToPdf(ScanToPdfOptions::default()),

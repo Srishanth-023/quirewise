@@ -3516,6 +3516,18 @@ name = "quirewise-engine-ai-llamacpp"
 version = "0.1.0"
 
 [[package]]
+name = "quirewise-engine-export"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "quirewise-application",
+ "quirewise-domain",
+ "roxmltree",
+ "tempfile",
+ "zip",
+]
+
+[[package]]
 name = "quirewise-engine-gs-plugin"
 version = "0.1.0"
 
@@ -3660,6 +3672,7 @@ dependencies = [
  "quirewise-application",
  "quirewise-cli",
  "quirewise-domain",
+ "quirewise-engine-export",
  "quirewise-engine-html-webview2",
  "quirewise-engine-lopdf-ops",
  "quirewise-engine-ocr-tesseract",
@@ -3673,6 +3686,7 @@ dependencies = [
  "tempfile",
  "tiff",
  "windows",
+ "zip",
 ]
 
 [[package]]
@@ -3859,6 +3873,12 @@ dependencies = [
  "web-sys",
  "windows-sys 0.60.2",
 ]
+
+[[package]]
+name = "roxmltree"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 
 [[package]]
 name = "rpassword"

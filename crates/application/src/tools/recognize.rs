@@ -36,7 +36,7 @@ fn selected_pages(range: &domain::PageRange, count: u32) -> Result<Vec<PageIndex
 }
 
 /// Checks that the recognizer and every language asked for are installed.
-fn check_ready(deps: &ToolDeps, languages: &[String]) -> Result<(), AppError> {
+pub(super) fn check_ready(deps: &ToolDeps, languages: &[String]) -> Result<(), AppError> {
     if !deps.ocr.is_available() {
         return Err(AppError::new(
             ErrorCode::ComponentMissing,

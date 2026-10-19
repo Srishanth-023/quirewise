@@ -12,6 +12,7 @@ members = [
   "crates/engines/qpdf",
   "crates/engines/lopdf-ops",
   "crates/engines/raster",
+  "crates/engines/export",
   "crates/engines/ocr-tesseract",
   "crates/engines/office-libreoffice",
   "crates/engines/office-msoffice",

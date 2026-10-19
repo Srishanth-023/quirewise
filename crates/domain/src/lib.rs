@@ -7,6 +7,7 @@ pub mod components;
 pub mod error;
 pub mod fonts;
 pub mod job;
+pub mod layout;
 pub mod limits;
 pub mod naming;
 pub mod page_range;

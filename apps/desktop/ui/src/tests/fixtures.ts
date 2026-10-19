@@ -299,3 +299,40 @@ export const scanSchema = {
     ocr: { type: 'boolean', default: false },
   },
 };
+
+/** PDF to PowerPoint: a mode that decides between a picture resolution and OCR. */
+export const slidesSchema = {
+  type: 'object',
+  properties: {
+    dpi: { type: 'integer', default: 150 },
+    languages: { type: 'array', default: ['eng'], items: { type: 'string' } },
+    mode: { $ref: '#/$defs/SlideMode', default: 'editable-text' },
+    ocr: { $ref: '#/$defs/ExportOcr', default: 'auto' },
+    pages: { $ref: '#/$defs/PageRange', default: 'all' },
+  },
+  $defs: {
+    SlideMode: choices(['editable-text', 'image-slides']),
+    ExportOcr: choices(['auto', 'off', 'always']),
+    PageRange: pageRange,
+  },
+};
+
+/** PDF to Excel: a format, a grouping and a detection choice, and OCR languages. */
+export const excelSchema = {
+  type: 'object',
+  properties: {
+    detection: { $ref: '#/$defs/Detection', default: 'auto' },
+    format: { $ref: '#/$defs/SheetFormat', default: 'xlsx' },
+    grouping: { $ref: '#/$defs/SheetGrouping', default: 'per-table' },
+    languages: { type: 'array', default: ['eng'], items: { type: 'string' } },
+    ocr: { $ref: '#/$defs/ExportOcr', default: 'auto' },
+    pages: { $ref: '#/$defs/PageRange', default: 'all' },
+  },
+  $defs: {
+    Detection: choices(['auto', 'lattice', 'stream']),
+    SheetFormat: choices(['xlsx', 'csv']),
+    SheetGrouping: choices(['per-table', 'per-page']),
+    ExportOcr: choices(['auto', 'off', 'always']),
+    PageRange: pageRange,
+  },
+};

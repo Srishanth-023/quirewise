@@ -335,6 +335,36 @@ export const toolForms: Record<string, ToolForm> = {
     limits: { dpi: { min: 100, max: 600 } },
     visibleWhen: { languages: { field: 'ocr', equals: true } },
   },
+  'pdf-to-word': {
+    order: ['layout', 'ocr', 'languages', 'pages'],
+    languagePicker: ['languages'],
+    visibleWhen: { languages: { field: 'ocr', in: ['auto', 'always'] } },
+  },
+  'pdf-to-powerpoint': {
+    order: ['mode', 'dpi', 'ocr', 'languages', 'pages'],
+    languagePicker: ['languages'],
+    limits: { dpi: { min: 100, max: 600 } },
+    visibleWhen: {
+      dpi: { field: 'mode', equals: 'image-slides' },
+      ocr: { field: 'mode', equals: 'editable-text' },
+      languages: { field: 'ocr', in: ['auto', 'always'] },
+    },
+  },
+  'pdf-to-excel': {
+    order: ['format', 'grouping', 'detection', 'ocr', 'languages', 'pages'],
+    languagePicker: ['languages'],
+    visibleWhen: { languages: { field: 'ocr', in: ['auto', 'always'] } },
+  },
+  'pdf-to-markdown': {
+    order: ['images', 'ocr', 'languages', 'pages'],
+    languagePicker: ['languages'],
+    visibleWhen: { languages: { field: 'ocr', in: ['auto', 'always'] } },
+  },
+  'pdf-to-html': {
+    order: ['inline_images', 'ocr', 'languages', 'pages'],
+    languagePicker: ['languages'],
+    visibleWhen: { languages: { field: 'ocr', in: ['auto', 'always'] } },
+  },
   'insert-pages': {
     order: ['mode', 'pages', 'position', 'count', 'page_size'],
     limits: { count: { min: 1, max: 100 } },

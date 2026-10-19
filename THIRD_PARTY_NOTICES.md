@@ -81,3 +81,11 @@ Ghostscript is never linked into Quirewise. MuPDF is not used.
 | Tesseract 5.5 (downloaded on demand, never shipped in the installer) | Apache-2.0 | OCR |
 | Leptonica, libpng, libjpeg-turbo, libtiff, zlib, libwebp, OpenJPEG, giflib, libarchive, libcurl and OpenSSL (the libraries Tesseract is built with, shipped inside the Tesseract component) | BSD-2-Clause, libpng-2.0, IJG and BSD-3-Clause, libtiff, zlib, BSD-3-Clause, BSD-2-Clause, giflib, BSD-2-Clause, curl, Apache-2.0 | OCR |
 | tessdata_fast language data (downloaded on demand) | Apache-2.0 | OCR languages |
+
+## Added in Phase 8
+
+| Component | License | Use |
+|---|---|---|
+| roxmltree (development and tests only, not shipped) | MIT or Apache-2.0 | Checks that written Open XML parts are well formed |
+
+The Word, PowerPoint and Excel files are written with the `zip` and `image` crates that earlier phases already list.

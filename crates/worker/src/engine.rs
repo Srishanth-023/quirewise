@@ -11,6 +11,7 @@ use application::{AppError, Password, RunTool, ToolRegistry};
 use domain::ErrorCode;
 use domain::limits::SafetyLimits;
 use infrastructure::{AppPaths, FsComponentStore, NativePaths, native::arch_dir};
+use quirewise_engine_export::OfficeWriter;
 use quirewise_engine_html_webview2::EdgePrinter;
 use quirewise_engine_lopdf_ops::{
     LopdfAttachments, LopdfEditor, LopdfImages, LopdfStructure, LopdfToc,
@@ -145,6 +146,8 @@ pub fn tool_deps(engines: &Engines) -> ToolDeps {
         )),
         skew: Arc::new(RasterConverter),
         scans: Arc::new(RasterConverter),
+        layout: Arc::new(engines.pdfium),
+        docs: Arc::new(OfficeWriter),
     }
 }
 

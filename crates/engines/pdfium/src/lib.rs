@@ -4,6 +4,7 @@
 //! the only place that calls into it (through `pdfium-render`) and it must run inside the worker.
 #![forbid(unsafe_code)]
 
+mod content;
 mod errors;
 mod facts;
 mod headings;

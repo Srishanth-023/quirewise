@@ -15,7 +15,7 @@ workspace = true
 [dependencies]
 domain.workspace = true
 application.workspace = true
-image = { version = "0.25.10", default-features = false, features = ["png"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg"] }
 pdfium-render = "0.9.4"
 
 [dev-dependencies]

@@ -11,14 +11,14 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::error::AppError;
 use crate::inspect::PdfiumFacts;
 use crate::ports::{
-    AssemblyPlan, AttachmentReader, DocumentInfo, ExtractReport, ExtractedImage, FileStore,
-    FormFlattener, HeadingFinder, HtmlConverter, HtmlSource, ImageConverter, ImageExtractor,
-    ImageOptimizer, ImageReport, OcrEngine, OfficeConverter, OfficeEngines, OfficeKind,
-    OfficeRequest, OutlineItem, OutlineReader, PackageOptions, PageImage, PageImageWriter,
-    PageSize, PdfEdit, PdfEditor, PdfPackager, PdfReader, PdfRepairer, PdfSecurity, PdfVerifier,
-    PdfWriter, PictureSpec, PictureWriter, PngImage, ProtectionSource, RenderedImage, Renderer,
-    RepairOutcome, ScanPageWriter, SkewDetector, TextExtractor, TiffPages, TiffSpec, TocBuilder,
-    TocLine,
+    AssemblyPlan, AttachmentReader, DocumentInfo, DocumentWriter, ExtractReport, ExtractedImage,
+    FileStore, FormFlattener, HeadingFinder, HtmlConverter, HtmlSource, ImageConverter,
+    ImageExtractor, ImageOptimizer, ImageReport, LayoutReader, OcrEngine, OcrWord, OfficeConverter,
+    OfficeEngines, OfficeKind, OfficeRequest, OutlineItem, OutlineReader, PackageOptions,
+    PageImage, PageImageWriter, PageSize, PdfEdit, PdfEditor, PdfPackager, PdfReader, PdfRepairer,
+    PdfSecurity, PdfVerifier, PdfWriter, PictureBytes, PictureSource, PictureSpec, PictureWriter,
+    PngImage, ProtectionSource, RenderedImage, Renderer, RepairOutcome, ScanPageWriter, SheetData,
+    SkewDetector, TextExtractor, TiffPages, TiffSpec, TocBuilder, TocLine,
 };
 use crate::runtime::{Password, ProgressEvent};
 use crate::tool::{InputDoc, JobContext, OutputArtifact};
@@ -78,6 +78,10 @@ pub struct ToolDeps {
     pub skew: Arc<dyn SkewDetector>,
     /// Pictures of pages to PDF.
     pub scans: Arc<dyn ScanPageWriter>,
+    /// Words, lines and pictures of pages.
+    pub layout: Arc<dyn LayoutReader>,
+    /// Word, PowerPoint and Excel files.
+    pub docs: Arc<dyn DocumentWriter>,
 }
 
 impl ToolDeps {
@@ -112,7 +116,9 @@ impl ToolDeps {
             html: none.clone(),
             ocr: none.clone(),
             skew: none.clone(),
-            scans: none,
+            scans: none.clone(),
+            layout: none.clone(),
+            docs: none,
         }
     }
 }
@@ -240,6 +246,16 @@ impl OcrEngine for Unavailable {
     ) -> Result<String, AppError> {
         missing()
     }
+    fn words(
+        &self,
+        _: &RenderedImage,
+        _: &[String],
+        _: Dpi,
+        _: &Path,
+        _: &crate::runtime::CancellationToken,
+    ) -> Result<Vec<OcrWord>, AppError> {
+        missing()
+    }
     fn text_layer(
         &self,
         _: &RenderedImage,
@@ -249,6 +265,63 @@ impl OcrEngine for Unavailable {
         _: &Path,
         _: &crate::runtime::CancellationToken,
     ) -> Result<(), AppError> {
+        missing()
+    }
+}
+
+impl LayoutReader for Unavailable {
+    fn page_content(
+        &self,
+        _: &Path,
+        _: Option<&Password>,
+        _: PageIndex,
+    ) -> Result<domain::layout::PageContent, AppError> {
+        missing()
+    }
+    fn picture(
+        &self,
+        _: &Path,
+        _: Option<&Password>,
+        _: PageIndex,
+        _: usize,
+    ) -> Result<PictureBytes, AppError> {
+        missing()
+    }
+}
+
+impl DocumentWriter for Unavailable {
+    fn write_docx(
+        &self,
+        _: &[domain::layout::PageLayout],
+        _: &str,
+        _: bool,
+        _: &mut PictureSource<'_>,
+        _: &Path,
+    ) -> Result<(), AppError> {
+        missing()
+    }
+    fn write_pptx(
+        &self,
+        _: &[domain::layout::PageLayout],
+        _: &str,
+        _: &mut PictureSource<'_>,
+        _: &Path,
+    ) -> Result<(), AppError> {
+        missing()
+    }
+    fn write_image_pptx(
+        &self,
+        _: &[(f32, f32)],
+        _: &str,
+        _: &mut dyn FnMut(usize) -> Result<RenderedImage, AppError>,
+        _: &Path,
+    ) -> Result<(), AppError> {
+        missing()
+    }
+    fn write_xlsx(&self, _: &[SheetData], _: &Path) -> Result<(), AppError> {
+        missing()
+    }
+    fn verify(&self, _: &Path, _: u32) -> Result<(), AppError> {
         missing()
     }
 }

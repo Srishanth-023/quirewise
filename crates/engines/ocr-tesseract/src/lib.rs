@@ -11,7 +11,7 @@ mod proc;
 
 use application::AppError;
 use application::CancellationToken;
-use application::ports::{ComponentStore, OcrEngine, RenderedImage};
+use application::ports::{ComponentStore, OcrEngine, OcrWord, RenderedImage};
 use domain::{Dpi, ErrorCode};
 use image::codecs::png::PngEncoder;
 use image::{ExtendedColorType, ImageEncoder};
@@ -158,6 +158,24 @@ fn write_png(image: &RenderedImage, path: &Path) -> Result<(), AppError> {
         .map_err(|_| AppError::internal("preparing the page for reading"))
 }
 
+/// What a run writes.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Output {
+    Text,
+    Pdf,
+    Tsv,
+}
+
+impl Output {
+    fn extension(self) -> &'static str {
+        match self {
+            Self::Text => "txt",
+            Self::Pdf => "pdf",
+            Self::Tsv => "tsv",
+        }
+    }
+}
+
 /// What one run is given: private folders that are removed afterwards.
 struct Workspace {
     root: PathBuf,
@@ -199,7 +217,7 @@ impl Tesseract {
         dpi: Dpi,
         scratch: &Path,
         cancel: &CancellationToken,
-        pdf: bool,
+        output: Output,
     ) -> Result<(Workspace, PathBuf), AppError> {
         let program = self.program().ok_or_else(missing_program)?;
         let work = Workspace::create(scratch)?;
@@ -230,14 +248,20 @@ impl Tesseract {
             .arg(dpi.get().to_string())
             // Pages run side by side, so every run keeps to one thread.
             .env("OMP_THREAD_LIMIT", "1");
-        if pdf {
-            // Settings instead of the `pdf` config name: the private data folder has no configs.
-            command.args(["-c", "tessedit_create_pdf=1", "-c", "textonly_pdf=1"]);
-        } else {
-            command.arg("txt");
+        match output {
+            // Settings instead of the config names: the private data folder has no configs.
+            Output::Pdf => {
+                command.args(["-c", "tessedit_create_pdf=1", "-c", "textonly_pdf=1"]);
+            }
+            Output::Tsv => {
+                command.args(["-c", "tessedit_create_tsv=1"]);
+            }
+            Output::Text => {
+                command.arg("txt");
+            }
         }
         let outcome = proc::run(command, PAGE_TIMEOUT, cancel)?;
-        let produced = base.with_extension(if pdf { "pdf" } else { "txt" });
+        let produced = base.with_extension(output.extension());
         if !outcome.success || !produced.is_file() {
             let said = outcome
                 .message
@@ -290,10 +314,24 @@ impl OcrEngine for Tesseract {
         scratch: &Path,
         cancel: &CancellationToken,
     ) -> Result<String, AppError> {
-        let (_work, produced) = self.run(image, languages, dpi, scratch, cancel, false)?;
+        let (_work, produced) = self.run(image, languages, dpi, scratch, cancel, Output::Text)?;
         let bytes =
             fs::read(&produced).map_err(|e| AppError::from_io("read the recognized text", &e))?;
         Ok(String::from_utf8_lossy(&bytes).into_owned())
+    }
+
+    fn words(
+        &self,
+        image: &RenderedImage,
+        languages: &[String],
+        dpi: Dpi,
+        scratch: &Path,
+        cancel: &CancellationToken,
+    ) -> Result<Vec<OcrWord>, AppError> {
+        let (_work, produced) = self.run(image, languages, dpi, scratch, cancel, Output::Tsv)?;
+        let bytes =
+            fs::read(&produced).map_err(|e| AppError::from_io("read the recognized words", &e))?;
+        Ok(parse_tsv(&String::from_utf8_lossy(&bytes)))
     }
 
     fn text_layer(
@@ -305,11 +343,56 @@ impl OcrEngine for Tesseract {
         dest: &Path,
         cancel: &CancellationToken,
     ) -> Result<(), AppError> {
-        let (_work, produced) = self.run(image, languages, dpi, scratch, cancel, true)?;
+        let (_work, produced) = self.run(image, languages, dpi, scratch, cancel, Output::Pdf)?;
         fs::copy(&produced, dest)
             .map(|_| ())
             .map_err(|e| AppError::from_io("save the text layer", &e))
     }
+}
+
+/// Words from Tesseract's TSV output: level, page, block, paragraph, line, word, left, top,
+/// width, height, confidence, text. Only word rows (level 5) with text are kept.
+fn parse_tsv(tsv: &str) -> Vec<OcrWord> {
+    let mut lines: Vec<(u32, u32, u32)> = Vec::new();
+    let mut words = Vec::new();
+    for row in tsv.lines().skip(1) {
+        let cols: Vec<&str> = row.splitn(12, '\t').collect();
+        if cols.len() < 12 || cols[0] != "5" {
+            continue;
+        }
+        let number = |i: usize| cols[i].trim().parse::<f32>().ok();
+        let id = |i: usize| cols[i].trim().parse::<u32>().ok();
+        let (Some(block), Some(par), Some(line)) = (id(2), id(3), id(4)) else {
+            continue;
+        };
+        let (Some(left), Some(top), Some(width), Some(height), Some(confidence)) =
+            (number(6), number(7), number(8), number(9), number(10))
+        else {
+            continue;
+        };
+        let text = cols[11].trim();
+        if text.is_empty() || confidence < 0.0 || width <= 0.0 || height <= 0.0 {
+            continue;
+        }
+        let key = (block, par, line);
+        let line = match lines.iter().position(|k| *k == key) {
+            Some(i) => i,
+            None => {
+                lines.push(key);
+                lines.len() - 1
+            }
+        };
+        words.push(OcrWord {
+            text: text.to_owned(),
+            left,
+            top,
+            width,
+            height,
+            line: u32::try_from(line).unwrap_or(u32::MAX),
+            confidence,
+        });
+    }
+    words
 }
 
 fn collect_languages(dir: &Path, into: &mut BTreeSet<String>) {
@@ -431,6 +514,49 @@ mod tests {
             .filter(|e| e.file_name().to_string_lossy().starts_with("qw-ocr-"))
             .count();
         assert_eq!(leftovers, 0);
+    }
+
+    #[test]
+    fn tsv_rows_become_words_grouped_by_line() {
+        let tsv =
+            "level	page_num	block_num	par_num	line_num	word_num	left	top	width	height	conf	text
+1	1	0	0	0	0	0	0	800	600	-1	
+4	1	1	1	1	0	10	10	200	30	-1	
+5	1	1	1	1	1	10	10	90	30	96.5	Hello
+5	1	1	1	1	2	110	12	100	28	91	there world
+5	1	1	1	2	1	10	60	80	30	88	Next
+5	1	1	1	2	2	100	60	80	30	-1	ghost
+5	1	1	1	2	3	200	60	80	30	80	 
+";
+        let words = parse_tsv(tsv);
+        let texts: Vec<&str> = words.iter().map(|w| w.text.as_str()).collect();
+        assert_eq!(texts, ["Hello", "there world", "Next"]);
+        assert_eq!(words[0].line, words[1].line);
+        assert_ne!(words[1].line, words[2].line);
+        assert!((words[0].width - 90.0).abs() < 0.01 && (words[0].confidence - 96.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn words_ask_for_tsv_output() {
+        let dir = tempfile::tempdir().unwrap();
+        let log = dir.path().join("calls.txt");
+        let script = format!(
+            "@echo off\r\n>>\"{log}\" echo %*\r\ntype nul> \"%~2.tsv\"\r\n",
+            log = log.display()
+        );
+        let t = tree(dir.path(), &script);
+        let words = t
+            .words(
+                &picture(),
+                &["eng".to_owned()],
+                dpi(),
+                dir.path(),
+                &CancellationToken::new(),
+            )
+            .unwrap();
+        assert!(words.is_empty());
+        let calls = fs::read_to_string(&log).unwrap();
+        assert!(calls.contains("tessedit_create_tsv=1"), "{calls}");
     }
 
     #[test]

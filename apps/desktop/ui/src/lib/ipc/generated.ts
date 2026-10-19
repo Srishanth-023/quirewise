@@ -203,6 +203,13 @@ export type CropMethod = 'margins' | 'region' | 'auto';
  */
 export type DeskewMode = 'auto' | 'manual';
 /**
+ * How tables are found.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Detection".
+ */
+export type Detection = 'auto' | 'lattice' | 'stream';
+/**
  * Dots per inch, limited to a range PDFium can render sensibly.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -233,6 +240,13 @@ export type ErrorCode =
   | 'QW-NETWORK-CONSENT-REQUIRED'
   | 'QW-NETWORK-UNAVAILABLE'
   | 'QW-INTERNAL';
+/**
+ * Whether pages without text are read with OCR first.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "ExportOcr".
+ */
+export type ExportOcr = 'auto' | 'off' | 'always';
 /**
  * Outcome of one file in a batch.
  *
@@ -459,12 +473,33 @@ export type Schema1 = {} | boolean;
  */
 export type SheetCount = '2' | '4' | '8' | '16' | '32';
 /**
+ * What PDF to Excel writes.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SheetFormat".
+ */
+export type SheetFormat = 'xlsx' | 'csv';
+/**
+ * How tables are spread over sheets.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SheetGrouping".
+ */
+export type SheetGrouping = 'per-table' | 'per-page';
+/**
  * Page turn of the sheets of a workbook.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "SheetOrientation".
  */
 export type SheetOrientation = 'auto' | 'portrait' | 'landscape';
+/**
+ * What a slide holds.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SlideMode".
+ */
+export type SlideMode = 'editable-text' | 'image-slides';
 /**
  * Orientation of the cut for Split in half.
  *
@@ -558,6 +593,11 @@ export type ToolId =
   | 'rename-by-content'
   | 'attachments'
   | 'page-labels'
+  | 'pdf-to-word'
+  | 'pdf-to-powerpoint'
+  | 'pdf-to-excel'
+  | 'pdf-to-markdown'
+  | 'pdf-to-html'
   | 'ocr'
   | 'deskew'
   | 'scan-to-pdf'
@@ -1322,6 +1362,113 @@ export type ToolOptions =
     }
   | {
       /**
+       * Languages for OCR. Default `eng`.
+       */
+      languages?: string[];
+      /**
+       * Flowing text or exact positions. Default flowing.
+       */
+      layout?: 'flowing' | 'exact';
+      /**
+       * Read pages that have no text. Default auto.
+       */
+      ocr?: 'auto' | 'off' | 'always';
+      /**
+       * Pages to convert. Default `all`.
+       */
+      pages?: string;
+      tool: 'pdf-to-word';
+    }
+  | {
+      /**
+       * Resolution of the pictures for image slides, 100 to 600. Default 150.
+       */
+      dpi?: number;
+      /**
+       * Languages for OCR. Default `eng`.
+       */
+      languages?: string[];
+      /**
+       * Editable text boxes or one picture per slide. Default editable text.
+       */
+      mode?: 'editable-text' | 'image-slides';
+      /**
+       * Read pages that have no text, for editable text. Default auto.
+       */
+      ocr?: 'auto' | 'off' | 'always';
+      /**
+       * Pages to convert. Default `all`.
+       */
+      pages?: string;
+      tool: 'pdf-to-powerpoint';
+    }
+  | {
+      /**
+       * How tables are found. Default auto.
+       */
+      detection?: 'auto' | 'lattice' | 'stream';
+      /**
+       * A workbook or CSV files. Default workbook.
+       */
+      format?: 'xlsx' | 'csv';
+      /**
+       * Sheets per table or per page. Default per table.
+       */
+      grouping?: 'per-table' | 'per-page';
+      /**
+       * Languages for OCR. Default `eng`.
+       */
+      languages?: string[];
+      /**
+       * Read pages that have no text. Default auto.
+       */
+      ocr?: 'auto' | 'off' | 'always';
+      /**
+       * Pages to search for tables. Default `all`.
+       */
+      pages?: string;
+      tool: 'pdf-to-excel';
+    }
+  | {
+      /**
+       * Save the pictures next to the file and link them. Default on.
+       */
+      images?: boolean;
+      /**
+       * Languages for OCR. Default `eng`.
+       */
+      languages?: string[];
+      /**
+       * Read pages that have no text. Default auto.
+       */
+      ocr?: 'auto' | 'off' | 'always';
+      /**
+       * Pages to convert. Default `all`.
+       */
+      pages?: string;
+      tool: 'pdf-to-markdown';
+    }
+  | {
+      /**
+       * Put the pictures inside the page, so it is one file. Default on.
+       */
+      inline_images?: boolean;
+      /**
+       * Languages for OCR. Default `eng`.
+       */
+      languages?: string[];
+      /**
+       * Read pages that have no text. Default auto.
+       */
+      ocr?: 'auto' | 'off' | 'always';
+      /**
+       * Pages to convert. Default `all`.
+       */
+      pages?: string;
+      tool: 'pdf-to-html';
+    }
+  | {
+      /**
        * Straighten tilted pages before reading them. Default off.
        */
       deskew?: boolean;
@@ -1595,6 +1742,13 @@ export type ToolOptions =
  * via the `definition` "WatermarkKind".
  */
 export type WatermarkKind = 'text' | 'image';
+/**
+ * How the Word document is laid out.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "WordLayout".
+ */
+export type WordLayout = 'flowing' | 'exact';
 
 /**
  * Every type the UI needs, so one schema export generates all TypeScript types.
@@ -2753,6 +2907,113 @@ export interface RunBatchRequest {
       }
     | {
         /**
+         * Languages for OCR. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Flowing text or exact positions. Default flowing.
+         */
+        layout?: 'flowing' | 'exact';
+        /**
+         * Read pages that have no text. Default auto.
+         */
+        ocr?: 'auto' | 'off' | 'always';
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-word';
+      }
+    | {
+        /**
+         * Resolution of the pictures for image slides, 100 to 600. Default 150.
+         */
+        dpi?: number;
+        /**
+         * Languages for OCR. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Editable text boxes or one picture per slide. Default editable text.
+         */
+        mode?: 'editable-text' | 'image-slides';
+        /**
+         * Read pages that have no text, for editable text. Default auto.
+         */
+        ocr?: 'auto' | 'off' | 'always';
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-powerpoint';
+      }
+    | {
+        /**
+         * How tables are found. Default auto.
+         */
+        detection?: 'auto' | 'lattice' | 'stream';
+        /**
+         * A workbook or CSV files. Default workbook.
+         */
+        format?: 'xlsx' | 'csv';
+        /**
+         * Sheets per table or per page. Default per table.
+         */
+        grouping?: 'per-table' | 'per-page';
+        /**
+         * Languages for OCR. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Read pages that have no text. Default auto.
+         */
+        ocr?: 'auto' | 'off' | 'always';
+        /**
+         * Pages to search for tables. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-excel';
+      }
+    | {
+        /**
+         * Save the pictures next to the file and link them. Default on.
+         */
+        images?: boolean;
+        /**
+         * Languages for OCR. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Read pages that have no text. Default auto.
+         */
+        ocr?: 'auto' | 'off' | 'always';
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-markdown';
+      }
+    | {
+        /**
+         * Put the pictures inside the page, so it is one file. Default on.
+         */
+        inline_images?: boolean;
+        /**
+         * Languages for OCR. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Read pages that have no text. Default auto.
+         */
+        ocr?: 'auto' | 'off' | 'always';
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-html';
+      }
+    | {
+        /**
          * Straighten tilted pages before reading them. Default off.
          */
         deskew?: boolean;
@@ -3062,6 +3323,11 @@ export interface RunBatchRequest {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'pdf-to-word'
+    | 'pdf-to-powerpoint'
+    | 'pdf-to-excel'
+    | 'pdf-to-markdown'
+    | 'pdf-to-html'
     | 'ocr'
     | 'deskew'
     | 'scan-to-pdf'
@@ -3401,6 +3667,11 @@ export interface ToolDescriptor {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'pdf-to-word'
+    | 'pdf-to-powerpoint'
+    | 'pdf-to-excel'
+    | 'pdf-to-markdown'
+    | 'pdf-to-html'
     | 'ocr'
     | 'deskew'
     | 'scan-to-pdf'

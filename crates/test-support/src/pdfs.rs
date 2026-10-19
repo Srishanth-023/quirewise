@@ -458,6 +458,48 @@ pub fn pdf_with_colors() -> Vec<u8> {
     serialize(&objects, "")
 }
 
+/// A one-page Letter PDF drawn by `content`, a content stream that may use the fonts `/F1`
+/// (Helvetica), `/F2` (Helvetica-Bold) and `/F3` (Helvetica-Oblique) and one picture `/Im1`
+/// (2 by 2 pixels, red, green, blue and white). The page is turned by `rotate` degrees.
+pub fn pdf_from_content(content: &str, rotate: u32) -> Vec<u8> {
+    pdf_from_pages(&[content], rotate)
+}
+
+/// Like [`pdf_from_content`], with one Letter page for every content stream.
+pub fn pdf_from_pages(contents: &[&str], rotate: u32) -> Vec<u8> {
+    let pixels = "FF0000 00FF00 0000FF FFFFFF>";
+    let n = contents.len().max(1);
+    let kids: Vec<String> = (0..n).map(|i| format!("{} 0 R", 7 + 2 * i)).collect();
+    let mut objects = vec![
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        format!("<< /Type /Pages /Kids [{}] /Count {n} >>", kids.join(" ")),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>".to_owned(),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>".to_owned(),
+        format!(
+            "<< /Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /ASCIIHexDecode /Length {} >>
+stream
+{pixels}
+endstream",
+            pixels.len()
+        ),
+    ];
+    for (i, content) in contents.iter().enumerate() {
+        objects.push(format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Rotate {rotate} /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> /XObject << /Im1 6 0 R >> >> /Contents {} 0 R >>",
+            8 + 2 * i
+        ));
+        objects.push(format!(
+            "<< /Length {} >>
+stream
+{content}
+endstream",
+            content.len()
+        ));
+    }
+    serialize(&objects, "")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,0 +1,23 @@
+[package]
+name = "quirewise-engine-export"
+description = "Quirewise engine adapter: Word, PowerPoint and Excel files written directly."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+domain.workspace = true
+application.workspace = true
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+roxmltree = "0.20"
+tempfile = "3"
