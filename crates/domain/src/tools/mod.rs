@@ -11,6 +11,7 @@ pub mod office;
 pub mod optimize;
 pub mod pages;
 pub mod recognize;
+pub mod redact;
 pub mod rotate;
 pub mod secure;
 pub mod stamp;
@@ -44,6 +45,7 @@ pub use pages::{
     SplitRangesOptions,
 };
 pub use recognize::{DeskewOptions, OcrOptions, ScanToPdfOptions};
+pub use redact::RedactOptions;
 pub use rotate::RotateOptions;
 pub use secure::{ProtectOptions, SanitizeOptions, UnlockOptions};
 pub use stamp::{BatesOptions, HeaderFooterOptions, PageNumbersOptions, WatermarkOptions};
@@ -153,6 +155,8 @@ pub enum ToolId {
     Attachments,
     /// Page labels (row 66).
     PageLabels,
+    /// Redact (row 54).
+    Redact,
     /// Edit PDF (row 42).
     EditPdf,
     /// Annotate (row 43).
@@ -203,7 +207,7 @@ pub enum ToolId {
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 58] = [
+    pub const ALL: [ToolId; 59] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -239,6 +243,7 @@ impl ToolId {
         ToolId::RenameByContent,
         ToolId::Attachments,
         ToolId::PageLabels,
+        ToolId::Redact,
         ToolId::EditPdf,
         ToolId::Annotate,
         ToolId::FillSign,
@@ -302,6 +307,7 @@ impl ToolId {
             Self::RenameByContent => "rename-by-content",
             Self::Attachments => "attachments",
             Self::PageLabels => "page-labels",
+            Self::Redact => "redact",
             Self::EditPdf => "edit-pdf",
             Self::Annotate => "annotate",
             Self::FillSign => "fill-sign",
@@ -420,6 +426,8 @@ pub enum ToolOptions {
     Attachments(AttachmentsOptions),
     /// Options for [`ToolId::PageLabels`].
     PageLabels(PageLabelsOptions),
+    /// Options for [`ToolId::Redact`].
+    Redact(RedactOptions),
     /// Options for [`ToolId::EditPdf`].
     EditPdf(EditPdfOptions),
     /// Options for [`ToolId::Annotate`].
@@ -507,6 +515,7 @@ impl ToolOptions {
             Self::RenameByContent(_) => ToolId::RenameByContent,
             Self::Attachments(_) => ToolId::Attachments,
             Self::PageLabels(_) => ToolId::PageLabels,
+            Self::Redact(_) => ToolId::Redact,
             Self::EditPdf(_) => ToolId::EditPdf,
             Self::Annotate(_) => ToolId::Annotate,
             Self::FillSign(_) => ToolId::FillSign,
@@ -573,6 +582,7 @@ impl ToolOptions {
             ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
             ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
             ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
+            ToolId::Redact => Self::Redact(RedactOptions::default()),
             ToolId::EditPdf => Self::EditPdf(EditPdfOptions::default()),
             ToolId::Annotate => Self::Annotate(AnnotateOptions::default()),
             ToolId::FillSign => Self::FillSign(FillSignOptions::default()),

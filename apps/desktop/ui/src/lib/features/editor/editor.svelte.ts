@@ -1,5 +1,13 @@
 import { untrack } from 'svelte';
-import type { Annotation, EditItem, NewField, SignatureItem, SignatureSource, TextBlock } from '../../ipc/generated';
+import type {
+  Annotation,
+  EditItem,
+  NewField,
+  RedactArea,
+  SignatureItem,
+  SignatureSource,
+  TextBlock,
+} from '../../ipc/generated';
 import type { ToolDescriptor } from '../../ipc/client';
 import { ipc } from '../../ipc/client';
 import type { FileEntry } from '../../stores/files.svelte';
@@ -44,6 +52,7 @@ const CLICK_SIZE: Partial<Record<Creator, [number, number]>> = {
   radio: [0.025, 0.02],
   dropdown: [0.3, 0.035],
   'signature-field': [0.3, 0.07],
+  'redact-area': [0.25, 0.04],
 };
 
 interface Snapshot {
@@ -340,6 +349,9 @@ class Editor {
           name: freshName('signature', this.#names()),
           kind: { type: 'signature' },
         } satisfies NewField);
+        return;
+      case 'redact-area':
+        this.#add('areas', { page, region: box } satisfies RedactArea);
         return;
       default:
         return;

@@ -11,6 +11,8 @@ import type {
   FormField,
   NewSavedSignature,
   RecentFile,
+  RedactMatch,
+  RedactOptions,
   RunBatchRequest,
   SavedSignature,
   Settings,
@@ -30,6 +32,8 @@ export type {
   FormField,
   NewSavedSignature,
   RecentFile,
+  RedactMatch,
+  RedactOptions,
   RunBatchRequest,
   SavedSignature,
   Settings,
@@ -100,6 +104,8 @@ export const ipc = {
     call<FieldSuggestion[]>('suggest_fields', { path, password, page }),
   textBlocks: (path: string, password: string | null, page: number) =>
     call<TextBlock[]>('text_blocks', { path, password, page }),
+  redactMatches: (path: string, password: string | null, options: RedactOptions) =>
+    call<RedactMatch[]>('redact_matches', { path, password, options }),
   signaturesList: () => call<SavedSignature[]>('signatures_list'),
   signatureSave: (signature: NewSavedSignature) =>
     call<SavedSignature>('signature_save', { signature }),

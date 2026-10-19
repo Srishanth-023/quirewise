@@ -12,6 +12,7 @@ const ipc = vi.hoisted(() => ({
   formFields: vi.fn(),
   suggestFields: vi.fn(),
   textBlocks: vi.fn(),
+  redactMatches: vi.fn(),
   signaturesList: vi.fn(),
   signatureSave: vi.fn(),
   signatureDelete: vi.fn(),
@@ -48,9 +49,10 @@ beforeEach(async () => {
   ipc.formFields.mockResolvedValue([]);
   ipc.suggestFields.mockResolvedValue([]);
   ipc.textBlocks.mockResolvedValue([]);
+  ipc.redactMatches.mockResolvedValue([]);
   ipc.signaturesList.mockResolvedValue([]);
   await files.add(['C:\\a.pdf']);
-  for (const id of ['edit-pdf', 'annotate', 'sign-pdf', 'fill-sign', 'create-forms']) {
+  for (const id of ['edit-pdf', 'annotate', 'sign-pdf', 'fill-sign', 'create-forms', 'redact']) {
     toolOptions.reset(tool(id));
   }
 });
@@ -182,6 +184,33 @@ describe('the editor view', () => {
     const items = options('edit-pdf').items as { kind: string; text?: string }[];
     expect(items.map((i) => i.kind)).toEqual(['whiteout', 'text']);
     expect(items[1]?.text).toBe('Old words');
+  });
+
+  it('draws redaction areas and sends them to the options', async () => {
+    render(EditorView, { tool: tool('redact') });
+    await screen.findByRole('toolbar', { name: 'Editor tools' });
+    await fireEvent.click(button('Area'));
+    await fireEvent.click(button('Add at the center'));
+    expect(options('redact').areas).toMatchObject([{ page: 1 }]);
+    await fireEvent.click(button('Undo'));
+    expect(options('redact').areas).toHaveLength(0);
+  });
+
+  it('shows where the words and patterns of Redact are found', async () => {
+    ipc.redactMatches.mockResolvedValue([
+      { page: 1, region: { x: 0.1, y: 0.1, width: 0.2, height: 0.03 } },
+      { page: 2, region: { x: 0.1, y: 0.4, width: 0.2, height: 0.03 } },
+    ]);
+    render(EditorView, { tool: tool('redact') });
+    await screen.findByRole('toolbar', { name: 'Editor tools' });
+    expect(screen.getByText(/No words or patterns found yet/)).toBeTruthy();
+    toolOptions.set(tool('redact'), 'terms', ['secret', '  ']);
+    expect(await screen.findByText(/2 places found/, undefined, { timeout: 3000 })).toBeTruthy();
+    expect(ipc.redactMatches).toHaveBeenCalledTimes(1);
+    const sent = ipc.redactMatches.mock.calls[0]?.[2] as { terms: string[]; pages: string };
+    // Blank lines are not searched for.
+    expect(sent.terms).toEqual(['secret']);
+    expect(sent.pages).toBe('all');
   });
 
   it('starts over when another file is selected', async () => {

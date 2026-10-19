@@ -266,6 +266,13 @@ export type EditItem =
       region: Region6;
     };
 /**
+ * Kinds of text that are found by their shape.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "RedactPreset".
+ */
+export type RedactPreset = 'email' | 'phone' | 'iban' | 'card-number';
+/**
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "Password".
  */
@@ -951,6 +958,7 @@ export type ToolId =
   | 'rename-by-content'
   | 'attachments'
   | 'page-labels'
+  | 'redact'
   | 'edit-pdf'
   | 'annotate'
   | 'fill-sign'
@@ -1725,6 +1733,42 @@ export type ToolOptions =
     }
   | {
       /**
+       * Rectangles drawn on pages.
+       */
+      areas?: RedactArea[];
+      /**
+       * Match the case of `terms` and `patterns`. Default off.
+       */
+      case_sensitive?: boolean;
+      /**
+       * The color that covers what was removed, as `#RRGGBB`. Default black.
+       */
+      fill_color?: string;
+      /**
+       * Pages the search covers: `all`, `even`, `odd` or a range such as `1,3-5`. Areas always
+       * apply to their own page. Default `all`.
+       */
+      pages?: string;
+      /**
+       * Patterns to find, as regular expressions.
+       */
+      patterns?: string[];
+      /**
+       * Kinds of text to find by their shape.
+       */
+      presets?: RedactPreset[];
+      /**
+       * Clear the document information and the XMP packet. Default on.
+       */
+      strip_metadata?: boolean;
+      /**
+       * Words or phrases to find. Case does not matter unless `case_sensitive` is on.
+       */
+      terms?: string[];
+      tool: 'redact';
+    }
+  | {
+      /**
        * Everything added to the pages, in drawing order.
        */
       items?: EditItem[];
@@ -2174,6 +2218,8 @@ export interface IpcTypes {
   new_saved_signature: NewSavedSignature;
   output_artifact: OutputArtifact;
   recent_file: RecentFile;
+  redact_match: RedactMatch;
+  redact_options: RedactOptions;
   run_batch_request: RunBatchRequest;
   saved_signature: SavedSignature;
   settings: Settings;
@@ -3239,6 +3285,117 @@ export interface RecentFile {
   path: string;
 }
 /**
+ * A place on a page where the search of Redact found something.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "RedactMatch".
+ */
+export interface RedactMatch {
+  /**
+   * The page, from 1.
+   */
+  page: number;
+  region: Region10;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region10 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
+ * Options for Redact.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "RedactOptions".
+ */
+export interface RedactOptions {
+  /**
+   * Rectangles drawn on pages.
+   */
+  areas?: RedactArea[];
+  /**
+   * Match the case of `terms` and `patterns`. Default off.
+   */
+  case_sensitive?: boolean;
+  /**
+   * The color that covers what was removed, as `#RRGGBB`. Default black.
+   */
+  fill_color?: string;
+  /**
+   * Pages the search covers: `all`, `even`, `odd` or a range such as `1,3-5`. Areas always
+   * apply to their own page. Default `all`.
+   */
+  pages?: string;
+  /**
+   * Patterns to find, as regular expressions.
+   */
+  patterns?: string[];
+  /**
+   * Kinds of text to find by their shape.
+   */
+  presets?: RedactPreset[];
+  /**
+   * Clear the document information and the XMP packet. Default on.
+   */
+  strip_metadata?: boolean;
+  /**
+   * Words or phrases to find. Case does not matter unless `case_sensitive` is on.
+   */
+  terms?: string[];
+}
+/**
+ * A rectangle of one page to remove.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "RedactArea".
+ */
+export interface RedactArea {
+  /**
+   * The page, from 1.
+   */
+  page: number;
+  region: Region11;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region11 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
  * Asks the core to run a tool over a batch of files.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -4001,6 +4158,42 @@ export interface RunBatchRequest {
       }
     | {
         /**
+         * Rectangles drawn on pages.
+         */
+        areas?: RedactArea[];
+        /**
+         * Match the case of `terms` and `patterns`. Default off.
+         */
+        case_sensitive?: boolean;
+        /**
+         * The color that covers what was removed, as `#RRGGBB`. Default black.
+         */
+        fill_color?: string;
+        /**
+         * Pages the search covers: `all`, `even`, `odd` or a range such as `1,3-5`. Areas always
+         * apply to their own page. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Patterns to find, as regular expressions.
+         */
+        patterns?: string[];
+        /**
+         * Kinds of text to find by their shape.
+         */
+        presets?: RedactPreset[];
+        /**
+         * Clear the document information and the XMP packet. Default on.
+         */
+        strip_metadata?: boolean;
+        /**
+         * Words or phrases to find. Case does not matter unless `case_sensitive` is on.
+         */
+        terms?: string[];
+        tool: 'redact';
+      }
+    | {
+        /**
          * Everything added to the pages, in drawing order.
          */
         items?: EditItem[];
@@ -4456,6 +4649,7 @@ export interface RunBatchRequest {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'redact'
     | 'edit-pdf'
     | 'annotate'
     | 'fill-sign'
@@ -4798,7 +4992,7 @@ export interface TextBlock {
    * Italic throughout.
    */
   italic: boolean;
-  region: Region10;
+  region: Region12;
   /**
    * The usual size of the text, in points.
    */
@@ -4812,7 +5006,7 @@ export interface TextBlock {
  * A rectangle on a page, as fractions of the page width and height measured from the top-left.
  * This is how the user draws a region, independent of page size and rotation of the preview.
  */
-export interface Region10 {
+export interface Region12 {
   /**
    * Height, greater than 0 and at most 1.
    */
@@ -4913,6 +5107,7 @@ export interface ToolDescriptor {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'redact'
     | 'edit-pdf'
     | 'annotate'
     | 'fill-sign'

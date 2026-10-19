@@ -11,6 +11,8 @@ mod layout;
 mod office;
 mod optimize;
 mod recognize;
+mod redact;
+mod redactfind;
 mod rotate;
 mod secure;
 mod select;
@@ -19,6 +21,7 @@ mod stamp;
 mod structure;
 
 pub use common::{ToolDeps, pages_label};
+pub use redactfind::find_matches;
 
 use std::sync::Arc;
 
@@ -77,6 +80,7 @@ pub fn register_all(
     registry.register(Arc::new(secure::ProtectTool::new(deps.clone())))?;
     registry.register(Arc::new(secure::UnlockTool::new(deps.clone())))?;
     registry.register(Arc::new(secure::SanitizeTool::new(deps.clone())))?;
+    registry.register(Arc::new(redact::RedactTool::new(deps.clone())))?;
     registry.register(Arc::new(stamp::PageNumbersTool::new(deps.clone())))?;
     registry.register(Arc::new(stamp::HeaderFooterTool::new(deps.clone())))?;
     registry.register(Arc::new(stamp::BatesTool::new(deps.clone())))?;

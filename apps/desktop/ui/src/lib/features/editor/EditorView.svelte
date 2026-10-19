@@ -3,13 +3,15 @@
   import { t, tDynamic } from '../../i18n';
   import Icon from '../../components/Icon.svelte';
   import { ipc } from '../../ipc/client';
-  import type { ToolDescriptor } from '../../ipc/client';
-  import type { FieldSuggestion, FormField, NewField, TextBlock } from '../../ipc/generated';
+  import type { RedactOptions, ToolDescriptor } from '../../ipc/client';
+  import type { FieldSuggestion, FormField, NewField, RedactMatch, TextBlock } from '../../ipc/generated';
   import { files } from '../../stores/files.svelte';
+import { toolOptions } from '../../stores/options.svelte';
   import PasswordPrompt from '../password/PasswordPrompt.svelte';
   import { editor } from './editor.svelte';
   import { boxOf, gestureOf, labelOf, withBox, type Entry } from './model';
   import PageCanvas from './PageCanvas.svelte';
+  import { palette } from './palette';
   import Properties from './Properties.svelte';
   import SignatureMaker from './SignatureMaker.svelte';
 
@@ -129,6 +131,61 @@
     editor.placeSuggested(suggestions.map(asField));
     suggestions = [];
   }
+
+  // ----- what Redact would remove ------------------------------------------------------------
+
+  let matches = $state<RedactMatch[]>([]);
+  let matchProblem = $state('');
+  let searching = $state(false);
+  const matchesHere = $derived(matches.filter((m) => m.page === editor.page));
+  $effect(() => {
+    matches = [];
+    matchProblem = '';
+    searching = false;
+    if (tool.id !== 'redact' || !usable || !entry) return;
+    // Any edit of an option counts: the values are one object that is changed in place.
+    void toolOptions.edits;
+    const values = toolOptions.values(tool) as Record<string, unknown>;
+    const lines = (key: string): string[] =>
+      Array.isArray(values[key]) ? (values[key] as string[]).filter((l) => l.trim() !== '') : [];
+    const terms = lines('terms');
+    const patterns = lines('patterns');
+    const presets = (Array.isArray(values.presets) ? values.presets : []) as NonNullable<
+      RedactOptions['presets']
+    >;
+    const options: RedactOptions = {
+      areas: [],
+      terms,
+      patterns,
+      presets,
+      case_sensitive: values.case_sensitive === true,
+      pages: typeof values.pages === 'string' && values.pages.trim() !== '' ? values.pages : 'all',
+      fill_color: palette.black,
+      strip_metadata: true,
+    };
+    if (terms.length + patterns.length + presets.length === 0) return;
+    const path = entry.path;
+    const secret = password;
+    let current = true;
+    searching = true;
+    const timer = setTimeout(() => {
+      ipc
+        .redactMatches(path, secret, options)
+        .then((found) => {
+          if (current) matches = found;
+        })
+        .catch((error: { message?: string }) => {
+          if (current) matchProblem = error.message ?? '';
+        })
+        .finally(() => {
+          if (current) searching = false;
+        });
+    }, 400);
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
+  });
 
   // ----- toolbar and keys --------------------------------------------------------------------
 
@@ -259,6 +316,19 @@
     {#if tool.id === 'fill-sign' && formFields.length === 0 && !formProblem}
       <p class="hint">{t('editor.noFormFields')}</p>
     {/if}
+    {#if tool.id === 'redact'}
+      <p class="hint" role="status">
+        {#if matchProblem}
+          <span class="error">{matchProblem}</span>
+        {:else if searching}
+          {t('editor.matches.searching')}
+        {:else if matches.length > 0}
+          {t('editor.matches.found', { count: matches.length })}
+        {:else}
+          {t('editor.matches.none')}
+        {/if}
+      </p>
+    {/if}
     {#if suggested}
       <div class="found" role="status">
         <span>{suggestions.length === 0 ? t('editor.noneFound') : t('editor.found', { count: suggestions.length })}</span>
@@ -279,6 +349,7 @@
           {blocks}
           suggestions={suggestions.filter((s) => s.page === editor.page)}
           onsuggestion={accept}
+          matches={matchesHere}
         />
       </div>
 

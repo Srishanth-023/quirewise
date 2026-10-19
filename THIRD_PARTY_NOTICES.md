@@ -97,3 +97,9 @@ The Word, PowerPoint and Excel files are written with the `zip` and `image` crat
 | ttf-parser 0.25 | MIT or Apache-2.0 | Reads installed TrueType fonts so they can be embedded in edited PDFs |
 | windows 0.62 (Windows only) | MIT or Apache-2.0 | DPAPI sealing of saved signatures |
 | base64 | MIT or Apache-2.0 | Decodes signature pictures sent as data |
+
+## Added in Phase 10
+
+| Component | License | Use |
+|---|---|---|
+| regex | MIT or Apache-2.0 | Searches the text of pages for Redact (linear time, so a pattern cannot hang a run) |

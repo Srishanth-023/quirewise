@@ -70,6 +70,11 @@ export const toolForms: Record<string, ToolForm> = {
   'sign-pdf': { custom: ['signatures'] },
   'fill-sign': { custom: ['values', 'signatures'] },
   'create-forms': { custom: ['fields'] },
+  redact: {
+    order: ['terms', 'presets', 'patterns', 'case_sensitive', 'pages', 'fill_color', 'strip_metadata'],
+    custom: ['areas'],
+    color: ['fill_color'],
+  },
   'split-ranges': { order: ['ranges', 'merge_into_one'] },
   'split-every-n': { limits: { n: { min: 1 } } },
   'extract-pages': { order: ['pages', 'one_file'] },

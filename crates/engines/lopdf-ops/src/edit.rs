@@ -161,5 +161,6 @@ pub fn apply(doc: &mut Document, edit: &PdfEdit) -> Result<(), AppError> {
         PdfEdit::Sign(items) => crate::overlay::apply_signatures(doc, items),
         PdfEdit::FillForm(values) => crate::forms::fill(doc, values),
         PdfEdit::CreateFields(fields) => crate::forms::create_fields(doc, fields),
+        PdfEdit::ReplaceWithPictures(pages) => crate::redact::replace_with_pictures(doc, pages),
     }
 }

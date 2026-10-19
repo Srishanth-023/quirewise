@@ -1,7 +1,7 @@
 <script lang="ts">
   import { t } from '../../i18n';
   import { ipc } from '../../ipc/client';
-  import type { Annotation, FieldSuggestion, FormField, TextBlock } from '../../ipc/generated';
+  import type { Annotation, FieldSuggestion, FormField, RedactMatch, TextBlock } from '../../ipc/generated';
   import { thumbnail, type Thumb } from '../../components/Thumbnail/thumbnails';
   import { editor } from './editor.svelte';
   import ItemView from './ItemView.svelte';
@@ -20,9 +20,20 @@
     /** Places the form finder suggests on this page. */
     suggestions?: FieldSuggestion[];
     onsuggestion?: (s: FieldSuggestion) => void;
+    /** Places the search of Redact found on this page. */
+    matches?: RedactMatch[];
   }
 
-  let { path, password, pageSize, formFields = [], blocks = [], suggestions = [], onsuggestion }: Props = $props();
+  let {
+    path,
+    password,
+    pageSize,
+    formFields = [],
+    blocks = [],
+    suggestions = [],
+    onsuggestion,
+    matches = [],
+  }: Props = $props();
 
   let thumb = $state<Thumb | null>(null);
   let failed = $state(false);
@@ -307,6 +318,10 @@
     ></button>
   {/each}
 
+  {#each matches as found, i (i)}
+    <div class="match" style={style(found.region)}></div>
+  {/each}
+
   {#if dragged}
     <div class="rubber" style={style(dragged)}></div>
   {/if}
@@ -404,6 +419,12 @@
   .block:hover,
   .block:focus-visible {
     background: color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .match {
+    position: absolute;
+    border: 2px dashed var(--danger);
+    background: color-mix(in srgb, var(--danger) 15%, transparent);
+    pointer-events: none;
   }
   .suggest {
     border-color: var(--success);

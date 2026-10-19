@@ -338,6 +338,89 @@ fn convert(doc: &Document, stream: &Stream, keep_original: bool) -> Outcome {
     })
 }
 
+/// The pixels of a picture as 8-bit gray or RGB samples, row by row from the top.
+pub(crate) struct Pixels {
+    pub width: u32,
+    pub height: u32,
+    /// Three samples to a pixel; otherwise one.
+    pub rgb: bool,
+    pub samples: Vec<u8>,
+}
+
+/// Decodes a picture for an edit that changes its pixels. Stencil masks, scans stored as CCITT or
+/// JBIG2 and JPEG 2000 are not decoded.
+pub(crate) fn decode_pixels(doc: &Document, stream: &Stream) -> Option<Pixels> {
+    let dict = &stream.dict;
+    let names = filters(doc, dict);
+    let width = u32::try_from(int(doc, dict, b"Width")?).ok()?;
+    let height = u32::try_from(int(doc, dict, b"Height")?).ok()?;
+    if width == 0 || height == 0 || u64::from(width) * u64::from(height) > MAX_PIXELS {
+        return None;
+    }
+    let is_mask = dict
+        .get(b"ImageMask")
+        .ok()
+        .map(|o| resolve(doc, o))
+        .and_then(|o| o.as_bool().ok())
+        .unwrap_or(false);
+    if is_mask {
+        return None;
+    }
+    match names.last().map(Vec::as_slice) {
+        Some(b"DCTDecode" | b"DCT") if names.len() == 1 => {
+            let decoded =
+                image::load_from_memory_with_format(&stream.content, ImageFormat::Jpeg).ok()?;
+            let (w, h) = (decoded.width(), decoded.height());
+            return Some(if decoded.color().has_color() {
+                Pixels {
+                    width: w,
+                    height: h,
+                    rgb: true,
+                    samples: decoded.to_rgb8().into_raw(),
+                }
+            } else {
+                Pixels {
+                    width: w,
+                    height: h,
+                    rgb: false,
+                    samples: decoded.to_luma8().into_raw(),
+                }
+            });
+        }
+        Some(
+            b"JPXDecode" | b"DCTDecode" | b"DCT" | b"CCITTFaxDecode" | b"CCF" | b"JBIG2Decode",
+        ) => return None,
+        _ => {}
+    }
+    let data = if names.is_empty() {
+        stream.content.clone()
+    } else {
+        stream.decompressed_content().ok()?
+    };
+    let space = space_of(doc, dict.get(b"ColorSpace").ok()?, 0)?;
+    let bits = match int(doc, dict, b"BitsPerComponent").and_then(|b| u8::try_from(b).ok())? {
+        b @ (1 | 2 | 4 | 8 | 16) => b,
+        _ => return None,
+    };
+    let indexed = matches!(space, Space::Indexed { .. });
+    let mut samples = unpack(&data, width as usize, space.components(), bits, !indexed);
+    if samples.len() != width as usize * height as usize * space.components() {
+        return None;
+    }
+    if matches!(space, Space::Gray) && invert_wanted(doc, dict) {
+        for s in &mut samples {
+            *s = 255 - *s;
+        }
+    }
+    let (rgb, samples) = to_samples(&space, &samples);
+    Some(Pixels {
+        width,
+        height,
+        rgb,
+        samples,
+    })
+}
+
 /// The picture XObjects of a resource dictionary, with the forms to search further.
 fn collect(
     doc: &Document,

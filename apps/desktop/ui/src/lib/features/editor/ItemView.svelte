@@ -15,6 +15,7 @@
   const annotation = $derived(entry.group === 'annotations' ? (entry.data as Annotation) : null);
   const signature = $derived(entry.group === 'signatures' ? (entry.data as SignatureItem) : null);
   const field = $derived(entry.group === 'fields' ? (entry.data as NewField) : null);
+  const area = $derived(entry.group === 'areas');
 
   /** A length in points as a share of the page width, for the container-relative unit. */
   const cq = (pt: number): string => `${(pt / Math.max(pageWidthPt, 1)) * 100}cqw`;
@@ -91,6 +92,8 @@
   {:else}
     <div class="placeholder image">{labelOf(entry)}</div>
   {/if}
+{:else if area}
+  <div class="area"></div>
 {:else if field}
   <div class="field" data-kind={field.kind.type}>
     <span>{field.name}</span>
@@ -157,6 +160,12 @@
     min-height: 14px;
     border: 1px solid var(--ink);
     border-radius: 2px;
+  }
+  .area {
+    width: 100%;
+    height: 100%;
+    border: 1px dashed var(--on-accent);
+    background: color-mix(in srgb, var(--ink) 80%, transparent);
   }
   .field {
     width: 100%;

@@ -22,6 +22,8 @@ mod outline;
 mod overlay;
 mod pageres;
 mod paint;
+mod redact;
+mod redactfont;
 mod sanitize;
 mod scan;
 mod stamp;
@@ -69,6 +71,19 @@ impl PdfEditor for LopdfEditor {
         doc.save(dest)
             .map_err(|e| AppError::from_io("write the edited document", &e))?;
         Ok(())
+    }
+
+    fn redact(
+        &self,
+        source: &Path,
+        plan: &application::ports::RedactPlan,
+        dest: &Path,
+    ) -> Result<application::ports::RedactOutcome, AppError> {
+        let mut doc = LopdfStructure::load(source, None)?;
+        let outcome = redact::redact(&mut doc, plan)?;
+        doc.save(dest)
+            .map_err(|e| AppError::from_io("write the redacted document", &e))?;
+        Ok(outcome)
     }
 }
 

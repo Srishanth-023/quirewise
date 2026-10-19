@@ -17,7 +17,8 @@ use serde::{Deserialize, Serialize};
 pub use fields::suggest_fields;
 pub use flow::{BodyStats, analyze, analyze_page, body_stats, list_marker, strip_running};
 pub use model::{
-    Block, Cell, CharBox, PageContent, PageLayout, PictureBox, Rect, Rule, Span, Table, Word, plain,
+    Block, Cell, CharBox, PageChars, PageContent, PageLayout, PictureBox, Rect, Rule, Span, Table,
+    Word, plain,
 };
 pub use words::words_from_chars;
 

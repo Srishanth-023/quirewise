@@ -209,6 +209,8 @@ pub struct IpcTypes {
     pub fill_sign_options: domain::tools::editor::FillSignOptions,
     pub sign_pdf_options: domain::tools::editor::SignPdfOptions,
     pub create_forms_options: domain::tools::editor::CreateFormsOptions,
+    pub redact_options: domain::tools::redact::RedactOptions,
+    pub redact_match: domain::tools::redact::RedactMatch,
     pub saved_signature: domain::signatures::SavedSignature,
     pub new_saved_signature: domain::signatures::NewSavedSignature,
 }

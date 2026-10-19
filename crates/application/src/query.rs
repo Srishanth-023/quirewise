@@ -22,6 +22,9 @@ use crate::tool::InputKind;
 /// Smallest and largest thumbnail edge accepted.
 pub const THUMBNAIL_EDGE_RANGE: (u32, u32) = (16, 2048);
 
+/// Most matches one Redact preview returns, so a pattern that matches everything stays small.
+const MAX_REDACT_MATCHES: usize = 5_000;
+
 /// Bytes that travel as a base64 string in JSON.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Base64Bytes(pub Vec<u8>);
@@ -109,6 +112,16 @@ pub enum DocumentQuery {
     },
     /// The installed fonts that text can be set in.
     EditorFonts,
+    /// Where the words, patterns and kinds of text of Redact are found. Only what the options
+    /// search for is used; drawn areas are ignored.
+    RedactMatches {
+        /// File to read.
+        path: PathBuf,
+        /// Password, when the user entered one this session.
+        password: Option<Password>,
+        /// What to search for and on which pages.
+        options: domain::tools::redact::RedactOptions,
+    },
 }
 
 /// A rendered page.
@@ -142,6 +155,8 @@ pub enum QueryResult {
     TextBlocks(Vec<domain::forms::TextBlock>),
     /// Names of installed font families.
     EditorFonts(Vec<String>),
+    /// Where Redact finds what it searches for.
+    RedactMatches(Vec<domain::tools::redact::RedactMatch>),
 }
 
 /// Runs document queries. Implemented in-process by [`QueryService`] and over IPC by the
@@ -305,6 +320,39 @@ impl QueryRunner for QueryService {
                 Ok(QueryResult::Suggestions(domain::layout::suggest_fields(
                     &content,
                 )))
+            }
+            DocumentQuery::RedactMatches {
+                path,
+                password,
+                options,
+            } => {
+                let file = self.checked(path, password.as_ref(), None)?;
+                let count = self.reader.open_info(&file, password.as_ref())?.page_count;
+                if !options.searches() {
+                    return Ok(QueryResult::RedactMatches(Vec::new()));
+                }
+                let found = crate::tools::find_matches(
+                    self.editor()?.layout.as_ref(),
+                    &file,
+                    password.as_ref(),
+                    options,
+                    count,
+                    cancel,
+                    &mut || (),
+                )?;
+                let matches = found
+                    .into_iter()
+                    .flat_map(|(page, regions)| {
+                        regions
+                            .into_iter()
+                            .map(move |region| domain::tools::redact::RedactMatch {
+                                page: page.get() + 1,
+                                region,
+                            })
+                    })
+                    .take(MAX_REDACT_MATCHES)
+                    .collect();
+                Ok(QueryResult::RedactMatches(matches))
             }
             DocumentQuery::TextBlocks {
                 path,

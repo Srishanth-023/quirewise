@@ -134,6 +134,17 @@ pub struct PageContent {
     pub pictures: Vec<PictureBox>,
 }
 
+/// Every character of one page with the size of the page as displayed, for searching its text.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PageChars {
+    /// Page width in points as displayed.
+    pub width: f32,
+    /// Page height in points as displayed.
+    pub height: f32,
+    /// The characters in content order, spaces and line breaks included.
+    pub chars: Vec<CharBox>,
+}
+
 /// Text in one style.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Span {

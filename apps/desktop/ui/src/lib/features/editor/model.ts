@@ -7,6 +7,7 @@ import type {
   EditItem,
   FieldValue,
   NewField,
+  RedactArea,
   SignatureItem,
   SignatureSource,
 } from '../../ipc/generated';
@@ -55,7 +56,8 @@ export type Creator =
   | 'checkbox'
   | 'radio'
   | 'dropdown'
-  | 'signature-field';
+  | 'signature-field'
+  | 'redact-area';
 
 /** The tools each editor offers, in the order of the toolbar. */
 export const creatorsFor: Record<string, Creator[]> = {
@@ -64,6 +66,7 @@ export const creatorsFor: Record<string, Creator[]> = {
   'sign-pdf': ['select', 'signature', 'initials', 'stamp', 'date'],
   'fill-sign': ['select', 'signature', 'initials', 'stamp', 'date'],
   'create-forms': ['select', 'text-field', 'checkbox', 'radio', 'dropdown', 'signature-field'],
+  redact: ['select', 'redact-area'],
 };
 
 /** The editors: the tools whose options the editor view builds. */
@@ -86,12 +89,12 @@ export function gestureOf(creator: Creator): Gesture {
 }
 
 /** The key of a tool's options each kind of entry goes to. */
-export type Group = 'items' | 'annotations' | 'signatures' | 'fields';
+export type Group = 'items' | 'annotations' | 'signatures' | 'fields' | 'areas';
 
 export interface Entry {
   id: number;
   group: Group;
-  data: EditItem | Annotation | SignatureItem | NewField;
+  data: EditItem | Annotation | SignatureItem | NewField | RedactArea;
 }
 
 export function groupOf(creator: Creator): Group | null {
@@ -115,6 +118,8 @@ export function groupOf(creator: Creator): Group | null {
     case 'dropdown':
     case 'signature-field':
       return 'fields';
+    case 'redact-area':
+      return 'areas';
     default:
       return 'items';
   }
@@ -328,6 +333,7 @@ export function labelOf(entry: Entry): string {
     const s = (d as SignatureItem).source;
     return s.type === 'typed' ? s.text : s.type;
   }
+  if (entry.group === 'areas') return `Area`;
   const f = d as NewField;
   return `${f.name} (${f.kind.type})`;
 }
@@ -368,6 +374,8 @@ export function toOptions(
       return { values: typed, signatures: pick<SignatureItem>('signatures') };
     case 'create-forms':
       return { fields: pick<NewField>('fields') };
+    case 'redact':
+      return { areas: pick<RedactArea>('areas') };
     default:
       return {};
   }

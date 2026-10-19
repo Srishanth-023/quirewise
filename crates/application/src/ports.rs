@@ -266,6 +266,42 @@ pub enum PdfEdit {
     FillForm(Vec<domain::tools::editor::FieldValue>),
     /// Adds form fields.
     CreateFields(Vec<domain::tools::editor::NewField>),
+    /// Replaces the whole content of pages with a picture of the same size, and drops their
+    /// annotations. This is how pages are redacted when their content cannot be cleaned.
+    ReplaceWithPictures(Vec<(PageIndex, PathBuf)>),
+}
+
+/// The areas of one page to remove for good.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RedactPage {
+    /// The page.
+    pub page: PageIndex,
+    /// Areas, as fractions of the page as it is displayed.
+    pub regions: Vec<Region>,
+}
+
+/// What a redaction removes and how it is covered.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RedactPlan {
+    /// The pages that have areas.
+    pub pages: Vec<RedactPage>,
+    /// The color of the boxes that cover the areas.
+    pub fill: domain::stamp::Rgb,
+}
+
+/// What a redaction did.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct RedactOutcome {
+    /// Pages whose content could not be cleaned, left as they were. The caller replaces them.
+    pub raster: Vec<PageIndex>,
+    /// Characters removed from text.
+    pub glyphs: usize,
+    /// Pictures whose pixels were cleared.
+    pub pictures: usize,
+    /// Lines and shapes removed.
+    pub paths: usize,
+    /// Annotations and form fields removed.
+    pub annotations: usize,
 }
 
 /// Lists the form fields of a document.
@@ -309,6 +345,21 @@ pub trait FontCatalog: Send + Sync {
 pub trait PdfEditor: Send + Sync {
     /// Writes `source` with `edit` applied to `dest`.
     fn apply(&self, source: &Path, edit: &PdfEdit, dest: &Path) -> Result<(), AppError>;
+
+    /// Writes `source` to `dest` with what lies under the areas of `plan` removed from the page
+    /// content, and boxes drawn over them. Pages that cannot be cleaned are left as they were and
+    /// listed in the outcome.
+    fn redact(
+        &self,
+        _source: &Path,
+        _plan: &RedactPlan,
+        _dest: &Path,
+    ) -> Result<RedactOutcome, AppError> {
+        Err(AppError::new(
+            domain::ErrorCode::ComponentMissing,
+            "The PDF engine is not available here.",
+        ))
+    }
 }
 
 /// Encrypts and decrypts documents.
@@ -789,6 +840,21 @@ pub trait LayoutReader: Send + Sync {
         password: Option<&Password>,
         page: PageIndex,
     ) -> Result<domain::layout::PageContent, AppError>;
+
+    /// Every character of one page with its box, in content order and in points on the page as
+    /// displayed, with the size of the page. Spaces and line breaks are included, so the text of the page can be rebuilt and
+    /// searched, and a match mapped back to the places of its characters.
+    fn page_chars(
+        &self,
+        _path: &Path,
+        _password: Option<&Password>,
+        _page: PageIndex,
+    ) -> Result<domain::layout::PageChars, AppError> {
+        Err(AppError::new(
+            domain::ErrorCode::ComponentMissing,
+            "The PDF engine is not available here.",
+        ))
+    }
 
     /// The `index`-th picture of a page, as listed in its content.
     fn picture(

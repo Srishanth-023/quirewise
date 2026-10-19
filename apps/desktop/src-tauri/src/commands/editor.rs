@@ -6,6 +6,7 @@ use application::query::{DocumentQuery, QueryResult};
 use application::{AppError, CancellationToken, Password};
 use domain::forms::{FieldSuggestion, FormField, TextBlock};
 use domain::signatures::{NewSavedSignature, SavedSignature};
+use domain::tools::redact::{RedactMatch, RedactOptions};
 use std::path::PathBuf;
 use tauri::State;
 
@@ -76,6 +77,27 @@ pub fn text_blocks(
     )? {
         QueryResult::TextBlocks(list) => Ok(list),
         _ => Err(AppError::internal("reading the page text")),
+    }
+}
+
+/// Where Redact finds the words, patterns and kinds of text it is asked to remove.
+#[tauri::command(async)]
+pub fn redact_matches(
+    state: State<'_, AppState>,
+    path: PathBuf,
+    password: Option<Password>,
+    options: RedactOptions,
+) -> Result<Vec<RedactMatch>, AppError> {
+    match ask(
+        &state,
+        &DocumentQuery::RedactMatches {
+            path,
+            password,
+            options,
+        },
+    )? {
+        QueryResult::RedactMatches(list) => Ok(list),
+        _ => Err(AppError::internal("searching the pages")),
     }
 }
 

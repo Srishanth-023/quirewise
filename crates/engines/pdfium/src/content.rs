@@ -6,7 +6,7 @@ use application::AppError;
 use application::Password;
 use application::ports::{LayoutReader, PictureBytes};
 use domain::PageIndex;
-use domain::layout::{CharBox, PageContent, PictureBox, Rect, Rule, words_from_chars};
+use domain::layout::{CharBox, PageChars, PageContent, PictureBox, Rect, Rule, words_from_chars};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::imageops::FilterType;
@@ -226,7 +226,69 @@ fn encode(image: &DynamicImage) -> Result<PictureBytes, AppError> {
     })
 }
 
+/// The characters of a page with their boxes. With `blanks`, spaces and line breaks that have no
+/// box of their own are kept too, as empty boxes at the end of the character before them, so the
+/// text of the page can be rebuilt exactly.
+fn read_chars(
+    pdf_page: &PdfPage<'_>,
+    frame: &Frame,
+    encrypted: bool,
+    blanks: bool,
+) -> Result<Vec<CharBox>, AppError> {
+    let mut chars: Vec<CharBox> = Vec::new();
+    let text = pdf_page.text().map_err(|e| map_error(&e, encrypted))?;
+    for c in text.chars().iter() {
+        let Some(ch) = c.unicode_char() else {
+            continue;
+        };
+        let bounds = c.loose_bounds().ok();
+        let rect = match bounds {
+            Some(b) => frame.rect(
+                b.left().value,
+                b.bottom().value,
+                b.right().value,
+                b.top().value,
+            ),
+            None if blanks && (ch.is_whitespace() || ch.is_control()) => match chars.last() {
+                Some(p) => Rect::new(p.rect.x1, p.rect.y0, p.rect.x1, p.rect.y1),
+                None => continue,
+            },
+            None => continue,
+        };
+        let name = c.font_name();
+        chars.push(CharBox {
+            ch,
+            rect,
+            size: c.scaled_font_size().value,
+            bold: is_bold(c.font_weight(), &name),
+            italic: is_italic(c.font_is_italic(), &name),
+        });
+    }
+    Ok(chars)
+}
+
 impl LayoutReader for PdfiumEngine {
+    fn page_chars(
+        &self,
+        path: &Path,
+        password: Option<&Password>,
+        page: PageIndex,
+    ) -> Result<PageChars, AppError> {
+        let doc = self.open(path, password)?;
+        let index = i32::try_from(page.get()).map_err(|_| out_of_range(page))?;
+        let pdf_page = doc
+            .pages()
+            .get(index)
+            .map_err(|e| map_error(&e, password.is_some()))?;
+        let frame = frame_of(&pdf_page);
+        let (width, height) = frame.displayed();
+        Ok(PageChars {
+            width,
+            height,
+            chars: read_chars(&pdf_page, &frame, password.is_some(), true)?,
+        })
+    }
+
     fn page_content(
         &self,
         path: &Path,
@@ -242,28 +304,7 @@ impl LayoutReader for PdfiumEngine {
         let frame = frame_of(&pdf_page);
         let (width, height) = frame.displayed();
 
-        let mut chars: Vec<CharBox> = Vec::new();
-        let text = pdf_page
-            .text()
-            .map_err(|e| map_error(&e, password.is_some()))?;
-        for c in text.chars().iter() {
-            let (Some(ch), Ok(bounds)) = (c.unicode_char(), c.loose_bounds()) else {
-                continue;
-            };
-            let name = c.font_name();
-            chars.push(CharBox {
-                ch,
-                rect: frame.rect(
-                    bounds.left().value,
-                    bounds.bottom().value,
-                    bounds.right().value,
-                    bounds.top().value,
-                ),
-                size: c.scaled_font_size().value,
-                bold: is_bold(c.font_weight(), &name),
-                italic: is_italic(c.font_is_italic(), &name),
-            });
-        }
+        let chars = read_chars(&pdf_page, &frame, password.is_some(), false)?;
 
         let mut rules: Vec<Rule> = Vec::new();
         let mut pictures: Vec<PictureBox> = Vec::new();

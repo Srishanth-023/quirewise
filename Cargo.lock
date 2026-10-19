@@ -3464,6 +3464,7 @@ dependencies = [
  "base64 0.23.1",
  "proptest",
  "quirewise-domain",
+ "regex",
  "schemars 1.2.3",
  "serde",
  "serde_json",
@@ -3672,6 +3673,7 @@ name = "quirewise-worker"
 version = "0.1.0"
 dependencies = [
  "image",
+ "lopdf",
  "quirewise-application",
  "quirewise-cli",
  "quirewise-domain",

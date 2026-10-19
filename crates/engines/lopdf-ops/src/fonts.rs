@@ -142,7 +142,7 @@ pub struct Embedded {
 }
 
 /// The WinAnsi character of each code from 32 to 255.
-fn winansi_chars() -> &'static Vec<char> {
+pub(crate) fn winansi_chars() -> &'static Vec<char> {
     static TABLE: OnceLock<Vec<char>> = OnceLock::new();
     TABLE.get_or_init(|| {
         let mut table = vec!['\0'; 224];
