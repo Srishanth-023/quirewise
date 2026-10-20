@@ -295,27 +295,67 @@ impl Painter {
         align: TextAlign,
     ) -> Result<(), AppError> {
         let face = Face::resolve(style)?;
+        self.text_face(
+            doc,
+            shared,
+            region,
+            text,
+            &face,
+            style.size_pt,
+            &style.color,
+            align,
+        )
+    }
+
+    /// The size, at most `size`, at which `text` wraps inside the box without running out of its
+    /// height, but not below `floor`.
+    pub fn fit_size(&self, region: &Region, text: &str, face: &Face, size: f32, floor: f32) -> f32 {
         let b = self.boxed(region);
-        let lines = wrap(&face, text, style.size_pt, b.w);
-        let font = self.font_name(doc, shared, &face);
+        let mut size = size.max(floor);
+        while size > floor {
+            let lines = wrap(face, text, size, b.w).len() as f32;
+            if lines * size * LINE_HEIGHT <= b.h {
+                break;
+            }
+            size = (size * 0.94).max(floor);
+        }
+        size
+    }
+
+    /// Lines of text in a given font and color, starting at the top of a box.
+    #[allow(clippy::too_many_arguments)]
+    pub fn text_face(
+        &mut self,
+        doc: &mut Document,
+        shared: &mut Shared,
+        region: &Region,
+        text: &str,
+        face: &Face,
+        size_pt: f32,
+        color: &str,
+        align: TextAlign,
+    ) -> Result<(), AppError> {
+        let b = self.boxed(region);
+        let lines = wrap(face, text, size_pt, b.w);
+        let font = self.font_name(doc, shared, face);
         self.open();
-        self.out.push_str(&color_ops(&style.color, false)?);
+        self.out.push_str(&color_ops(color, false)?);
         let top = b.y + b.h;
         for (i, line) in lines.iter().enumerate() {
             if line.is_empty() {
                 continue;
             }
-            let bytes = face.encode(line).map_err(|c| cannot_draw(c, &face))?;
-            let width = face.width(line, style.size_pt);
+            let bytes = face.encode(line).map_err(|c| cannot_draw(c, face))?;
+            let width = face.width(line, size_pt);
             let x = match align {
                 TextAlign::Left => b.x,
                 TextAlign::Center => b.x + (b.w - width) / 2.0,
                 TextAlign::Right => b.x + b.w - width,
             };
-            let y = top - face.ascent() * style.size_pt - i as f32 * style.size_pt * LINE_HEIGHT;
+            let y = top - face.ascent() * size_pt - i as f32 * size_pt * LINE_HEIGHT;
             self.out.push_str(&format!(
                 "BT\n/{font} {} Tf\n{} {} Td\n{} Tj\nET\n",
-                num(style.size_pt),
+                num(size_pt),
                 num(x),
                 num(y),
                 literal(&bytes)

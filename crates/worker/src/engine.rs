@@ -5,17 +5,18 @@ use application::inspect::InspectDocument;
 use application::ports::{
     Clock, ComponentStore, FileStore, Logger, OfficeEngines, PdfReader, PdfVerifier,
 };
-use application::query::{EditorPorts, QueryService};
+use application::query::{AiPorts, EditorPorts, QueryService};
 use application::tools::{ToolDeps, register_all};
 use application::{AppError, Password, RunTool, ToolRegistry};
 use domain::ErrorCode;
 use domain::limits::SafetyLimits;
 use infrastructure::{AppPaths, FsComponentStore, HttpWeb, NativePaths, native::arch_dir};
+use quirewise_engine_ai_llamacpp::LlamaCpp;
 use quirewise_engine_export::OfficeWriter;
 use quirewise_engine_html_webview2::EdgePrinter;
 use quirewise_engine_lopdf_ops::{
     InstalledFonts, LopdfAttachments, LopdfEditor, LopdfForms, LopdfImages, LopdfPdfa,
-    LopdfStructure, LopdfToc,
+    LopdfStructure, LopdfTextDoc, LopdfToc,
 };
 use quirewise_engine_ocr_tesseract::Tesseract;
 use quirewise_engine_office_libreoffice::LibreOffice;
@@ -29,6 +30,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::Services;
+use crate::job_object::SidecarSpawner;
 
 /// The loaded native engines.
 #[derive(Clone)]
@@ -39,19 +41,30 @@ pub struct Engines {
     pub qpdf: QpdfCli,
     /// Components installed on demand, such as LibreOffice.
     pub components: Arc<dyn ComponentStore>,
+    /// The language model on this computer. One for the worker, so the server it starts is shared
+    /// by the tools and the queries, and stops when the worker does.
+    pub llm: Arc<LlamaCpp>,
 }
 
 impl Engines {
     /// Loads PDFium and points at the qpdf executable.
     pub fn load(paths: &NativePaths) -> Result<Self, AppError> {
+        let components: Arc<dyn ComponentStore> = Arc::new(FsComponentStore::new(
+            AppPaths::from_environment()
+                .map(|p| p.components_dir)
+                .unwrap_or_default(),
+        ));
+        let (server_dirs, model_dirs) = llama_folders();
         Ok(Self {
             pdfium: PdfiumEngine::load(&paths.pdfium_dir)?,
             qpdf: QpdfCli::new(paths.qpdf_exe.clone()),
-            components: Arc::new(FsComponentStore::new(
-                AppPaths::from_environment()
-                    .map(|p| p.components_dir)
-                    .unwrap_or_default(),
+            llm: Arc::new(LlamaCpp::with_spawner(
+                Some(Arc::clone(&components)),
+                server_dirs,
+                model_dirs,
+                Arc::new(SidecarSpawner),
             )),
+            components,
         })
     }
 }
@@ -128,6 +141,21 @@ fn verapdf_folders() -> Vec<PathBuf> {
     folders
 }
 
+/// Folders next to the app that may hold the llama.cpp server and model files: the installed
+/// layout and a development tree.
+fn llama_folders() -> (Vec<PathBuf>, Vec<PathBuf>) {
+    let Ok(exe) = std::env::current_exe() else {
+        return (Vec::new(), Vec::new());
+    };
+    let (mut servers, mut models) = (Vec::new(), Vec::new());
+    for root in exe.ancestors().skip(1).take(7) {
+        servers.push(root.join("native").join("llama-cpp"));
+        servers.push(root.join("vendor").join("llama-cpp").join(arch_dir()));
+        models.push(root.join("vendor").join("models"));
+    }
+    (servers, models)
+}
+
 /// The Ghostscript plugin, in a build that has it and on a computer that has Ghostscript.
 #[cfg(feature = "agpl-ghostscript")]
 fn ghostscript() -> Option<Arc<dyn application::ports::PdfaNormalizer>> {
@@ -189,6 +217,8 @@ pub fn tool_deps(engines: &Engines) -> ToolDeps {
         web: Arc::new(HttpWeb::new()),
         normalizer: Arc::new(LopdfPdfa),
         pdfa_fallback: ghostscript(),
+        llm: engines.llm.clone(),
+        textdoc: Arc::new(LopdfTextDoc),
         conformance: Arc::new(VeraPdf::new(
             Some(Arc::clone(&engines.components)),
             verapdf_folders(),
@@ -231,7 +261,11 @@ pub fn build_services(
         forms: Arc::new(LopdfForms),
         fonts: Arc::new(InstalledFonts),
     })
-    .with_signer(Arc::new(CmsEngine::new()));
+    .with_signer(Arc::new(CmsEngine::new()))
+    .with_ai(AiPorts {
+        text: Arc::new(engines.pdfium),
+        llm: engines.llm.clone(),
+    });
     let runner = RunTool::new(
         Arc::new(registry),
         reader,

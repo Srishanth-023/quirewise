@@ -2,7 +2,9 @@
   import { onMount, untrack } from 'svelte';
   import { t, tDynamic } from '../../i18n';
   import Icon from '../../components/Icon.svelte';
-  import { ipc } from '../../ipc/client';
+  import { ipc, toAppError } from '../../ipc/client';
+  import { toasts } from '../../stores/toasts.svelte';
+  import { mergeTerms } from '../ai/ai';
   import type { RedactOptions, ToolDescriptor } from '../../ipc/client';
   import type { FieldSuggestion, FormField, NewField, RedactMatch, TextBlock } from '../../ipc/generated';
   import { files } from '../../stores/files.svelte';
@@ -187,6 +189,46 @@ import { toolOptions } from '../../stores/options.svelte';
     };
   });
 
+  // ----- words the language model finds -------------------------------------------------------
+
+  let asking = $state(false);
+  const wantsModel = $derived.by(() => {
+    void toolOptions.edits;
+    return tool.id === 'redact' && (toolOptions.values(tool) as Record<string, unknown>).ai_suggestions === true;
+  });
+
+  /** Asks the model for personal details and adds them to the words, where the person can read and change them. */
+  async function askModel(): Promise<void> {
+    if (!entry || !usable) return;
+    const values = toolOptions.values(tool) as Record<string, unknown>;
+    const given = Array.isArray(values.terms) ? (values.terms as string[]) : [];
+    const options = {
+      areas: [],
+      terms: given,
+      patterns: [],
+      presets: [],
+      case_sensitive: false,
+      pages: typeof values.pages === 'string' && values.pages.trim() !== '' ? values.pages : 'all',
+      fill_color: palette.black,
+      strip_metadata: true,
+      ai_suggestions: true,
+      ai: values.ai as RedactOptions['ai'],
+    } satisfies RedactOptions;
+    asking = true;
+    try {
+      const found = await ipc.redactSuggestions(entry.path, password, options);
+      const merged = mergeTerms(given, found);
+      toolOptions.set(tool, 'terms', merged);
+      // What the model found is now in the words, so a run does not ask it again.
+      toolOptions.set(tool, 'ai_suggestions', false);
+      toasts.info(t('editor.ai.added', { count: merged.length - given.filter((g) => g.trim() !== '').length }));
+    } catch (error) {
+      toasts.error(toAppError(error));
+    } finally {
+      asking = false;
+    }
+  }
+
   // ----- toolbar and keys --------------------------------------------------------------------
 
   let canvas: { addAtCenter: () => void } | undefined = $state();
@@ -315,6 +357,14 @@ import { toolOptions } from '../../stores/options.svelte';
     {#if formProblem}<p class="error" role="alert">{formProblem}</p>{/if}
     {#if tool.id === 'fill-sign' && formFields.length === 0 && !formProblem}
       <p class="hint">{t('editor.noFormFields')}</p>
+    {/if}
+    {#if wantsModel}
+      <div class="found" role="status">
+        <span>{t('editor.ai.help')}</span>
+        <button type="button" disabled={asking || !usable} onclick={() => void askModel()}>
+          {asking ? t('editor.ai.asking') : t('editor.ai.ask')}
+        </button>
+      </div>
     {/if}
     {#if tool.id === 'redact'}
       <p class="hint" role="status">

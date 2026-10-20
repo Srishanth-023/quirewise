@@ -1,5 +1,6 @@
 //! Tool identifiers and per-tool option structs. One module per tool.
 
+pub mod ai;
 pub mod combine;
 pub mod common;
 pub mod compare;
@@ -26,6 +27,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::error::DomainError;
+pub use ai::{AiSummarizerOptions, SmartSplitOptions, TranslatePdfOptions};
 pub use combine::{AlternateMixOptions, MergeOptions, OrganizeOptions};
 pub use compare::CompareOptions;
 pub use convert::{
@@ -161,6 +163,12 @@ pub enum ToolId {
     Attachments,
     /// Page labels (row 66).
     PageLabels,
+    /// Smart Split with a local model (row 12).
+    SmartSplit,
+    /// AI Summarizer (row 56).
+    AiSummarizer,
+    /// Translate PDF (row 57).
+    TranslatePdf,
     /// PDF to PDF/A (row 30).
     PdfToPdfa,
     /// Validate PDF/A (row 31).
@@ -225,7 +233,7 @@ pub enum ToolId {
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 65] = [
+    pub const ALL: [ToolId; 68] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -261,6 +269,9 @@ impl ToolId {
         ToolId::RenameByContent,
         ToolId::Attachments,
         ToolId::PageLabels,
+        ToolId::SmartSplit,
+        ToolId::AiSummarizer,
+        ToolId::TranslatePdf,
         ToolId::PdfToPdfa,
         ToolId::ValidatePdfa,
         ToolId::CheckPdfua,
@@ -331,6 +342,9 @@ impl ToolId {
             Self::RenameByContent => "rename-by-content",
             Self::Attachments => "attachments",
             Self::PageLabels => "page-labels",
+            Self::SmartSplit => "smart-split",
+            Self::AiSummarizer => "ai-summarizer",
+            Self::TranslatePdf => "translate-pdf",
             Self::PdfToPdfa => "pdf-to-pdfa",
             Self::ValidatePdfa => "validate-pdfa",
             Self::CheckPdfua => "check-pdfua",
@@ -456,6 +470,12 @@ pub enum ToolOptions {
     Attachments(AttachmentsOptions),
     /// Options for [`ToolId::PageLabels`].
     PageLabels(PageLabelsOptions),
+    /// Options for [`ToolId::SmartSplit`].
+    SmartSplit(SmartSplitOptions),
+    /// Options for [`ToolId::AiSummarizer`].
+    AiSummarizer(AiSummarizerOptions),
+    /// Options for [`ToolId::TranslatePdf`].
+    TranslatePdf(TranslatePdfOptions),
     /// Options for [`ToolId::PdfToPdfa`].
     PdfToPdfa(PdfToPdfaOptions),
     /// Options for [`ToolId::ValidatePdfa`].
@@ -557,6 +577,9 @@ impl ToolOptions {
             Self::RenameByContent(_) => ToolId::RenameByContent,
             Self::Attachments(_) => ToolId::Attachments,
             Self::PageLabels(_) => ToolId::PageLabels,
+            Self::SmartSplit(_) => ToolId::SmartSplit,
+            Self::AiSummarizer(_) => ToolId::AiSummarizer,
+            Self::TranslatePdf(_) => ToolId::TranslatePdf,
             Self::PdfToPdfa(_) => ToolId::PdfToPdfa,
             Self::ValidatePdfa(_) => ToolId::ValidatePdfa,
             Self::CheckPdfua(_) => ToolId::CheckPdfua,
@@ -630,6 +653,9 @@ impl ToolOptions {
             ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
             ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
             ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
+            ToolId::SmartSplit => Self::SmartSplit(SmartSplitOptions::default()),
+            ToolId::AiSummarizer => Self::AiSummarizer(AiSummarizerOptions::default()),
+            ToolId::TranslatePdf => Self::TranslatePdf(TranslatePdfOptions::default()),
             ToolId::PdfToPdfa => Self::PdfToPdfa(PdfToPdfaOptions::default()),
             ToolId::ValidatePdfa => Self::ValidatePdfa(ValidatePdfaOptions::default()),
             ToolId::CheckPdfua => Self::CheckPdfua(CheckPdfuaOptions::default()),

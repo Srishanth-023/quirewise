@@ -27,6 +27,12 @@ export interface ToolForm {
   languagePicker?: string[];
   /** Draw the region picker over the first page; `when` limits it to one value of another field. */
   regionPicker?: { when?: ShowRule };
+  /** Groups drawn as the choice of the model: built in or Ollama, which model, its license. */
+  aiPicker?: string[];
+  /** Text fields holding a language code, chosen from the languages that can be written. */
+  languageChoice?: string[];
+  /** Show the preview of Smart Split below the form. */
+  smartSplit?: boolean;
 }
 
 /** Tools that can run with an empty file list, and the option that makes it possible. */
@@ -118,9 +124,37 @@ export const toolForms: Record<string, ToolForm> = {
   'validate-pdfa': { order: ['level', 'format'] },
   'check-pdfua': { order: ['format'] },
   redact: {
-    order: ['terms', 'presets', 'patterns', 'case_sensitive', 'pages', 'fill_color', 'strip_metadata'],
+    order: [
+      'terms',
+      'presets',
+      'patterns',
+      'case_sensitive',
+      'pages',
+      'fill_color',
+      'strip_metadata',
+      'ai_suggestions',
+      'ai',
+    ],
     custom: ['areas'],
     color: ['fill_color'],
+    aiPicker: ['ai'],
+    visibleWhen: { ai: { field: 'ai_suggestions', equals: true } },
+  },
+  'smart-split': {
+    order: ['instruction', 'ai'],
+    custom: ['parts'],
+    aiPicker: ['ai'],
+    smartSplit: true,
+  },
+  'ai-summarizer': {
+    order: ['language', 'length', 'format', 'pages', 'ai'],
+    languageChoice: ['language'],
+    aiPicker: ['ai'],
+  },
+  'translate-pdf': {
+    order: ['target_language', 'preserve_layout', 'pages', 'ai'],
+    languageChoice: ['target_language'],
+    aiPicker: ['ai'],
   },
   'split-ranges': { order: ['ranges', 'merge_into_one'] },
   'split-every-n': { limits: { n: { min: 1 } } },
@@ -413,9 +447,13 @@ export const toolForms: Record<string, ToolForm> = {
     visibleWhen: { languages: { field: 'ocr', in: ['auto', 'always'] } },
   },
   'pdf-to-markdown': {
-    order: ['images', 'ocr', 'languages', 'pages'],
+    order: ['images', 'ocr', 'languages', 'pages', 'ai_cleanup', 'ai'],
     languagePicker: ['languages'],
-    visibleWhen: { languages: { field: 'ocr', in: ['auto', 'always'] } },
+    aiPicker: ['ai'],
+    visibleWhen: {
+      languages: { field: 'ocr', in: ['auto', 'always'] },
+      ai: { field: 'ai_cleanup', equals: true },
+    },
   },
   'pdf-to-html': {
     order: ['inline_images', 'ocr', 'languages', 'pages'],

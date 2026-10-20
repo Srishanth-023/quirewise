@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::DomainError;
 use crate::layout::Detection;
 use crate::page_range::PageRange;
+use crate::tools::ai::AiOptions;
 use crate::tools::recognize::{OCR_DPI_RANGE, check_languages};
 use crate::units::Dpi;
 
@@ -209,6 +210,11 @@ pub struct PdfToMarkdownOptions {
     pub languages: Vec<String>,
     /// Pages to convert. Default `all`.
     pub pages: PageRange,
+    /// Let the local model tidy the text: join lines that were broken by the page, mend
+    /// hyphenated words and fix the heading levels. Words are never added or removed. Default off.
+    pub ai_cleanup: bool,
+    /// The model for `ai_cleanup`.
+    pub ai: AiOptions,
 }
 
 impl Default for PdfToMarkdownOptions {
@@ -218,14 +224,20 @@ impl Default for PdfToMarkdownOptions {
             ocr: ExportOcr::Auto,
             languages: default_languages(),
             pages: PageRange::all(),
+            ai_cleanup: false,
+            ai: AiOptions::default(),
         }
     }
 }
 
 impl PdfToMarkdownOptions {
-    /// Checks the OCR languages.
+    /// Checks the OCR languages and, when the model is used, the model.
     pub fn validate(&self) -> Result<(), DomainError> {
-        check_ocr(self.ocr, &self.languages)
+        check_ocr(self.ocr, &self.languages)?;
+        if self.ai_cleanup {
+            self.ai.validate()?;
+        }
+        Ok(())
     }
 }
 

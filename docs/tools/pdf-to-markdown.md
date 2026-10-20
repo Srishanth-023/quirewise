@@ -29,7 +29,7 @@ PDFium gives the words (with size, bold and italic), the lines and bars that may
 - Text that is not horizontal on the page (vertical lines, text turned by an angle) is read one character at a time and comes out in pieces.
 - A scanned page needs the Tesseract component and the language data (Settings, Components). With text recognition off, or when a page has no picture, such a page stays a picture or empty.
 - Markdown has no page breaks or columns: the pages follow one another and columns are read one after the other.
-- An AI clean-up of the result is planned with the local AI tools (docs/open-questions.md).
+- The AI clean-up (`ai_cleanup`, off by default) sends the prose of the result to the local model to join lines the page width broke, mend words broken by a hyphen and fix heading levels. Tables, pictures and code are never sent. A tidied piece is kept only when it has the same words as the original (a twelfth of them, at least three, may differ, for the words that joining and mending change); otherwise the original piece stays and the log records that. Words are never added, removed or translated.
 
 ## Errors
 

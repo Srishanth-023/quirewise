@@ -32,3 +32,10 @@ Canonicalize paths, reject device paths and reparse-point escapes, allow UNC onl
 ## Open items
 
 Tracked in `docs/open-questions.md`.
+
+## Local AI (Phase 12)
+
+- **Data.** Text of documents goes to a language model. The model is a process on this computer reached only on the loopback address (parsed so that look-alike addresses are refused), without a proxy. The built-in server also needs a random key that only the worker knows (environment, not command line). Ollama is used only after the person agreed in the options of that run.
+- **Prompt injection.** A document can say "ignore your instructions". Every prompt marks the text as data, and no answer is trusted: page numbers, titles, personal details, translations and tidied text are parsed and checked against the document before use; the model has no tools and cannot write files. The worst result of a manipulated answer is a wrong split, summary or translation, which the person sees; Redact only removes strings found on the pages, and the preview lists them first.
+- **Resources.** A server can use all memory and processor time. It is started outside the worker's caps (those suit parsing, not inference) in a job that ends it when the worker ends; the worker's own job allows breakaway only for a child that asks for it. A crash of the worker therefore does not leave a server behind.
+- **Models.** Model files are downloaded as components with a hash check, after the license is shown. A model file is parsed by llama.cpp, which is not part of the PDF parsing path.

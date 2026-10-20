@@ -15,6 +15,7 @@ use domain::tools::document::MetadataChange;
 use domain::tools::redact::RedactOptions;
 use domain::{Dpi, ErrorCode, PageIndex, ToolId, ToolOptions};
 
+use super::airedact::add_model_terms;
 use super::common::{
     Progress, Scratch, ToolDeps, first_input, kept_protection, page_count, publish_pdf_checked,
     wrong_options,
@@ -252,27 +253,47 @@ impl Tool for RedactTool {
         if options.searches() {
             Matcher::compile(options)?;
         }
-        let searched = if options.searches() {
+        let searched = if options.reads_pages() {
             options.search_pages(count)?.len() as u64
         } else {
             0
         };
+        // The model reads each searched page once more.
+        let reading = if options.ai_suggestions { searched } else { 0 };
         Ok(Plan {
             tool: ToolId::Redact,
             inputs: inputs.to_vec(),
             options: opts.clone(),
-            total_units: searched + 2,
+            total_units: searched + reading + 2,
         })
     }
 
     fn execute(&self, ctx: &JobContext<'_>, plan: Plan) -> Result<Vec<OutputArtifact>, AppError> {
-        let ToolOptions::Redact(options) = &plan.options else {
+        let ToolOptions::Redact(chosen) = &plan.options else {
             return Err(wrong_options());
         };
         let input = first_input(&plan.inputs)?;
         let count = page_count(input);
-        let fill = options.fill()?;
+        let fill = chosen.fill()?;
         let mut progress = Progress::start(ctx, plan.total_units);
+
+        // What the model finds is added to the words the person gave.
+        let extended;
+        let options = if chosen.ai_suggestions {
+            extended = add_model_terms(
+                self.deps.llm.as_ref(),
+                self.deps.text.as_ref(),
+                &input.path,
+                input.password.as_ref(),
+                chosen,
+                count,
+                ctx.cancel,
+                &mut || progress.advance(1),
+            )?;
+            &extended
+        } else {
+            chosen
+        };
 
         let found = self.find(ctx, input, options, &mut progress)?;
         if found.is_empty() {

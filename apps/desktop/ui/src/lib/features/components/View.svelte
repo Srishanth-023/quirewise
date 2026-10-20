@@ -3,9 +3,20 @@
   import { t, tDynamic } from '../../i18n';
   import Dialog from '../../components/Dialog/Dialog.svelte';
   import ProgressBar from '../../components/ProgressBar/ProgressBar.svelte';
+  import { catalog } from '../ai/catalog.svelte';
+  import { modelOfComponent } from '../ai/ai';
   import { components, componentName } from './store.svelte';
 
-  onMount(() => void components.load());
+  onMount(() => {
+    void components.load();
+    void catalog.load();
+  });
+
+  /** The model whose download the person is asked to confirm: its license is shown first. */
+  const licensed = $derived.by(() => {
+    const c = components.consent;
+    return c?.kind === 'install' ? modelOfComponent(c.entry.id, catalog.data?.models ?? []) : undefined;
+  });
 
   const mb = (bytes: number | bigint): number => Math.max(1, Math.round(Number(bytes) / (1024 * 1024)));
 
@@ -93,8 +104,18 @@
 
 <Dialog open={components.consent !== null} title={t('components.consent.title')} onclose={() => components.decline()}>
   <p>{question}</p>
+  {#if licensed}
+    <section class="license" aria-labelledby="license-title">
+      <h3 id="license-title">{t('components.license.title', { name: licensed.name })}</h3>
+      <p><strong>{licensed.license}</strong>. {licensed.license_summary}</p>
+      <p class="help mono">{licensed.license_url}</p>
+      <p class="help">{t('components.license.note')}</p>
+    </section>
+  {/if}
   <div class="row">
-    <button type="button" class="primary" onclick={() => void components.confirm()}>{t('components.consent.yes')}</button>
+    <button type="button" class="primary" onclick={() => void components.confirm()}>
+      {licensed ? t('components.consent.yesLicense') : t('components.consent.yes')}
+    </button>
     <button type="button" onclick={() => components.decline()}>{t('components.consent.no')}</button>
   </div>
 </Dialog>
@@ -140,6 +161,22 @@
   .help {
     margin: var(--space-2) 0 0;
     color: var(--text-muted);
+  }
+  .license {
+    margin: var(--space-3) 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+  }
+  .license h3 {
+    margin: 0 0 var(--space-2);
+  }
+  .license p {
+    margin: 0 0 var(--space-2);
+    overflow-wrap: anywhere;
+  }
+  .mono {
+    font-family: var(--font-mono);
   }
   button {
     min-height: 32px;

@@ -174,9 +174,26 @@ pub struct OutlineEntry {
     pub level: u32,
 }
 
+/// New text for a box of a page. The old content of the box is covered.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TextReplacement {
+    /// The page, from 0.
+    pub page: PageIndex,
+    /// The box, as fractions of the displayed page from its top left.
+    pub region: Region,
+    /// The text; a line break starts a new line.
+    pub text: String,
+    /// The size to start with, in points. It shrinks until the text fits the box.
+    pub size_pt: f32,
+    /// Bold.
+    pub bold: bool,
+}
+
 /// An edit applied to a finished, unencrypted PDF.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PdfEdit {
+    /// Covers boxes and writes new text in them, in an installed font that has the characters.
+    ReplaceText(Vec<TextReplacement>),
     /// Replaces the document outline with these bookmarks.
     SetOutline(Vec<OutlineEntry>),
     /// Sets the crop box of pages to a fraction of their current visible area.
@@ -489,6 +506,33 @@ pub struct TocLine {
     pub title: String,
     /// One-based page number the line points to.
     pub page_number: u32,
+}
+
+/// A piece of a document of flowing text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DocBlock {
+    /// The title of the document.
+    Title(String),
+    /// A heading.
+    Heading(String),
+    /// A paragraph; a line break starts a new line.
+    Paragraph(String),
+    /// An item of a list.
+    Bullet(String),
+}
+
+/// Writes documents of flowing text.
+pub trait TextDocWriter: Send + Sync {
+    /// Writes the blocks as pages of the given size, in an installed font that has the
+    /// characters. Fails when no installed font has them.
+    fn write(
+        &self,
+        blocks: &[DocBlock],
+        title: &str,
+        width_pt: f32,
+        height_pt: f32,
+        dest: &Path,
+    ) -> Result<(), AppError>;
 }
 
 /// Builds a table of contents document.
@@ -1063,10 +1107,33 @@ pub trait HtmlConverter: Send + Sync {
     ) -> Result<(), AppError>;
 }
 
-/// Local language model engine, off by default.
+/// One question to the language model.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LlmRequest {
+    /// What the model is told about its job and the form of the answer.
+    pub system: String,
+    /// The text to work on.
+    pub user: String,
+    /// The most tokens the answer may have.
+    pub max_tokens: u32,
+    /// The answer must be one JSON object.
+    pub json: bool,
+}
+
+/// A language model that runs on this computer. Nothing it is given leaves the computer, and it
+/// only runs when a tool the person started asks for it.
 pub trait LlmEngine: Send + Sync {
-    /// Completes a prompt. Only runs after the user enabled Local AI.
-    fn complete(&self, prompt: &str) -> Result<String, AppError>;
+    /// The models that are ready: for `bundled`, the catalog ids whose files are installed; for
+    /// Ollama, the names the server lists. The options must already be validated.
+    fn models(&self, ai: &domain::tools::ai::AiOptions) -> Result<Vec<String>, AppError>;
+
+    /// The answer of the model to one request. Stops early when `cancel` is set.
+    fn complete(
+        &self,
+        ai: &domain::tools::ai::AiOptions,
+        request: &LlmRequest,
+        cancel: &crate::runtime::CancellationToken,
+    ) -> Result<String, AppError>;
 }
 
 /// File system access with the integrity rules of AGENTS.md section 7.

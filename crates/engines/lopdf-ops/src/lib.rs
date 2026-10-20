@@ -27,14 +27,18 @@ mod pdfa_icc;
 mod pdfa_xmp;
 mod redact;
 mod redactfont;
+mod replace;
 mod sanitize;
 mod scan;
 mod stamp;
+mod textdoc;
 mod textlayer;
 mod toc;
+mod unifont;
 
 pub use fonts::InstalledFonts;
 pub use pdfa::LopdfPdfa;
+pub use textdoc::LopdfTextDoc;
 pub use toc::LopdfToc;
 
 use application::AppError;

@@ -114,6 +114,32 @@ pub enum DocumentQuery {
     EditorFonts,
     /// The certificates of the Windows store that can sign.
     Certificates,
+    /// How Smart Split would split a document: the parts the language model proposes for an
+    /// instruction. Runs the model, so it can take a while.
+    SmartSplit {
+        /// File to read.
+        path: PathBuf,
+        /// Password, when the user entered one this session.
+        password: Option<Password>,
+        /// The instruction and the model.
+        options: domain::tools::ai::SmartSplitOptions,
+    },
+    /// The personal details the language model finds on the pages Redact searches, as words to
+    /// add to the ones the person gave. Runs the model, so it can take a while.
+    RedactSuggestions {
+        /// File to read.
+        path: PathBuf,
+        /// Password, when the user entered one this session.
+        password: Option<Password>,
+        /// The pages to read and the model; the words already given are left out of the answer.
+        options: domain::tools::redact::RedactOptions,
+    },
+    /// The models that are ready to run: the catalog models whose files are installed, or the
+    /// models of the Ollama server (which needs the person's agreement in the options).
+    AiModels {
+        /// Where the models run.
+        ai: domain::tools::ai::AiOptions,
+    },
     /// Where the words, patterns and kinds of text of Redact are found. Only what the options
     /// search for is used; drawn areas are ignored.
     RedactMatches {
@@ -162,6 +188,12 @@ pub enum QueryResult {
     EditorFonts(Vec<String>),
     /// Where Redact finds what it searches for.
     RedactMatches(Vec<domain::tools::redact::RedactMatch>),
+    /// The parts Smart Split proposes.
+    SmartSplit(Vec<domain::tools::ai::SplitPart>),
+    /// Names of the models that are ready.
+    AiModels(Vec<String>),
+    /// Words the model found, that were not given.
+    RedactTerms(Vec<String>),
     /// The certificates of the Windows store that can sign.
     Certificates(Vec<crate::signing::StoredCertificate>),
 }
@@ -187,6 +219,16 @@ pub struct QueryService {
     limits: SafetyLimits,
     editor: Option<EditorPorts>,
     signer: Option<Arc<dyn crate::signing::PdfSigner>>,
+    ai: Option<AiPorts>,
+}
+
+/// The ports the queries that use the language model read through.
+#[derive(Clone)]
+pub struct AiPorts {
+    /// Text of pages.
+    pub text: Arc<dyn crate::ports::TextExtractor>,
+    /// The model.
+    pub llm: Arc<dyn crate::ports::LlmEngine>,
 }
 
 /// The ports the editor's queries read through.
@@ -253,7 +295,24 @@ impl QueryService {
             limits,
             editor: None,
             signer: None,
+            ai: None,
         }
+    }
+
+    /// Adds the ports the queries that use the language model need.
+    #[must_use]
+    pub fn with_ai(mut self, ai: AiPorts) -> Self {
+        self.ai = Some(ai);
+        self
+    }
+
+    fn ai(&self) -> Result<&AiPorts, AppError> {
+        self.ai.as_ref().ok_or_else(|| {
+            AppError::new(
+                domain::ErrorCode::ComponentMissing,
+                "Local AI is not available here.",
+            )
+        })
     }
 
     /// Adds the ports the editor's queries need.
@@ -355,6 +414,28 @@ impl QueryRunner for QueryService {
             } => {
                 let file = self.checked(path, password.as_ref(), None)?;
                 let count = self.reader.open_info(&file, password.as_ref())?.page_count;
+                if !options.reads_pages() {
+                    return Ok(QueryResult::RedactMatches(Vec::new()));
+                }
+                // What the model finds is searched for like the words the person gave.
+                let extended;
+                let options = if options.ai_suggestions {
+                    options.ai.validate()?;
+                    let ai = self.ai()?;
+                    extended = crate::tools::add_model_terms(
+                        ai.llm.as_ref(),
+                        ai.text.as_ref(),
+                        &file,
+                        password.as_ref(),
+                        options,
+                        count,
+                        cancel,
+                        &mut || (),
+                    )?;
+                    &extended
+                } else {
+                    options
+                };
                 if !options.searches() {
                     return Ok(QueryResult::RedactMatches(Vec::new()));
                 }
@@ -380,6 +461,57 @@ impl QueryRunner for QueryService {
                     .take(MAX_REDACT_MATCHES)
                     .collect();
                 Ok(QueryResult::RedactMatches(matches))
+            }
+            DocumentQuery::SmartSplit {
+                path,
+                password,
+                options,
+            } => {
+                let file = self.checked(path, password.as_ref(), None)?;
+                let count = self.reader.open_info(&file, password.as_ref())?.page_count;
+                let ai = self.ai()?;
+                crate::tools::smart_split_preview(
+                    ai.llm.as_ref(),
+                    ai.text.as_ref(),
+                    &file,
+                    password.as_ref(),
+                    count,
+                    options,
+                    cancel,
+                )
+                .map(QueryResult::SmartSplit)
+            }
+            DocumentQuery::RedactSuggestions {
+                path,
+                password,
+                options,
+            } => {
+                options.ai.validate()?;
+                let file = self.checked(path, password.as_ref(), None)?;
+                let count = self.reader.open_info(&file, password.as_ref())?.page_count;
+                options.search_pages(count)?;
+                let ai = self.ai()?;
+                let extended = crate::tools::add_model_terms(
+                    ai.llm.as_ref(),
+                    ai.text.as_ref(),
+                    &file,
+                    password.as_ref(),
+                    options,
+                    count,
+                    cancel,
+                    &mut || (),
+                )?;
+                Ok(QueryResult::RedactTerms(
+                    extended
+                        .terms
+                        .into_iter()
+                        .skip(options.terms.len())
+                        .collect(),
+                ))
+            }
+            DocumentQuery::AiModels { ai: options } => {
+                options.validate()?;
+                self.ai()?.llm.models(options).map(QueryResult::AiModels)
             }
             DocumentQuery::TextBlocks {
                 path,

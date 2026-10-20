@@ -1,6 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
+  AiCatalog,
+  AiOptions,
   AppError,
   BatchEvent,
   ComponentEntry,
@@ -16,6 +18,8 @@ import type {
   RunBatchRequest,
   SavedSignature,
   Settings,
+  SmartSplitOptions,
+  SplitPart,
   StoredCertificate,
   TextBlock,
   Thumbnail,
@@ -23,6 +27,8 @@ import type {
 } from './generated';
 
 export type {
+  AiCatalog,
+  AiOptions,
   AppError,
   BatchEvent,
   ComponentEntry,
@@ -38,6 +44,8 @@ export type {
   RunBatchRequest,
   SavedSignature,
   Settings,
+  SmartSplitOptions,
+  SplitPart,
   StoredCertificate,
   TextBlock,
   Thumbnail,
@@ -109,6 +117,12 @@ export const ipc = {
   redactMatches: (path: string, password: string | null, options: RedactOptions) =>
     call<RedactMatch[]>('redact_matches', { path, password, options }),
   listCertificates: () => call<StoredCertificate[]>('list_certificates'),
+  aiCatalog: () => call<AiCatalog>('ai_catalog'),
+  aiModels: (ai: AiOptions) => call<string[]>('ai_models', { ai }),
+  smartSplitPreview: (path: string, password: string | null, options: SmartSplitOptions) =>
+    call<SplitPart[]>('smart_split_preview', { path, password, options }),
+  redactSuggestions: (path: string, password: string | null, options: RedactOptions) =>
+    call<string[]>('redact_suggestions', { path, password, options }),
   signaturesList: () => call<SavedSignature[]>('signatures_list'),
   signatureSave: (signature: NewSavedSignature) =>
     call<SavedSignature>('signature_save', { signature }),

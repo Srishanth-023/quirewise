@@ -293,7 +293,13 @@ mod tests {
             page: 0,
             max_edge: 64,
         };
-        let input = frames(&[Request::Query { id: 11, query }, Request::Shutdown]);
+        let input = frames(&[
+            Request::Query {
+                id: 11,
+                query: Box::new(query),
+            },
+            Request::Shutdown,
+        ]);
         let out = SharedBuf::default();
         serve(input, out.clone(), services()).unwrap();
         let replies = responses(lock(&out.0).clone());

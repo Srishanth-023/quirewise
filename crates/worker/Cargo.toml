@@ -32,6 +32,7 @@ quirewise-engine-ocr-tesseract = { path = "../engines/ocr-tesseract" }
 quirewise-engine-export = { path = "../engines/export" }
 quirewise-engine-sign-cms = { path = "../engines/sign-cms" }
 quirewise-engine-pdfa-verapdf = { path = "../engines/pdfa-verapdf" }
+quirewise-engine-ai-llamacpp = { path = "../engines/ai-llamacpp" }
 quirewise-engine-gs-plugin = { path = "../engines/gs-plugin", optional = true }
 
 [dev-dependencies]

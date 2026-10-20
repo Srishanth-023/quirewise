@@ -16,14 +16,20 @@ Removes content from a PDF for good: text, pictures, lines and shapes, annotatio
 | `pages` | text | Pages the search covers: `all`, `even`, `odd` or a range; default `all`. Drawn areas apply to their own page. |
 | `fill_color` | text | Color of the boxes that cover what was removed; default `#000000` |
 | `strip_metadata` | bool | Clear the document information and the XMP packet; default on |
+| `ai_suggestions` | bool | Also remove the personal details a local language model finds: names, addresses, numbers that no pattern describes. Default off. |
+| `ai` | group | The model for `ai_suggestions`; see `smart-split.md`, "The model" |
 
-Something to remove is needed: an area, a word, a pattern or a preset.
+Something to remove is needed: an area, a word, a pattern, a preset or `ai_suggestions`.
 
 ```
 qw run redact contract.pdf --options '{"presets":["email","card-number"],"terms":["Project Falcon"]}'
 ```
 
 In the app the page editor shows the file. Draw areas with the Area tool; words, patterns and kinds of text are typed in the options, and the places they match are outlined on the pages as you type (nothing is changed until you run the tool). A search match covers only the characters that matched, not the whole word.
+
+## AI suggestions
+
+With `ai_suggestions` on, the model reads each searched page and lists personal details (names of people, postal addresses, telephone numbers, e-mail addresses, dates of birth, identity, tax, bank and card numbers). An item counts only when it appears in the page word for word, so nothing the model invents is searched for; the items are added to `terms` and found like any other word. The model can miss things and can name things that need not go: in the app, **Ask the model** adds the words to the list of words, where you read and change them, and then turns the option off, so the run does not ask again. Without the app (`qw run`), the run asks the model itself and removes what it finds without a review.
 
 ## How it works
 

@@ -1,5 +1,9 @@
 //! Tool implementations. Each tool depends on ports only and is registered here, once.
 
+mod aikit;
+mod airedact;
+mod aisummary;
+mod aitidy;
 mod combine;
 mod common;
 mod compare;
@@ -25,12 +29,16 @@ mod secure;
 mod select;
 mod signing;
 mod signreport;
+mod smartsplit;
 mod split;
 mod stamp;
 mod structure;
+mod translate;
 
+pub use airedact::add_model_terms;
 pub use common::{ToolDeps, pages_label};
 pub use redactfind::find_matches;
+pub use smartsplit::preview as smart_split_preview;
 
 use std::sync::Arc;
 
@@ -96,6 +104,9 @@ pub fn register_all(
     registry.register(Arc::new(pdfa::PdfToPdfaTool::new(deps.clone())))?;
     registry.register(Arc::new(conformance::ValidatePdfaTool::new(deps.clone())))?;
     registry.register(Arc::new(conformance::CheckPdfuaTool::new(deps.clone())))?;
+    registry.register(Arc::new(smartsplit::SmartSplitTool::new(deps.clone())))?;
+    registry.register(Arc::new(aisummary::AiSummarizerTool::new(deps.clone())))?;
+    registry.register(Arc::new(translate::TranslatePdfTool::new(deps.clone())))?;
     registry.register(Arc::new(stamp::PageNumbersTool::new(deps.clone())))?;
     registry.register(Arc::new(stamp::HeaderFooterTool::new(deps.clone())))?;
     registry.register(Arc::new(stamp::BatesTool::new(deps.clone())))?;

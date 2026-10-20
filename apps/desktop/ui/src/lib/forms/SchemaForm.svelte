@@ -7,6 +7,8 @@
   import FieldInput from './FieldInput.svelte';
   import CertificatePicker from './CertificatePicker.svelte';
   import LanguagePicker from './LanguagePicker.svelte';
+  import AiPicker from './AiPicker.svelte';
+  import LanguageChoice from './LanguageChoice.svelte';
   import type { Field, Values } from './schema';
   import { formFor, ruleMet } from './toolForms';
   import { itemDefaults } from './schema';
@@ -76,7 +78,14 @@
 
 <form class="form" aria-label={t('options.formLabel', { tool: toolName(tool) })} onsubmit={(e) => e.preventDefault()}>
   {#each fields.filter((f) => drawable(f) && visible(f)) as field (field.key)}
-    {#if field.kind === 'group'}
+    {#if field.kind === 'group' && hints.aiPicker?.includes(field.key)}
+      <AiPicker
+        id={`${tool.id}-${field.key}`}
+        label={listLabel(field)}
+        value={groupValues(field)}
+        onchange={(v) => toolOptions.set(tool, field.key, v)}
+      />
+    {:else if field.kind === 'group'}
       <fieldset class="group">
         <legend>{listLabel(field)}</legend>
         {#each field.children ?? [] as child (child.key)}
@@ -141,6 +150,15 @@
         id={`${tool.id}-${field.key}`}
         label={listLabel(field)}
         value={typeof values[field.key] === 'string' ? (values[field.key] as string) : ''}
+        onchange={(v) => toolOptions.set(tool, field.key, v)}
+      />
+    {:else if hints.languageChoice?.includes(field.key)}
+      <LanguageChoice
+        id={`${tool.id}-${field.key}`}
+        label={listLabel(field)}
+        hint={tDynamic(`option.${tool.id}.${field.key}.hint`, '')}
+        value={typeof values[field.key] === 'string' ? (values[field.key] as string) : 'en'}
+        drawableOnly={tool.id === 'translate-pdf' || values.format === 'pdf'}
         onchange={(v) => toolOptions.set(tool, field.key, v)}
       />
     {:else if hints.languagePicker?.includes(field.key)}

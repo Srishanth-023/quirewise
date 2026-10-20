@@ -33,8 +33,8 @@ pub enum Request {
     Query {
         /// Correlation id chosen by the app.
         id: u64,
-        /// The question.
-        query: DocumentQuery,
+        /// The question. Boxed like the work of a run: some questions carry whole option sets.
+        query: Box<DocumentQuery>,
     },
     /// Cancel a running unit or query.
     Cancel {

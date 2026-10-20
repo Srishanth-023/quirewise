@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::DomainError;
 use crate::page_range::{Duplicates, PageRange, PageSelection};
 use crate::stamp::Rgb;
+use crate::tools::ai::AiOptions;
 use crate::tools::common::Region;
 
 /// Most areas one run may carry.
@@ -72,6 +73,11 @@ pub struct RedactOptions {
     pub fill_color: String,
     /// Clear the document information and the XMP packet. Default on.
     pub strip_metadata: bool,
+    /// Also remove what the local model finds: names, addresses and other personal details
+    /// that no pattern describes. The model can miss things, so read the preview. Default off.
+    pub ai_suggestions: bool,
+    /// The model for `ai_suggestions`.
+    pub ai: AiOptions,
 }
 
 impl Default for RedactOptions {
@@ -85,6 +91,8 @@ impl Default for RedactOptions {
             pages: PageRange::all(),
             fill_color: "#000000".to_owned(),
             strip_metadata: true,
+            ai_suggestions: false,
+            ai: AiOptions::default(),
         }
     }
 }
@@ -93,6 +101,12 @@ impl RedactOptions {
     /// True when something is to be searched for.
     pub fn searches(&self) -> bool {
         !self.terms.is_empty() || !self.presets.is_empty() || !self.patterns.is_empty()
+    }
+
+    /// True when the pages are read for something: the words, patterns and presets, or the
+    /// local model.
+    pub fn reads_pages(&self) -> bool {
+        self.searches() || self.ai_suggestions
     }
 
     /// The pages the search covers.
@@ -108,11 +122,14 @@ impl RedactOptions {
 
     /// Checks everything against a document of `count` pages. Something to remove is needed.
     pub fn validate(&self, count: u32) -> Result<(), DomainError> {
-        if self.areas.is_empty() && !self.searches() {
+        if self.areas.is_empty() && !self.reads_pages() {
             return Err(DomainError::option(
                 "areas",
                 "draw an area, or enter words or a pattern to remove",
             ));
+        }
+        if self.ai_suggestions {
+            self.ai.validate()?;
         }
         if self.areas.len() > MAX_AREAS {
             return Err(DomainError::option("areas", "too many areas"));
@@ -143,7 +160,7 @@ impl RedactOptions {
             }
         }
         self.fill()?;
-        if self.searches() {
+        if self.reads_pages() {
             self.search_pages(count)?;
         }
         Ok(())
@@ -184,6 +201,19 @@ mod tests {
             ..RedactOptions::default()
         };
         assert!(preset_only.validate(3).is_ok());
+    }
+
+    #[test]
+    fn the_model_alone_can_be_what_to_remove_and_is_checked() {
+        let mut o = RedactOptions {
+            ai_suggestions: true,
+            ..RedactOptions::default()
+        };
+        assert!(o.validate(3).is_ok());
+        o.ai.model = Some("not-in-the-catalog".into());
+        assert!(o.validate(3).is_err());
+        o.ai_suggestions = false;
+        assert!(o.validate(3).is_err(), "nothing to remove again");
     }
 
     #[test]

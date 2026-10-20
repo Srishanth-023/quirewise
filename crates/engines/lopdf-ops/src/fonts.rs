@@ -10,17 +10,19 @@ use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 
+use crate::unifont::{UniFace, best_family};
+
 /// Largest font file embedded.
 const MAX_FONT_BYTES: u64 = 40 * 1024 * 1024;
 
 /// One font file that can be embedded.
 #[derive(Debug, Clone)]
 pub(crate) struct Entry {
-    family: String,
+    pub(crate) family: String,
     bold: bool,
-    italic: bool,
+    pub(crate) italic: bool,
     weight: u16,
-    path: PathBuf,
+    pub(crate) path: PathBuf,
 }
 
 /// Folders that hold fonts: the system's and the current user's.
@@ -96,7 +98,7 @@ fn scan(dirs: &[PathBuf]) -> Vec<Entry> {
     found
 }
 
-fn installed() -> &'static Vec<Entry> {
+pub(crate) fn installed() -> &'static Vec<Entry> {
     static CATALOG: OnceLock<Vec<Entry>> = OnceLock::new();
     CATALOG.get_or_init(|| scan(&default_dirs()))
 }
@@ -115,7 +117,12 @@ impl FontCatalog for InstalledFonts {
 }
 
 /// Picks the file of a family that is closest to the wanted style.
-fn pick<'a>(entries: &'a [Entry], family: &str, bold: bool, italic: bool) -> Option<&'a Entry> {
+pub(crate) fn pick<'a>(
+    entries: &'a [Entry],
+    family: &str,
+    bold: bool,
+    italic: bool,
+) -> Option<&'a Entry> {
     entries
         .iter()
         .filter(|e| e.family.eq_ignore_ascii_case(family))
@@ -233,6 +240,8 @@ pub enum Face {
     Standard(StandardFont),
     /// An installed font that is embedded.
     Embedded(Embedded),
+    /// An installed font that is embedded with glyph codes, for any script it covers.
+    Unicode(Arc<UniFace>),
 }
 
 impl Face {
@@ -261,9 +270,36 @@ impl Face {
         load_embedded(entry).map(Self::Embedded)
     }
 
+    /// A font that has every character of `text`: a standard font when it is all WinAnsi, else
+    /// an installed font that covers it. Fails, naming a few characters, when none does.
+    pub fn covering(text: &str, bold: bool, italic: bool) -> Result<Self, AppError> {
+        use domain::fonts::FontFamily;
+        if StandardFont::encode(text).is_ok() {
+            return Ok(Self::Standard(StandardFont::new(
+                FontFamily::Helvetica,
+                bold,
+                italic,
+            )));
+        }
+        let family = best_family(text)?;
+        Self::unicode_of(&family, bold, italic)
+    }
+
+    /// The same family as `self` in another style, for a font from [`Face::covering`].
+    pub fn unicode_of(family: &str, bold: bool, italic: bool) -> Result<Self, AppError> {
+        let entry = pick(installed(), family, bold, italic).ok_or_else(|| {
+            AppError::new(
+                ErrorCode::OptionInvalid,
+                format!("The font \"{family}\" is not installed."),
+            )
+        })?;
+        UniFace::load(entry).map(|u| Self::Unicode(Arc::new(u)))
+    }
+
     /// A key that is the same for the same font, so a document gets one font object for it.
     pub fn key(&self) -> String {
         match self {
+            Self::Unicode(u) => format!("uni:{}", u.pdf_name()),
             Self::Standard(f) => format!("std:{}", f.pdf_name()),
             Self::Embedded(e) => format!("emb:{}", e.name),
         }
@@ -272,6 +308,7 @@ impl Face {
     /// The bytes of a text in this font, or the first character it cannot draw.
     pub fn encode(&self, text: &str) -> Result<Vec<u8>, char> {
         match self {
+            Self::Unicode(u) => Ok(u.encode(text)),
             Self::Standard(_) => StandardFont::encode(text),
             Self::Embedded(e) => text
                 .chars()
@@ -287,6 +324,7 @@ impl Face {
     /// The width of a text in points.
     pub fn width(&self, text: &str, size_pt: f32) -> f32 {
         match self {
+            Self::Unicode(u) => u.width(text, size_pt),
             Self::Standard(f) => f.text_width(text, size_pt),
             Self::Embedded(e) => {
                 let units: u32 = text
@@ -305,6 +343,7 @@ impl Face {
     /// Height of a capital letter as a fraction of the size, to place text vertically.
     pub fn cap_height(&self) -> f32 {
         match self {
+            Self::Unicode(u) => u.cap_height(),
             Self::Standard(_) => 0.72,
             Self::Embedded(e) => (e.cap_height / 1000.0).clamp(0.4, 1.0),
         }
@@ -313,6 +352,7 @@ impl Face {
     /// Distance from the baseline to the top of the line as a fraction of the size.
     pub fn ascent(&self) -> f32 {
         match self {
+            Self::Unicode(u) => u.ascent(),
             Self::Standard(_) => 0.8,
             Self::Embedded(e) => (e.ascent / 1000.0).clamp(0.5, 1.2),
         }
@@ -321,6 +361,7 @@ impl Face {
     /// The name of the font as the PDF knows it.
     pub fn pdf_name(&self) -> String {
         match self {
+            Self::Unicode(u) => u.pdf_name().to_owned(),
             Self::Standard(f) => f.pdf_name().to_owned(),
             Self::Embedded(e) => e.name.clone(),
         }
@@ -329,6 +370,7 @@ impl Face {
     /// Writes the font object into the document and returns it.
     pub fn write(&self, doc: &mut Document) -> ObjectId {
         match self {
+            Self::Unicode(u) => u.write(doc),
             Self::Standard(f) => {
                 let mut dict = Dictionary::new();
                 dict.set("Type", Object::Name(b"Font".to_vec()));

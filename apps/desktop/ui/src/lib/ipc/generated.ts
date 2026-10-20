@@ -351,6 +351,13 @@ export type PdfaLevel = '1a' | '1b' | '2a' | '2b' | '2u' | '3a' | '3b' | '3u';
  */
 export type Schema = {} | boolean;
 /**
+ * Where the language model runs.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "AiBackend".
+ */
+export type AiBackend = 'bundled' | 'ollama';
+/**
  * CPU architecture of a component build.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -908,6 +915,20 @@ export type SplitDirection = 'vertical' | 'horizontal';
  */
 export type SuggestedKind = 'text' | 'checkbox';
 /**
+ * What a summary is saved as.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SummaryFormat".
+ */
+export type SummaryFormat = 'pdf' | 'markdown';
+/**
+ * How long a summary is.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SummaryLength".
+ */
+export type SummaryLength = 'short' | 'medium' | 'long';
+/**
  * How lines of text sit in their box.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -1000,6 +1021,9 @@ export type ToolId =
   | 'rename-by-content'
   | 'attachments'
   | 'page-labels'
+  | 'smart-split'
+  | 'ai-summarizer'
+  | 'translate-pdf'
   | 'pdf-to-pdfa'
   | 'validate-pdfa'
   | 'check-pdfua'
@@ -1780,6 +1804,57 @@ export type ToolOptions =
       tool: 'page-labels';
     }
   | {
+      ai?: AiOptions2;
+      /**
+       * What to split by, in your own words, such as "one file for each invoice".
+       */
+      instruction?: string;
+      /**
+       * The parts to make. Empty: the model proposes them from the instruction. The preview of
+       * the desktop app fills this in, so what you checked is what is made.
+       */
+      parts?: SplitPart[];
+      tool: 'smart-split';
+    }
+  | {
+      ai?: AiOptions3;
+      /**
+       * PDF or Markdown. Default PDF.
+       */
+      format?: 'pdf' | 'markdown';
+      /**
+       * The language of the summary, as a code such as `de`. Default `en`; the desktop app sets
+       * the language of the interface.
+       */
+      language?: string;
+      /**
+       * How long the summary is. Default medium.
+       */
+      length?: 'short' | 'medium' | 'long';
+      /**
+       * Pages to summarize. Default `all`.
+       */
+      pages?: string;
+      tool: 'ai-summarizer';
+    }
+  | {
+      ai?: AiOptions4;
+      /**
+       * Pages to translate. Default `all`.
+       */
+      pages?: string;
+      /**
+       * Keep the pages as they are and put the translation where the text was. Off writes a new
+       * document of flowing text. Default on.
+       */
+      preserve_layout?: boolean;
+      /**
+       * The language to translate into, as a code such as `de`. Default `en`.
+       */
+      target_language?: string;
+      tool: 'translate-pdf';
+    }
+  | {
       /**
        * When the level cannot be reached, try the next weaker one instead of failing. Default on.
        */
@@ -1935,6 +2010,12 @@ export type ToolOptions =
       tool: 'compare';
     }
   | {
+      ai?: AiOptions5;
+      /**
+       * Also remove what the local model finds: names, addresses and other personal details
+       * that no pattern describes. The model can miss things, so read the preview. Default off.
+       */
+      ai_suggestions?: boolean;
       /**
        * Rectangles drawn on pages.
        */
@@ -2079,6 +2160,12 @@ export type ToolOptions =
       tool: 'pdf-to-excel';
     }
   | {
+      ai?: AiOptions6;
+      /**
+       * Let the local model tidy the text: join lines that were broken by the page, mend
+       * hyphenated words and fix the heading levels. Words are never added or removed. Default off.
+       */
+      ai_cleanup?: boolean;
       /**
        * Save the pictures next to the file and link them. Default on.
        */
@@ -2406,6 +2493,8 @@ export type WordLayout = 'flowing' | 'exact';
  * generator emit a duplicate inline type for each field.
  */
 export interface IpcTypes {
+  ai_catalog: AiCatalog;
+  ai_options: AiOptions;
   annotate_options: AnnotateOptions;
   app_error: AppError;
   batch_event: BatchEvent;
@@ -2427,10 +2516,124 @@ export interface IpcTypes {
   saved_signature: SavedSignature;
   settings: Settings;
   sign_pdf_options: SignPdfOptions;
+  smart_split_options: SmartSplitOptions;
+  split_part: SplitPart;
   stored_certificate: StoredCertificate;
   text_block: TextBlock;
   thumbnail: Thumbnail;
   tool_descriptor: ToolDescriptor;
+}
+/**
+ * What the tools that use the language model can be told to use.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "AiCatalog".
+ */
+export interface AiCatalog {
+  /**
+   * The id of the model used when none is chosen.
+   */
+  default_model: string;
+  /**
+   * The address Ollama listens on unless told otherwise.
+   */
+  default_ollama_url: string;
+  /**
+   * The languages that can be written.
+   */
+  languages: Language[];
+  /**
+   * The models that can be downloaded, each with its license.
+   */
+  models: AiModel[];
+}
+/**
+ * A language the tools can write.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Language".
+ */
+export interface Language {
+  /**
+   * The code, such as `de`.
+   */
+  code: string;
+  /**
+   * True when a PDF can show it: the script needs no shaping and an installed font covers it.
+   * Languages written right to left, and Indic and Thai scripts, are not drawn.
+   */
+  drawable: boolean;
+  /**
+   * The name in English, used in the instructions to the model.
+   */
+  name: string;
+}
+/**
+ * A model of the catalog: what the Components screen shows before it downloads the file.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "AiModel".
+ */
+export interface AiModel {
+  /**
+   * The file name inside the component folder.
+   */
+  file: string;
+  /**
+   * The id used in options and as the component id suffix: `model-<id>`.
+   */
+  id: string;
+  /**
+   * The license of the model's weights.
+   */
+  license: string;
+  /**
+   * What the license allows, in a sentence or two.
+   */
+  license_summary: string;
+  /**
+   * Where the license text is.
+   */
+  license_url: string;
+  /**
+   * The name for people.
+   */
+  name: string;
+  /**
+   * What the model is good for.
+   */
+  note: string;
+  /**
+   * Download size in megabytes, about.
+   */
+  size_mb: number;
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "AiOptions".
+ */
+export interface AiOptions {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
 }
 /**
  * Options for Annotate.
@@ -3530,6 +3733,12 @@ export interface Region10 {
  * via the `definition` "RedactOptions".
  */
 export interface RedactOptions {
+  ai?: AiOptions1;
+  /**
+   * Also remove what the local model finds: names, addresses and other personal details
+   * that no pattern describes. The model can miss things, so read the preview. Default off.
+   */
+  ai_suggestions?: boolean;
   /**
    * Rectangles drawn on pages.
    */
@@ -3563,6 +3772,30 @@ export interface RedactOptions {
    * Words or phrases to find. Case does not matter unless `case_sensitive` is on.
    */
   terms?: string[];
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions1 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
 }
 /**
  * A rectangle of one page to remove.
@@ -4361,6 +4594,57 @@ export interface RunBatchRequest {
         tool: 'page-labels';
       }
     | {
+        ai?: AiOptions2;
+        /**
+         * What to split by, in your own words, such as "one file for each invoice".
+         */
+        instruction?: string;
+        /**
+         * The parts to make. Empty: the model proposes them from the instruction. The preview of
+         * the desktop app fills this in, so what you checked is what is made.
+         */
+        parts?: SplitPart[];
+        tool: 'smart-split';
+      }
+    | {
+        ai?: AiOptions3;
+        /**
+         * PDF or Markdown. Default PDF.
+         */
+        format?: 'pdf' | 'markdown';
+        /**
+         * The language of the summary, as a code such as `de`. Default `en`; the desktop app sets
+         * the language of the interface.
+         */
+        language?: string;
+        /**
+         * How long the summary is. Default medium.
+         */
+        length?: 'short' | 'medium' | 'long';
+        /**
+         * Pages to summarize. Default `all`.
+         */
+        pages?: string;
+        tool: 'ai-summarizer';
+      }
+    | {
+        ai?: AiOptions4;
+        /**
+         * Pages to translate. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Keep the pages as they are and put the translation where the text was. Off writes a new
+         * document of flowing text. Default on.
+         */
+        preserve_layout?: boolean;
+        /**
+         * The language to translate into, as a code such as `de`. Default `en`.
+         */
+        target_language?: string;
+        tool: 'translate-pdf';
+      }
+    | {
         /**
          * When the level cannot be reached, try the next weaker one instead of failing. Default on.
          */
@@ -4516,6 +4800,12 @@ export interface RunBatchRequest {
         tool: 'compare';
       }
     | {
+        ai?: AiOptions5;
+        /**
+         * Also remove what the local model finds: names, addresses and other personal details
+         * that no pattern describes. The model can miss things, so read the preview. Default off.
+         */
+        ai_suggestions?: boolean;
         /**
          * Rectangles drawn on pages.
          */
@@ -4660,6 +4950,12 @@ export interface RunBatchRequest {
         tool: 'pdf-to-excel';
       }
     | {
+        ai?: AiOptions6;
+        /**
+         * Let the local model tidy the text: join lines that were broken by the page, mend
+         * hyphenated words and fix the heading levels. Words are never added or removed. Default off.
+         */
+        ai_cleanup?: boolean;
         /**
          * Save the pictures next to the file and link them. Default on.
          */
@@ -5008,6 +5304,9 @@ export interface RunBatchRequest {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'smart-split'
+    | 'ai-summarizer'
+    | 'translate-pdf'
     | 'pdf-to-pdfa'
     | 'validate-pdfa'
     | 'check-pdfua'
@@ -5179,6 +5478,146 @@ export interface LabelRange {
   style?: 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
 }
 /**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions2 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
+ * One part of a document, made by Smart Split.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SplitPart".
+ */
+export interface SplitPart {
+  /**
+   * The last page, from 1.
+   */
+  end: number;
+  /**
+   * The first page, from 1.
+   */
+  start: number;
+  /**
+   * What the part is about; used for the name of the file.
+   */
+  title: string;
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions3 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions4 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions5 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions6 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
  * An angle for one page, for manual deskew.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -5342,6 +5781,48 @@ export interface SignPdfOptions {
   signatures?: SignatureItem[];
 }
 /**
+ * Options for Smart Split.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SmartSplitOptions".
+ */
+export interface SmartSplitOptions {
+  ai?: AiOptions7;
+  /**
+   * What to split by, in your own words, such as "one file for each invoice".
+   */
+  instruction?: string;
+  /**
+   * The parts to make. Empty: the model proposes them from the instruction. The preview of
+   * the desktop app fills this in, so what you checked is what is made.
+   */
+  parts?: SplitPart[];
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions7 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
  * A certificate the person can sign with.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -5496,6 +5977,9 @@ export interface ToolDescriptor {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'smart-split'
+    | 'ai-summarizer'
+    | 'translate-pdf'
     | 'pdf-to-pdfa'
     | 'validate-pdfa'
     | 'check-pdfua'

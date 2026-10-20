@@ -2,6 +2,7 @@
   import { t, tDynamic } from '../../lib/i18n';
   import Inspect from '../../lib/features/inspect/View.svelte';
   import RegionPicker from '../../lib/features/split-by-text/RegionPicker.svelte';
+  import SmartSplitPlan from '../../lib/features/ai/SmartSplitPlan.svelte';
   import SchemaForm from '../../lib/forms/SchemaForm.svelte';
   import { formFor, ruleMet } from '../../lib/forms/toolForms';
   import { toolOptions } from '../../lib/stores/options.svelte';
@@ -57,6 +58,9 @@
         <SchemaForm tool={tools.selected} />
         {#if picking}
           <RegionPicker tool={tools.selected} />
+        {/if}
+        {#if formFor(tools.selected.id).smartSplit}
+          <SmartSplitPlan tool={tools.selected} />
         {/if}
       {/key}
     {:else}

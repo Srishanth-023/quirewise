@@ -22,6 +22,7 @@ use test_support::{pdfium_dir, qpdf_exe};
 pub struct Lab {
     pub dir: tempfile::TempDir,
     pub runner: Arc<dyn UnitRunner>,
+    pub queries: Arc<dyn application::QueryRunner>,
     pub engine: PdfiumEngine,
     pub ocr: Arc<dyn OcrEngine>,
 }
@@ -60,6 +61,7 @@ impl Lab {
         Self {
             dir,
             runner: services.runner,
+            queries: services.queries,
             ocr: tool_deps(&engines).ocr,
             engine: engines.pdfium,
         }

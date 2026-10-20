@@ -118,3 +118,13 @@ The Word, PowerPoint and Excel files are written with the `zip` and `image` crat
 | veraPDF 1.30 (greenfield command line) | GPLv3 or MPLv2, used under MPL-2.0 | Checks PDF/A and PDF/UA. Runs as a separate Java process and is an on-demand component; nothing is linked |
 | A Java runtime (bundled with the `verapdf` component) | The license of the runtime that the owner picks (for example Eclipse Temurin: GPLv2 with Classpath Exception) | Runs veraPDF; the owner records the exact runtime when building the component |
 | Ghostscript (optional, not shipped) | AGPL-3.0 or commercial | Only run as a separate process by a build with the `agpl-ghostscript` feature, from a copy the person installed. Never linked, never in the default build |
+
+## Added in Phase 12
+
+| Component | License | Use |
+|---|---|---|
+| llama.cpp server (b11755, CPU builds) | MIT | Runs the language models. A separate process and an on-demand component; nothing is linked. The release also holds LLVM OpenMP (Apache-2.0 with LLVM exceptions) |
+| Qwen2.5 1.5B Instruct and 7B Instruct (GGUF) | Apache-2.0 | Optional model files, downloaded on demand after the license is shown. Not part of the installer |
+| SmolLM2 360M Instruct (GGUF) | Apache-2.0 | Optional small model file, downloaded on demand. Not part of the installer |
+| getrandom | MIT or Apache-2.0 | The random key that protects the local server |
+| Ollama (not shipped) | MIT | Optional: a program the person already runs. Only used at an address on this computer, after they agree |

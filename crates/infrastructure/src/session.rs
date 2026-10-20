@@ -148,7 +148,7 @@ impl QueryRunner for WorkerSession {
         lock(&live.pending).insert(id, sender);
         let sent = live.send(&Request::Query {
             id,
-            query: query.clone(),
+            query: Box::new(query.clone()),
         });
         if let Err(e) = sent {
             lock(&live.pending).remove(&id);

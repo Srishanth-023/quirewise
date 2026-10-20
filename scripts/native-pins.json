@@ -34,5 +34,27 @@
     "version": "1.30.3",
     "url": "https://software.verapdf.org/releases/verapdf-installer.zip",
     "sha256": "b512bf24945503a33fc10738ecffc1f2dccaaf8593a448e94ee9ac86a9559a59"
+  },
+  "llama-cpp": {
+    "_comment": "llama.cpp server (MIT), CPU builds. SHA-256 values are the digests GitHub publishes for the release assets and are re-verified on every fetch.",
+    "version": "b11755",
+    "x64": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11755/llama-b11755-bin-win-cpu-x64.zip",
+      "sha256": "450b11d263c34e521ef0800bce69e3262d6657546fdedbd6f3005769f21a2568"
+    },
+    "arm64": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11755/llama-b11755-bin-win-cpu-arm64.zip",
+      "sha256": "3aba7dcf6700d5982ce75a0b6a38777d9bc542ed262a4dce9b8cba0f87c16e13"
+    }
+  },
+  "models": {
+    "_comment": "GGUF model files for development and tests; the app downloads them as components after showing the license. SHA-256 values are the LFS hashes Hugging Face publishes and are re-verified on every fetch.",
+    "smollm2-360m-instruct": {
+      "license": "Apache-2.0",
+      "file": "smollm2-360m-instruct-q8_0.gguf",
+      "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct-GGUF/resolve/main/smollm2-360m-instruct-q8_0.gguf",
+      "size": 386404992,
+      "sha256": "48ab3034d0dd401fbc721eb1df3217902fee7dab9078992d66431f09b7750201"
+    }
   }
 }

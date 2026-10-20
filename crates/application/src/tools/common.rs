@@ -12,14 +12,15 @@ use crate::conformance::{ConformanceReport, PdfaNormalizer, PdfaValidator, Profi
 use crate::error::AppError;
 use crate::inspect::PdfiumFacts;
 use crate::ports::{
-    AssemblyPlan, AttachmentReader, DocumentInfo, DocumentWriter, ExtractReport, ExtractedImage,
-    FileStore, FormFlattener, HeadingFinder, HtmlConverter, HtmlSource, ImageConverter,
-    ImageExtractor, ImageOptimizer, ImageReport, LayoutReader, OcrEngine, OcrWord, OfficeConverter,
-    OfficeEngines, OfficeKind, OfficeRequest, OutlineItem, OutlineReader, PackageOptions,
-    PageImage, PageImageWriter, PageSize, PdfEdit, PdfEditor, PdfPackager, PdfReader, PdfRepairer,
-    PdfSecurity, PdfVerifier, PdfWriter, PictureBytes, PictureSource, PictureSpec, PictureWriter,
-    PngImage, ProtectionSource, RenderedImage, Renderer, RepairOutcome, ScanPageWriter, SheetData,
-    SkewDetector, TextExtractor, TiffPages, TiffSpec, TocBuilder, TocLine,
+    AssemblyPlan, AttachmentReader, DocBlock, DocumentInfo, DocumentWriter, ExtractReport,
+    ExtractedImage, FileStore, FormFlattener, HeadingFinder, HtmlConverter, HtmlSource,
+    ImageConverter, ImageExtractor, ImageOptimizer, ImageReport, LayoutReader, LlmEngine,
+    LlmRequest, OcrEngine, OcrWord, OfficeConverter, OfficeEngines, OfficeKind, OfficeRequest,
+    OutlineItem, OutlineReader, PackageOptions, PageImage, PageImageWriter, PageSize, PdfEdit,
+    PdfEditor, PdfPackager, PdfReader, PdfRepairer, PdfSecurity, PdfVerifier, PdfWriter,
+    PictureBytes, PictureSource, PictureSpec, PictureWriter, PngImage, ProtectionSource,
+    RenderedImage, Renderer, RepairOutcome, ScanPageWriter, SheetData, SkewDetector, TextDocWriter,
+    TextExtractor, TiffPages, TiffSpec, TocBuilder, TocLine,
 };
 use crate::runtime::{CancellationToken, Password, ProgressEvent};
 use crate::signing::{
@@ -100,6 +101,10 @@ pub struct ToolDeps {
     /// A second way to make PDF/A files, tried when the first does not conform. Present only in a
     /// build with the Ghostscript plugin, and only when Ghostscript is installed.
     pub pdfa_fallback: Option<Arc<dyn PdfaNormalizer>>,
+    /// The language model on this computer.
+    pub llm: Arc<dyn LlmEngine>,
+    /// Documents of flowing text.
+    pub textdoc: Arc<dyn TextDocWriter>,
 }
 
 impl ToolDeps {
@@ -141,8 +146,10 @@ impl ToolDeps {
             signatures: none.clone(),
             web: none.clone(),
             conformance: none.clone(),
-            normalizer: none,
+            normalizer: none.clone(),
             pdfa_fallback: None,
+            llm: none.clone(),
+            textdoc: none,
         }
     }
 }
@@ -309,6 +316,26 @@ impl LayoutReader for Unavailable {
         _: PageIndex,
         _: usize,
     ) -> Result<PictureBytes, AppError> {
+        missing()
+    }
+}
+
+impl TextDocWriter for Unavailable {
+    fn write(&self, _: &[DocBlock], _: &str, _: f32, _: f32, _: &Path) -> Result<(), AppError> {
+        missing()
+    }
+}
+
+impl LlmEngine for Unavailable {
+    fn models(&self, _: &domain::tools::ai::AiOptions) -> Result<Vec<String>, AppError> {
+        missing()
+    }
+    fn complete(
+        &self,
+        _: &domain::tools::ai::AiOptions,
+        _: &LlmRequest,
+        _: &CancellationToken,
+    ) -> Result<String, AppError> {
         missing()
     }
 }

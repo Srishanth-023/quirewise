@@ -133,6 +133,14 @@ pub enum DomainError {
         /// The label of the switch that agrees to it.
         option: String,
     },
+    /// A program on this computer would be used and the person has not agreed.
+    #[error("{what} needs your agreement. Turn on \"{option}\" to agree, or choose another way.")]
+    LocalConsentNeeded {
+        /// What would be used.
+        what: String,
+        /// The label of the switch that agrees to it.
+        option: String,
+    },
     /// A path is not allowed.
     #[error(
         "This path is not allowed: {reason}. Choose a regular file or folder on a local or mapped drive."
@@ -151,7 +159,9 @@ impl DomainError {
             Self::RangeOutOfBounds { .. } => ErrorCode::RangeOutOfBounds,
             Self::OptionInvalid { .. } => ErrorCode::OptionInvalid,
             Self::PathDenied { .. } => ErrorCode::PathDenied,
-            Self::NetworkConsent | Self::ConsentNeeded { .. } => ErrorCode::NetworkConsentRequired,
+            Self::NetworkConsent | Self::ConsentNeeded { .. } | Self::LocalConsentNeeded { .. } => {
+                ErrorCode::NetworkConsentRequired
+            }
         }
     }
 

@@ -16,6 +16,8 @@ use domain::tools::export::{
 };
 use domain::{Dpi, Duplicates, ErrorCode, PageIndex, ToolId, ToolOptions};
 
+use super::aikit::Model;
+use super::aitidy::tidy;
 use super::common::{Progress, ToolDeps, first_input, page_count, publish_file, wrong_options};
 use super::recognize::check_ready;
 use crate::error::AppError;
@@ -242,7 +244,7 @@ fn picture_source<'a>(
 }
 
 /// Writes bytes as a new file.
-fn write_bytes(
+pub(super) fn write_bytes(
     ctx: &JobContext<'_>,
     dest: &std::path::Path,
     bytes: &[u8],
@@ -767,11 +769,17 @@ impl Tool for PdfToMarkdownTool {
         options.validate()?;
         let input = first_input(inputs)?;
         let pages = selected_pages(&options.pages, page_count(input))?;
+        // The model's tidying counts as one more unit for each page.
+        let tidying = if options.ai_cleanup {
+            pages.len() as u64
+        } else {
+            0
+        };
         Ok(plan_for(
             ToolId::PdfToMarkdown,
             inputs,
             opts,
-            pages.len() as u64 + 1,
+            pages.len() as u64 + tidying + 1,
         ))
     }
 
@@ -799,9 +807,27 @@ impl Tool for PdfToMarkdownTool {
         } else {
             (HashMap::new(), Vec::new())
         };
-        let text = render::markdown(&layouts, &|page: u32, p: &PictureBox| {
+        let mut text = render::markdown(&layouts, &|page: u32, p: &PictureBox| {
             names.get(&(page, p.index)).map(|n| link_target(n))
         });
+        if options.ai_cleanup {
+            let model = Model {
+                llm: self.deps.llm.as_ref(),
+                ai: &options.ai,
+                cancel: ctx.cancel,
+            };
+            model.ready()?;
+            let units = pages.len() as u64;
+            let (tidied, kept) = tidy(&model, &text, &mut |done, of| {
+                let (done, of) = (done as u64, of.max(1) as u64);
+                progress.advance(units * done / of - units * (done - 1) / of);
+            })?;
+            if kept > 0 {
+                ctx.logger
+                    .log(crate::ports::LogLevel::Warn, "markdown.tidy-left-pieces");
+            }
+            text = tidied;
+        }
         let dest = ctx.output_path(input, self.label(), "md", |_| {})?;
         outputs.insert(0, write_bytes(ctx, &dest, text.as_bytes())?);
         progress.advance(1);

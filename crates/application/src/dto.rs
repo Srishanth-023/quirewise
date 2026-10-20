@@ -214,6 +214,33 @@ pub struct IpcTypes {
     pub stored_certificate: crate::signing::StoredCertificate,
     pub saved_signature: domain::signatures::SavedSignature,
     pub new_saved_signature: domain::signatures::NewSavedSignature,
+    pub ai_catalog: AiCatalog,
+    pub ai_options: domain::tools::ai::AiOptions,
+    pub smart_split_options: domain::tools::ai::SmartSplitOptions,
+    pub split_part: domain::tools::ai::SplitPart,
+}
+
+/// What the tools that use the language model can be told to use.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+pub struct AiCatalog {
+    /// The models that can be downloaded, each with its license.
+    pub models: Vec<domain::tools::ai::AiModel>,
+    /// The languages that can be written.
+    pub languages: Vec<domain::tools::ai::Language>,
+    /// The id of the model used when none is chosen.
+    pub default_model: String,
+    /// The address Ollama listens on unless told otherwise.
+    pub default_ollama_url: String,
+}
+
+/// The models and languages of the catalog.
+pub fn ai_catalog() -> AiCatalog {
+    AiCatalog {
+        models: domain::tools::ai::MODELS.to_vec(),
+        languages: domain::tools::ai::LANGUAGES.to_vec(),
+        default_model: domain::tools::ai::DEFAULT_MODEL.to_owned(),
+        default_ollama_url: domain::tools::ai::DEFAULT_OLLAMA_URL.to_owned(),
+    }
 }
 
 /// Progress of a component download, pushed to the UI as an event.
