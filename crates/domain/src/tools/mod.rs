@@ -11,6 +11,7 @@ pub mod layout;
 pub mod office;
 pub mod optimize;
 pub mod pages;
+pub mod pdfa;
 pub mod recognize;
 pub mod redact;
 pub mod rotate;
@@ -47,6 +48,7 @@ pub use pages::{
     SplitBySizeOptions, SplitByTextOptions, SplitEveryNOptions, SplitInHalfOptions,
     SplitRangesOptions,
 };
+pub use pdfa::{CheckPdfuaOptions, PdfToPdfaOptions, ValidatePdfaOptions};
 pub use recognize::{DeskewOptions, OcrOptions, ScanToPdfOptions};
 pub use redact::RedactOptions;
 pub use rotate::RotateOptions;
@@ -159,6 +161,12 @@ pub enum ToolId {
     Attachments,
     /// Page labels (row 66).
     PageLabels,
+    /// PDF to PDF/A (row 30).
+    PdfToPdfa,
+    /// Validate PDF/A (row 31).
+    ValidatePdfa,
+    /// Accessibility check (PDF/UA) (row 70).
+    CheckPdfua,
     /// Digital signature (row 61).
     DigitalSign,
     /// Verify signatures (row 62).
@@ -217,7 +225,7 @@ pub enum ToolId {
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 62] = [
+    pub const ALL: [ToolId; 65] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -253,6 +261,9 @@ impl ToolId {
         ToolId::RenameByContent,
         ToolId::Attachments,
         ToolId::PageLabels,
+        ToolId::PdfToPdfa,
+        ToolId::ValidatePdfa,
+        ToolId::CheckPdfua,
         ToolId::DigitalSign,
         ToolId::VerifySignatures,
         ToolId::Compare,
@@ -320,6 +331,9 @@ impl ToolId {
             Self::RenameByContent => "rename-by-content",
             Self::Attachments => "attachments",
             Self::PageLabels => "page-labels",
+            Self::PdfToPdfa => "pdf-to-pdfa",
+            Self::ValidatePdfa => "validate-pdfa",
+            Self::CheckPdfua => "check-pdfua",
             Self::DigitalSign => "digital-sign",
             Self::VerifySignatures => "verify-signatures",
             Self::Compare => "compare",
@@ -442,6 +456,12 @@ pub enum ToolOptions {
     Attachments(AttachmentsOptions),
     /// Options for [`ToolId::PageLabels`].
     PageLabels(PageLabelsOptions),
+    /// Options for [`ToolId::PdfToPdfa`].
+    PdfToPdfa(PdfToPdfaOptions),
+    /// Options for [`ToolId::ValidatePdfa`].
+    ValidatePdfa(ValidatePdfaOptions),
+    /// Options for [`ToolId::CheckPdfua`].
+    CheckPdfua(CheckPdfuaOptions),
     /// Options for [`ToolId::DigitalSign`].
     DigitalSign(DigitalSignOptions),
     /// Options for [`ToolId::VerifySignatures`].
@@ -537,6 +557,9 @@ impl ToolOptions {
             Self::RenameByContent(_) => ToolId::RenameByContent,
             Self::Attachments(_) => ToolId::Attachments,
             Self::PageLabels(_) => ToolId::PageLabels,
+            Self::PdfToPdfa(_) => ToolId::PdfToPdfa,
+            Self::ValidatePdfa(_) => ToolId::ValidatePdfa,
+            Self::CheckPdfua(_) => ToolId::CheckPdfua,
             Self::DigitalSign(_) => ToolId::DigitalSign,
             Self::VerifySignatures(_) => ToolId::VerifySignatures,
             Self::Compare(_) => ToolId::Compare,
@@ -607,6 +630,9 @@ impl ToolOptions {
             ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
             ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
             ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
+            ToolId::PdfToPdfa => Self::PdfToPdfa(PdfToPdfaOptions::default()),
+            ToolId::ValidatePdfa => Self::ValidatePdfa(ValidatePdfaOptions::default()),
+            ToolId::CheckPdfua => Self::CheckPdfua(CheckPdfuaOptions::default()),
             ToolId::DigitalSign => Self::DigitalSign(DigitalSignOptions::default()),
             ToolId::VerifySignatures => Self::VerifySignatures(VerifySignaturesOptions::default()),
             ToolId::Compare => Self::Compare(CompareOptions::default()),

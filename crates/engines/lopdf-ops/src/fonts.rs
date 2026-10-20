@@ -342,8 +342,49 @@ impl Face {
     }
 }
 
+/// The installed font that carries `family` in the wanted style, ready to be embedded.
+pub(crate) fn find_installed(family: &str, bold: bool, italic: bool) -> Option<Embedded> {
+    let entry = pick(installed(), family, bold, italic)?;
+    load_embedded(entry).ok()
+}
+
 impl Embedded {
+    /// The characters of WinAnsi, as a ToUnicode map, so that text copied from the font comes out
+    /// right. Returns the stream.
+    pub(crate) fn to_unicode_stream(doc: &mut Document) -> ObjectId {
+        let mut pairs: Vec<(u8, u32)> = Vec::new();
+        for (i, c) in winansi_chars().iter().enumerate() {
+            let code = 32 + i;
+            if code <= 255 && *c != '\0' && *c != '\u{fffd}' {
+                pairs.push((code as u8, *c as u32));
+            }
+        }
+        let mut cmap = String::from(
+            "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n\
+             /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n\
+             /CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n\
+             1 begincodespacerange\n<00> <FF>\nendcodespacerange\n",
+        );
+        for chunk in pairs.chunks(100) {
+            cmap.push_str(&format!("{} beginbfchar\n", chunk.len()));
+            for (code, unicode) in chunk {
+                cmap.push_str(&format!("<{code:02X}> <{unicode:04X}>\n"));
+            }
+            cmap.push_str("endbfchar\n");
+        }
+        cmap.push_str("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n");
+        let mut stream = Stream::new(Dictionary::new(), cmap.into_bytes());
+        let _ = stream.compress();
+        doc.add_object(stream)
+    }
+
     fn write(&self, doc: &mut Document) -> ObjectId {
+        let font = self.build(doc);
+        doc.add_object(Object::Dictionary(font))
+    }
+
+    /// The font dictionary; the program and the descriptor are added to the document.
+    pub(crate) fn build(&self, doc: &mut Document) -> Dictionary {
         let mut file_dict = Dictionary::new();
         file_dict.set("Length1", Object::Integer(self.data.len() as i64));
         let mut file = Stream::new(file_dict, self.data.as_ref().clone());
@@ -387,7 +428,7 @@ impl Embedded {
             ),
         );
         font.set("FontDescriptor", Object::Reference(descriptor_id));
-        doc.add_object(Object::Dictionary(font))
+        font
     }
 }
 

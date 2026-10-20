@@ -28,5 +28,11 @@
       "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata",
       "sha256": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
     }
+  },
+  "verapdf": {
+    "_comment": "veraPDF greenfield installer (command line only). The address always serves the newest release; the hash was computed on 2026-10-20 from the download and is re-verified on every fetch. A new release means a new hash: review it, then update this pin.",
+    "version": "1.30.3",
+    "url": "https://software.verapdf.org/releases/verapdf-installer.zip",
+    "sha256": "b512bf24945503a33fc10738ecffc1f2dccaaf8593a448e94ee9ac86a9559a59"
   }
 }

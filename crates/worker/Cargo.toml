@@ -31,6 +31,8 @@ quirewise-engine-html-webview2 = { path = "../engines/html-webview2" }
 quirewise-engine-ocr-tesseract = { path = "../engines/ocr-tesseract" }
 quirewise-engine-export = { path = "../engines/export" }
 quirewise-engine-sign-cms = { path = "../engines/sign-cms" }
+quirewise-engine-pdfa-verapdf = { path = "../engines/pdfa-verapdf" }
+quirewise-engine-gs-plugin = { path = "../engines/gs-plugin", optional = true }
 
 [dev-dependencies]
 test-support.workspace = true
@@ -42,6 +44,12 @@ tiff = "0.11.3"
 zip = { version = "9", default-features = false, features = ["deflate"] }
 lopdf = { version = "0.45.0", default-features = false }
 quirewise-engine-sign-cms = { path = "../engines/sign-cms", features = ["testkit"] }
+
+[features]
+default = []
+# Lets the PDF/A tool use a Ghostscript that the person installed (AGPL-3.0, run as a separate
+# process). Never enabled by default.
+agpl-ghostscript = ["dep:quirewise-engine-gs-plugin", "quirewise-engine-gs-plugin/agpl-ghostscript"]
 
 [lints]
 workspace = true

@@ -22,6 +22,9 @@ mod outline;
 mod overlay;
 mod pageres;
 mod paint;
+mod pdfa;
+mod pdfa_icc;
+mod pdfa_xmp;
 mod redact;
 mod redactfont;
 mod sanitize;
@@ -31,6 +34,7 @@ mod textlayer;
 mod toc;
 
 pub use fonts::InstalledFonts;
+pub use pdfa::LopdfPdfa;
 pub use toc::LopdfToc;
 
 use application::AppError;

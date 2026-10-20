@@ -16,7 +16,7 @@ use domain::tools::export::{
 };
 use domain::{Dpi, Duplicates, ErrorCode, PageIndex, ToolId, ToolOptions};
 
-use super::common::{Progress, ToolDeps, first_input, page_count, wrong_options};
+use super::common::{Progress, ToolDeps, first_input, page_count, publish_file, wrong_options};
 use super::recognize::check_ready;
 use crate::error::AppError;
 use crate::ports::{OcrWord, PictureBytes, SheetData};
@@ -239,24 +239,6 @@ fn picture_source<'a>(
             index,
         )
     }
-}
-
-/// Publishes a file that is not a PDF: a free name is reserved, `produce` writes the temp file,
-/// `verify` checks it and the file is renamed into place without replacing anything.
-fn publish_file(
-    ctx: &JobContext<'_>,
-    dest: &std::path::Path,
-    produce: &mut dyn FnMut(&std::path::Path) -> Result<(), AppError>,
-    verify: &dyn Fn(&std::path::Path) -> Result<(), AppError>,
-) -> Result<OutputArtifact, AppError> {
-    ctx.cancel.check()?;
-    let path = ctx.files.publish(dest, produce, verify)?;
-    let bytes = ctx.files.len(&path)?;
-    Ok(OutputArtifact {
-        path,
-        pages: None,
-        bytes,
-    })
 }
 
 /// Writes bytes as a new file.

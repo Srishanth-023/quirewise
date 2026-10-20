@@ -340,6 +340,13 @@ export type Trapped = 'true' | 'false' | 'unknown';
  */
 export type Secret = string;
 /**
+ * A level of PDF/A.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "PdfaLevel".
+ */
+export type PdfaLevel = '1a' | '1b' | '2a' | '2b' | '2u' | '3a' | '3b' | '3u';
+/**
  * JSON Schema of the options.
  */
 export type Schema = {} | boolean;
@@ -760,6 +767,13 @@ export type Position =
   | 'bottom-center'
   | 'bottom-right';
 /**
+ * How a report is written.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "ReportFormat".
+ */
+export type ReportFormat = 'html' | 'json';
+/**
  * A rotation in quarter turns, clockwise.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -986,6 +1000,9 @@ export type ToolId =
   | 'rename-by-content'
   | 'attachments'
   | 'page-labels'
+  | 'pdf-to-pdfa'
+  | 'validate-pdfa'
+  | 'check-pdfua'
   | 'digital-sign'
   | 'verify-signatures'
   | 'compare'
@@ -1761,6 +1778,40 @@ export type ToolOptions =
        */
       remove_all?: boolean;
       tool: 'page-labels';
+    }
+  | {
+      /**
+       * When the level cannot be reached, try the next weaker one instead of failing. Default on.
+       */
+      allow_downgrade?: boolean;
+      /**
+       * The level to reach. Default `2b`.
+       */
+      level?: '1a' | '1b' | '2a' | '2b' | '2u' | '3a' | '3b' | '3u';
+      /**
+       * When a page still cannot be made to conform, replace the document by pictures of its pages.
+       * The result conforms but the text can no longer be selected. Default off.
+       */
+      rasterize_if_needed?: boolean;
+      tool: 'pdf-to-pdfa';
+    }
+  | {
+      /**
+       * How to write the report. Default a web page.
+       */
+      format?: 'html' | 'json';
+      /**
+       * The level to check against. Default: the level the file claims, or `1b` when it claims none.
+       */
+      level?: PdfaLevel | null;
+      tool: 'validate-pdfa';
+    }
+  | {
+      /**
+       * How to write the report. Default a web page.
+       */
+      format?: 'html' | 'json';
+      tool: 'check-pdfua';
     }
   | {
       /**
@@ -4311,6 +4362,40 @@ export interface RunBatchRequest {
       }
     | {
         /**
+         * When the level cannot be reached, try the next weaker one instead of failing. Default on.
+         */
+        allow_downgrade?: boolean;
+        /**
+         * The level to reach. Default `2b`.
+         */
+        level?: '1a' | '1b' | '2a' | '2b' | '2u' | '3a' | '3b' | '3u';
+        /**
+         * When a page still cannot be made to conform, replace the document by pictures of its pages.
+         * The result conforms but the text can no longer be selected. Default off.
+         */
+        rasterize_if_needed?: boolean;
+        tool: 'pdf-to-pdfa';
+      }
+    | {
+        /**
+         * How to write the report. Default a web page.
+         */
+        format?: 'html' | 'json';
+        /**
+         * The level to check against. Default: the level the file claims, or `1b` when it claims none.
+         */
+        level?: PdfaLevel | null;
+        tool: 'validate-pdfa';
+      }
+    | {
+        /**
+         * How to write the report. Default a web page.
+         */
+        format?: 'html' | 'json';
+        tool: 'check-pdfua';
+      }
+    | {
+        /**
          * Allow the connection to the time stamp server and the revocation servers. Default off.
          */
         allow_network?: boolean;
@@ -4923,6 +5008,9 @@ export interface RunBatchRequest {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'pdf-to-pdfa'
+    | 'validate-pdfa'
+    | 'check-pdfua'
     | 'digital-sign'
     | 'verify-signatures'
     | 'compare'
@@ -5408,6 +5496,9 @@ export interface ToolDescriptor {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'pdf-to-pdfa'
+    | 'validate-pdfa'
+    | 'check-pdfua'
     | 'digital-sign'
     | 'verify-signatures'
     | 'compare'

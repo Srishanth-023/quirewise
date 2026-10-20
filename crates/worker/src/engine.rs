@@ -14,12 +14,13 @@ use infrastructure::{AppPaths, FsComponentStore, HttpWeb, NativePaths, native::a
 use quirewise_engine_export::OfficeWriter;
 use quirewise_engine_html_webview2::EdgePrinter;
 use quirewise_engine_lopdf_ops::{
-    InstalledFonts, LopdfAttachments, LopdfEditor, LopdfForms, LopdfImages, LopdfStructure,
-    LopdfToc,
+    InstalledFonts, LopdfAttachments, LopdfEditor, LopdfForms, LopdfImages, LopdfPdfa,
+    LopdfStructure, LopdfToc,
 };
 use quirewise_engine_ocr_tesseract::Tesseract;
 use quirewise_engine_office_libreoffice::LibreOffice;
 use quirewise_engine_office_msoffice::MsOffice;
+use quirewise_engine_pdfa_verapdf::VeraPdf;
 use quirewise_engine_pdfium::PdfiumEngine;
 use quirewise_engine_qpdf::QpdfCli;
 use quirewise_engine_raster::RasterConverter;
@@ -114,6 +115,39 @@ fn tesseract_folders() -> Vec<PathBuf> {
     folders
 }
 
+/// Folders next to the app that may hold veraPDF: the installed layout and a development tree.
+fn verapdf_folders() -> Vec<PathBuf> {
+    let Ok(exe) = std::env::current_exe() else {
+        return Vec::new();
+    };
+    let mut folders = Vec::new();
+    for root in exe.ancestors().skip(1).take(7) {
+        folders.push(root.join("native").join("verapdf"));
+        folders.push(root.join("vendor").join("verapdf"));
+    }
+    folders
+}
+
+/// The Ghostscript plugin, in a build that has it and on a computer that has Ghostscript.
+#[cfg(feature = "agpl-ghostscript")]
+fn ghostscript() -> Option<Arc<dyn application::ports::PdfaNormalizer>> {
+    let mut folders = Vec::new();
+    for var in ["ProgramFiles", "ProgramW6432"] {
+        if let Some(dir) = std::env::var_os(var) {
+            folders.push(PathBuf::from(dir).join("gs"));
+        }
+    }
+    let gs = quirewise_engine_gs_plugin::Ghostscript::new(None, folders);
+    gs.is_available()
+        .then(|| Arc::new(gs) as Arc<dyn application::ports::PdfaNormalizer>)
+}
+
+/// Without the plugin there is no second way.
+#[cfg(not(feature = "agpl-ghostscript"))]
+fn ghostscript() -> Option<Arc<dyn application::ports::PdfaNormalizer>> {
+    None
+}
+
 /// The ports every tool is built on, backed by the loaded engines.
 pub fn tool_deps(engines: &Engines) -> ToolDeps {
     ToolDeps {
@@ -153,6 +187,12 @@ pub fn tool_deps(engines: &Engines) -> ToolDeps {
         signer: Arc::new(CmsEngine::new()),
         signatures: Arc::new(CmsEngine::new()),
         web: Arc::new(HttpWeb::new()),
+        normalizer: Arc::new(LopdfPdfa),
+        pdfa_fallback: ghostscript(),
+        conformance: Arc::new(VeraPdf::new(
+            Some(Arc::clone(&engines.components)),
+            verapdf_folders(),
+        )),
     }
 }
 

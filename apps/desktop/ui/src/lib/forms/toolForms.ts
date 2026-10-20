@@ -114,6 +114,9 @@ export const toolForms: Record<string, ToolForm> = {
     picker: { trusted_certificates: 'trust' },
     visibleWhen: { allow_network: { field: 'check_revocation', equals: true } },
   },
+  'pdf-to-pdfa': { order: ['level', 'allow_downgrade', 'rasterize_if_needed'] },
+  'validate-pdfa': { order: ['level', 'format'] },
+  'check-pdfua': { order: ['format'] },
   redact: {
     order: ['terms', 'presets', 'patterns', 'case_sensitive', 'pages', 'fill_color', 'strip_metadata'],
     custom: ['areas'],

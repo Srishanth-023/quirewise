@@ -6,6 +6,7 @@
 
 pub mod batch;
 pub mod components;
+pub mod conformance;
 pub mod dto;
 pub mod error;
 pub mod input;

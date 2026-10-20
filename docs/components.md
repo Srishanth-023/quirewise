@@ -10,9 +10,11 @@ installs these on demand, with the person's consent, and checks every download b
 |---|---|---|
 | `libreoffice` | Word, PowerPoint and Excel to PDF when Microsoft Office is not installed | A copy of LibreOffice already installed on the computer is used too, so nothing is downloaded for it |
 | `tesseract` | OCR, Scan to PDF with OCR | `tesseract.exe` and its libraries in one folder, per architecture (`scripts/build-tesseract.ps1`) |
+| `verapdf` | Validate PDF/A, Accessibility check (PDF/UA), and the check inside PDF to PDF/A | A folder with `bin\cli-<version>.jar` (veraPDF greenfield, command line only) and a `jre` folder with a Java 11 or newer runtime for the architecture (`jre\bin\java.exe`). Without `jre`, the Java of `JAVA_HOME` or the path is used. `scripts/fetch-verapdf.ps1` prepares a development tree in `vendor\verapdf\<version>` (it needs Java on the path) |
+| `ghostscript` | Optional second way to make PDF/A files | Only used by a build with the `agpl-ghostscript` feature (AGPL-3.0, run as a separate process). A folder with `bin\gswin64c.exe` and `iccprofiles`, or an installed Ghostscript under `Program Files\gs` |
 | `tessdata-<code>` | The same | One language, a `<code>.traineddata` file (tessdata_fast); `chi_sim` is `tessdata-chi-sim`. `scripts/fetch-tessdata.ps1` gets them for development |
 
-More components (PDF/A validation, local AI) arrive with their tools.
+More components (local AI) arrive with their tools.
 
 Every OCR run builds a private data folder with links to the language files it needs, so languages from different components can be combined; the folder and its links are removed afterwards. In a development tree the program is found in `vendor\tesseract\<arch>` and the languages in its `tessdata` folder.
 

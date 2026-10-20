@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use crate::conformance::{ConformanceReport, PdfaNormalizer, PdfaValidator, Profile};
 use crate::error::AppError;
 use crate::inspect::PdfiumFacts;
 use crate::ports::{
@@ -92,6 +93,13 @@ pub struct ToolDeps {
     pub signatures: Arc<dyn SignatureChecker>,
     /// Time stamp and revocation servers, used only when the person agreed to the connection.
     pub web: Arc<dyn WebClient>,
+    /// PDF/A and PDF/UA checks.
+    pub conformance: Arc<dyn PdfaValidator>,
+    /// Normalization of documents for PDF/A.
+    pub normalizer: Arc<dyn PdfaNormalizer>,
+    /// A second way to make PDF/A files, tried when the first does not conform. Present only in a
+    /// build with the Ghostscript plugin, and only when Ghostscript is installed.
+    pub pdfa_fallback: Option<Arc<dyn PdfaNormalizer>>,
 }
 
 impl ToolDeps {
@@ -131,7 +139,10 @@ impl ToolDeps {
             docs: none.clone(),
             signer: none.clone(),
             signatures: none.clone(),
-            web: none,
+            web: none.clone(),
+            conformance: none.clone(),
+            normalizer: none,
+            pdfa_fallback: None,
         }
     }
 }
@@ -298,6 +309,32 @@ impl LayoutReader for Unavailable {
         _: PageIndex,
         _: usize,
     ) -> Result<PictureBytes, AppError> {
+        missing()
+    }
+}
+
+impl PdfaValidator for Unavailable {
+    fn is_available(&self) -> bool {
+        false
+    }
+    fn validate(
+        &self,
+        _: &Path,
+        _: Profile,
+        _: &CancellationToken,
+    ) -> Result<ConformanceReport, AppError> {
+        missing()
+    }
+}
+
+impl PdfaNormalizer for Unavailable {
+    fn normalize(
+        &self,
+        _: &Path,
+        _: domain::tools::pdfa::PdfaLevel,
+        _: i64,
+        _: &Path,
+    ) -> Result<Vec<String>, AppError> {
         missing()
     }
 }
@@ -741,6 +778,24 @@ pub fn publish_edit(
         password,
         &mut |tmp| edit_pipeline(ctx, deps, input, edit, protection.as_ref(), tmp),
     )
+}
+
+/// Publishes a file that is not a PDF: a free name is reserved, `produce` writes the temp file,
+/// `verify` checks it and the file is renamed into place without replacing anything.
+pub fn publish_file(
+    ctx: &JobContext<'_>,
+    dest: &Path,
+    produce: &mut dyn FnMut(&Path) -> Result<(), AppError>,
+    verify: &dyn Fn(&Path) -> Result<(), AppError>,
+) -> Result<OutputArtifact, AppError> {
+    ctx.cancel.check()?;
+    let path = ctx.files.publish(dest, produce, verify)?;
+    let bytes = ctx.files.len(&path)?;
+    Ok(OutputArtifact {
+        path,
+        pages: None,
+        bytes,
+    })
 }
 
 /// Publishes one PDF output: picks a free name, lets `produce` write the temp file, verifies it

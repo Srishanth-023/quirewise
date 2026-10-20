@@ -4058,6 +4058,11 @@ dependencies = [
 [[package]]
 name = "quirewise-engine-gs-plugin"
 version = "0.1.0"
+dependencies = [
+ "quirewise-application",
+ "quirewise-domain",
+ "tempfile",
+]
 
 [[package]]
 name = "quirewise-engine-html-webview2"
@@ -4122,6 +4127,12 @@ dependencies = [
 [[package]]
 name = "quirewise-engine-pdfa-verapdf"
 version = "0.1.0"
+dependencies = [
+ "quirewise-application",
+ "quirewise-domain",
+ "serde_json",
+ "tempfile",
+]
 
 [[package]]
 name = "quirewise-engine-pdfium"
@@ -4231,11 +4242,13 @@ dependencies = [
  "quirewise-cli",
  "quirewise-domain",
  "quirewise-engine-export",
+ "quirewise-engine-gs-plugin",
  "quirewise-engine-html-webview2",
  "quirewise-engine-lopdf-ops",
  "quirewise-engine-ocr-tesseract",
  "quirewise-engine-office-libreoffice",
  "quirewise-engine-office-msoffice",
+ "quirewise-engine-pdfa-verapdf",
  "quirewise-engine-pdfium",
  "quirewise-engine-qpdf",
  "quirewise-engine-raster",

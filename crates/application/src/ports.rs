@@ -41,15 +41,6 @@ pub struct RenderedImage {
     pub rgba: Vec<u8>,
 }
 
-/// Result of a PDF/A or PDF/UA validation run.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ValidationReport {
-    /// True when the document passes the checked profile.
-    pub compliant: bool,
-    /// Human-readable findings.
-    pub issues: Vec<String>,
-}
-
 /// Reads PDF structure. Implemented by the PDFium adapter and runs only in the worker.
 pub trait PdfReader: Send + Sync {
     /// Opens a document and reports its basic facts.
@@ -1072,12 +1063,6 @@ pub trait HtmlConverter: Send + Sync {
     ) -> Result<(), AppError>;
 }
 
-/// Validates PDF/A and PDF/UA conformance.
-pub trait PdfaValidator: Send + Sync {
-    /// Validates `path` against `profile` (`None` auto-detects the claimed level).
-    fn validate(&self, path: &Path, profile: Option<&str>) -> Result<ValidationReport, AppError>;
-}
-
 /// Local language model engine, off by default.
 pub trait LlmEngine: Send + Sync {
     /// Completes a prompt. Only runs after the user enabled Local AI.
@@ -1180,6 +1165,8 @@ pub trait ComponentInstaller: Send + Sync {
     /// Removes every installed version of a component.
     fn remove(&self, id: &str) -> Result<(), AppError>;
 }
+
+pub use crate::conformance::PdfaNormalizer;
 
 /// Source of the current local date and time.
 pub trait Clock: Send + Sync {

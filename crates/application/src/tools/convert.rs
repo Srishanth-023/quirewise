@@ -12,8 +12,8 @@ use domain::tools::convert::{
 use domain::{Duplicates, ErrorCode, PageIndex, ToolId, ToolOptions};
 
 use super::common::{
-    Progress, Scratch, ToolDeps, first_input, page_count, publish_pdf, publish_pdf_checked,
-    wrong_options,
+    Progress, Scratch, ToolDeps, first_input, page_count, publish_file, publish_pdf,
+    publish_pdf_checked, wrong_options,
 };
 use crate::error::AppError;
 use crate::ports::{PictureSpec, TiffPages, TiffSpec};
@@ -33,24 +33,6 @@ fn selected_pages(range: &domain::PageRange, count: u32) -> Result<Vec<PageIndex
     let mut pages: Vec<PageIndex> = range.resolve(count, Duplicates::Reject)?.pages().to_vec();
     pages.sort_by_key(|p| p.get());
     Ok(pages)
-}
-
-/// Publishes a file that is not a PDF: a free name is reserved, `produce` writes the temp file,
-/// `verify` checks it and the file is renamed into place without replacing anything.
-fn publish_file(
-    ctx: &JobContext<'_>,
-    dest: &std::path::Path,
-    produce: &mut dyn FnMut(&std::path::Path) -> Result<(), AppError>,
-    verify: &dyn Fn(&std::path::Path) -> Result<(), AppError>,
-) -> Result<OutputArtifact, AppError> {
-    ctx.cancel.check()?;
-    let path = ctx.files.publish(dest, produce, verify)?;
-    let bytes = ctx.files.len(&path)?;
-    Ok(OutputArtifact {
-        path,
-        pages: None,
-        bytes,
-    })
 }
 
 /// Puts pictures on PDF pages.

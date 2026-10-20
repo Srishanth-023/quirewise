@@ -41,6 +41,8 @@
   );
   const hint = $derived(tDynamic(`option.${toolId}.${field.key}.hint`, tDynamic(`option.${field.key}.hint`, '')));
   const hintId = $derived(`${id}-hint`);
+  // What the empty choice of an optional field means: usually "keep it", sometimes "detect it".
+  const nullLabel = $derived(tDynamic(`option.${toolId}.${field.key}.null`, t('option.unchanged')));
   // Few choices read best as a visible group; more become a menu.
   const asRadios = $derived((field.choices?.length ?? 0) + (field.nullable ? 1 : 0) <= 4);
   // The remove switch stores a single space: not blank, so it is sent, and the core reads a
@@ -121,7 +123,7 @@
       {#if field.nullable}
         <label class="check">
           <input type="radio" name={id} value="" checked={value == null} onchange={() => onchange(null)} />
-          <span>{t('option.unchanged')}</span>
+          <span>{nullLabel}</span>
         </label>
       {/if}
       {#each field.choices ?? [] as choice (choice.value)}
@@ -143,7 +145,7 @@
   <div class="field">
     <label for={id}>{label}</label>
     <select {id} value={value == null ? '' : String(value)} onchange={(e) => onchange(e.currentTarget.value === '' && field.nullable ? null : e.currentTarget.value)}>
-      {#if field.nullable}<option value="">{t('option.unchanged')}</option>{/if}
+      {#if field.nullable}<option value="">{nullLabel}</option>{/if}
       {#each field.choices ?? [] as choice (choice.value)}
         <option value={choice.value}>{choiceLabel(choice.value)}</option>
       {/each}

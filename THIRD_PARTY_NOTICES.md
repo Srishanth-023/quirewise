@@ -110,3 +110,11 @@ The Word, PowerPoint and Excel files are written with the `zip` and `image` crat
 | p12-keystore | MIT or Apache-2.0 | Reads PFX and P12 certificate files (and, for tests, writes them) |
 | rustls-native-certs | Apache-2.0, ISC or MIT | Reads the trusted root certificates of Windows |
 | rand_core | MIT or Apache-2.0 | Random numbers for signing and request numbers |
+
+## Added in Phase 11
+
+| Component | License | Use |
+|---|---|---|
+| veraPDF 1.30 (greenfield command line) | GPLv3 or MPLv2, used under MPL-2.0 | Checks PDF/A and PDF/UA. Runs as a separate Java process and is an on-demand component; nothing is linked |
+| A Java runtime (bundled with the `verapdf` component) | The license of the runtime that the owner picks (for example Eclipse Temurin: GPLv2 with Classpath Exception) | Runs veraPDF; the owner records the exact runtime when building the component |
+| Ghostscript (optional, not shipped) | AGPL-3.0 or commercial | Only run as a separate process by a build with the `agpl-ghostscript` feature, from a copy the person installed. Never linked, never in the default build |
