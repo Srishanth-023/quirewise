@@ -19,7 +19,7 @@
     /** Text drawn with a color control. */
     color?: boolean;
     /** Offer a button that opens the file chooser for pictures or any file. */
-    picker?: 'image' | 'files';
+    picker?: 'image' | 'files' | 'certificate' | 'trust';
     onchange: (value: unknown) => void;
   }
 
@@ -64,7 +64,8 @@
 
   async function browse(): Promise<void> {
     try {
-      const picked = await ipc.pickPaths(picker === 'image' ? 'image' : 'any', picker === 'files');
+      const kind = picker === 'files' || picker === undefined ? 'any' : picker;
+      const picked = await ipc.pickPaths(kind, picker === 'files');
       if (picked.length === 0) return;
       if (field.kind === 'lines') {
         const known = new Set(lines);

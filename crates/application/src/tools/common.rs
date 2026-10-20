@@ -20,7 +20,11 @@ use crate::ports::{
     PngImage, ProtectionSource, RenderedImage, Renderer, RepairOutcome, ScanPageWriter, SheetData,
     SkewDetector, TextExtractor, TiffPages, TiffSpec, TocBuilder, TocLine,
 };
-use crate::runtime::{Password, ProgressEvent};
+use crate::runtime::{CancellationToken, Password, ProgressEvent};
+use crate::signing::{
+    PdfSigner, SignOutcome, SignRequest, SignatureChecker, SignatureReport, StoredCertificate,
+    VerifyRequest, WebClient,
+};
 use crate::tool::{InputDoc, JobContext, OutputArtifact};
 use domain::Dpi;
 use domain::tools::convert::{ImagesToPdfOptions, PictureFormat};
@@ -82,6 +86,12 @@ pub struct ToolDeps {
     pub layout: Arc<dyn LayoutReader>,
     /// Word, PowerPoint and Excel files.
     pub docs: Arc<dyn DocumentWriter>,
+    /// Digital signatures.
+    pub signer: Arc<dyn PdfSigner>,
+    /// Checks of digital signatures.
+    pub signatures: Arc<dyn SignatureChecker>,
+    /// Time stamp and revocation servers, used only when the person agreed to the connection.
+    pub web: Arc<dyn WebClient>,
 }
 
 impl ToolDeps {
@@ -118,7 +128,10 @@ impl ToolDeps {
             skew: none.clone(),
             scans: none.clone(),
             layout: none.clone(),
-            docs: none,
+            docs: none.clone(),
+            signer: none.clone(),
+            signatures: none.clone(),
+            web: none,
         }
     }
 }
@@ -285,6 +298,43 @@ impl LayoutReader for Unavailable {
         _: PageIndex,
         _: usize,
     ) -> Result<PictureBytes, AppError> {
+        missing()
+    }
+}
+
+impl PdfSigner for Unavailable {
+    fn sign(
+        &self,
+        _: &Path,
+        _: &Path,
+        _: &SignRequest,
+        _: Option<&dyn WebClient>,
+        _: &CancellationToken,
+    ) -> Result<SignOutcome, AppError> {
+        missing()
+    }
+    fn certificates(&self) -> Result<Vec<StoredCertificate>, AppError> {
+        missing()
+    }
+}
+
+impl SignatureChecker for Unavailable {
+    fn check(
+        &self,
+        _: &Path,
+        _: &VerifyRequest,
+        _: Option<&dyn WebClient>,
+        _: &CancellationToken,
+    ) -> Result<Vec<SignatureReport>, AppError> {
+        missing()
+    }
+}
+
+impl WebClient for Unavailable {
+    fn get(&self, _: &str, _: u64) -> Result<Vec<u8>, AppError> {
+        missing()
+    }
+    fn post(&self, _: &str, _: &str, _: &[u8], _: u64) -> Result<Vec<u8>, AppError> {
         missing()
     }
 }

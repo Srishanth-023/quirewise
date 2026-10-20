@@ -15,6 +15,7 @@ pub mod recognize;
 pub mod redact;
 pub mod rotate;
 pub mod secure;
+pub mod signing;
 pub mod stamp;
 pub mod structure;
 
@@ -50,6 +51,7 @@ pub use recognize::{DeskewOptions, OcrOptions, ScanToPdfOptions};
 pub use redact::RedactOptions;
 pub use rotate::RotateOptions;
 pub use secure::{ProtectOptions, SanitizeOptions, UnlockOptions};
+pub use signing::{DigitalSignOptions, VerifySignaturesOptions};
 pub use stamp::{BatesOptions, HeaderFooterOptions, PageNumbersOptions, WatermarkOptions};
 pub use structure::{
     AttachmentsOptions, BookmarksOptions, PageLabelsOptions, RenameByContentOptions,
@@ -157,6 +159,10 @@ pub enum ToolId {
     Attachments,
     /// Page labels (row 66).
     PageLabels,
+    /// Digital signature (row 61).
+    DigitalSign,
+    /// Verify signatures (row 62).
+    VerifySignatures,
     /// Compare (row 55).
     Compare,
     /// Redact (row 54).
@@ -211,7 +217,7 @@ pub enum ToolId {
 
 impl ToolId {
     /// Every tool id the domain knows. The runtime tool list comes from the registry.
-    pub const ALL: [ToolId; 60] = [
+    pub const ALL: [ToolId; 62] = [
         ToolId::Merge,
         ToolId::AlternateMix,
         ToolId::Organize,
@@ -247,6 +253,8 @@ impl ToolId {
         ToolId::RenameByContent,
         ToolId::Attachments,
         ToolId::PageLabels,
+        ToolId::DigitalSign,
+        ToolId::VerifySignatures,
         ToolId::Compare,
         ToolId::Redact,
         ToolId::EditPdf,
@@ -312,6 +320,8 @@ impl ToolId {
             Self::RenameByContent => "rename-by-content",
             Self::Attachments => "attachments",
             Self::PageLabels => "page-labels",
+            Self::DigitalSign => "digital-sign",
+            Self::VerifySignatures => "verify-signatures",
             Self::Compare => "compare",
             Self::Redact => "redact",
             Self::EditPdf => "edit-pdf",
@@ -432,6 +442,10 @@ pub enum ToolOptions {
     Attachments(AttachmentsOptions),
     /// Options for [`ToolId::PageLabels`].
     PageLabels(PageLabelsOptions),
+    /// Options for [`ToolId::DigitalSign`].
+    DigitalSign(DigitalSignOptions),
+    /// Options for [`ToolId::VerifySignatures`].
+    VerifySignatures(VerifySignaturesOptions),
     /// Options for [`ToolId::Compare`].
     Compare(CompareOptions),
     /// Options for [`ToolId::Redact`].
@@ -523,6 +537,8 @@ impl ToolOptions {
             Self::RenameByContent(_) => ToolId::RenameByContent,
             Self::Attachments(_) => ToolId::Attachments,
             Self::PageLabels(_) => ToolId::PageLabels,
+            Self::DigitalSign(_) => ToolId::DigitalSign,
+            Self::VerifySignatures(_) => ToolId::VerifySignatures,
             Self::Compare(_) => ToolId::Compare,
             Self::Redact(_) => ToolId::Redact,
             Self::EditPdf(_) => ToolId::EditPdf,
@@ -591,6 +607,8 @@ impl ToolOptions {
             ToolId::RenameByContent => Self::RenameByContent(RenameByContentOptions::default()),
             ToolId::Attachments => Self::Attachments(AttachmentsOptions::default()),
             ToolId::PageLabels => Self::PageLabels(PageLabelsOptions::default()),
+            ToolId::DigitalSign => Self::DigitalSign(DigitalSignOptions::default()),
+            ToolId::VerifySignatures => Self::VerifySignatures(VerifySignaturesOptions::default()),
             ToolId::Compare => Self::Compare(CompareOptions::default()),
             ToolId::Redact => Self::Redact(RedactOptions::default()),
             ToolId::EditPdf => Self::EditPdf(EditPdfOptions::default()),

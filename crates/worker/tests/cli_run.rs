@@ -116,3 +116,61 @@ fn run_refuses_options_given_twice_and_a_missing_options_file() {
     ]);
     assert_eq!(code, 1, "{text}");
 }
+
+#[test]
+fn run_signs_a_file_with_a_key_from_an_options_file_and_verifies_it() {
+    use quirewise_engine_sign_cms::testkit::Pki;
+    let dir = tempfile::tempdir().unwrap();
+    let input = dir.path().join("deal.pdf");
+    std::fs::write(&input, minimal_pdf(2)).unwrap();
+    let pki = Pki::ec();
+    let pfx = dir.path().join("me.pfx");
+    std::fs::write(&pfx, pki.pfx("hunter2")).unwrap();
+    let trust = dir.path().join("root.pem");
+    std::fs::write(&trust, pki.root_pem()).unwrap();
+    let options = dir.path().join("sign.json");
+    let json =
+        serde_json::json!({ "pfx_path": pfx, "pfx_password": "hunter2", "reason": "Agreed" });
+    std::fs::write(&options, json.to_string()).unwrap();
+    let out = dir.path().join("out");
+
+    let (text, code) = qw(&[
+        "run",
+        "digital-sign",
+        input.to_str().unwrap(),
+        "--options-file",
+        options.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{text}");
+    assert!(text.contains("(digitally signed).pdf"), "{text}");
+    assert!(!text.contains("hunter2"), "the password is never echoed");
+
+    let signed = std::fs::read_dir(&out)
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    let verify = serde_json::json!({ "trusted_certificates": trust });
+    let (text, code) = qw(&[
+        "run",
+        "verify-signatures",
+        signed.to_str().unwrap(),
+        "--options",
+        &verify.to_string(),
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{text}");
+    assert!(text.contains("(signature report).pdf"), "{text}");
+}
+
+#[test]
+fn certificates_lists_what_windows_can_sign_with() {
+    let (text, code) = qw(&["certificates"]);
+    assert_eq!(code, 0, "{text}");
+    let list: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert!(list.is_array(), "{text}");
+}

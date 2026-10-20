@@ -370,6 +370,13 @@ export type Base64Bytes = string;
  */
 export type Bytes = number;
 /**
+ * What later changes a certifying signature allows (DocMDP).
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Certify".
+ */
+export type Certify = 'none' | 'no-changes' | 'form-fill' | 'annotate';
+/**
  * The encryption algorithm.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -577,6 +584,13 @@ export type InsertWhere = 'before' | 'after';
  * via the `definition` "JobStatus".
  */
 export type JobStatus = 'queued' | 'running' | 'completed' | 'completed-with-errors' | 'cancelled';
+/**
+ * Where the signing key comes from.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "KeySource".
+ */
+export type KeySource = 'pfx' | 'windows-store';
 /**
  * Whether a stamp lies over the page content or beneath it.
  *
@@ -800,6 +814,13 @@ export type SheetGrouping = 'per-table' | 'per-page';
  */
 export type SheetOrientation = 'auto' | 'portrait' | 'landscape';
 /**
+ * How much evidence is stored with the signature (the PAdES levels).
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SignLevel".
+ */
+export type SignLevel = 'b-b' | 'b-t' | 'b-lt' | 'b-lta';
+/**
  * What a visual signature looks like.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -965,6 +986,8 @@ export type ToolId =
   | 'rename-by-content'
   | 'attachments'
   | 'page-labels'
+  | 'digital-sign'
+  | 'verify-signatures'
   | 'compare'
   | 'redact'
   | 'edit-pdf'
@@ -1741,6 +1764,102 @@ export type ToolOptions =
     }
   | {
       /**
+       * Allow the connection to the time stamp server and the revocation servers. Default off.
+       */
+      allow_network?: boolean;
+      /**
+       * Certify the document and limit later changes. Default off.
+       */
+      certify?: 'none' | 'no-changes' | 'form-fill' | 'annotate';
+      /**
+       * How to reach the signer.
+       */
+      contact?: string | null;
+      /**
+       * Name of an empty signature field to sign. Default none: a new field is added.
+       */
+      field?: string | null;
+      /**
+       * Height as a share of the page height. Default 0.1.
+       */
+      height?: number;
+      /**
+       * Left edge of the visible signature as a share of the page width, 0 to 1. Default 0.6.
+       */
+      left?: number;
+      /**
+       * Evidence stored with the signature. Default `b-b`.
+       */
+      level?: 'b-b' | 'b-t' | 'b-lt' | 'b-lta';
+      /**
+       * Where it is signed.
+       */
+      location?: string | null;
+      /**
+       * Page of the visible signature, counted from 1. Default 1.
+       */
+      page?: number;
+      /**
+       * Password of the PFX or P12 file. Kept in memory only.
+       */
+      pfx_password?: Secret | null;
+      /**
+       * The PFX or P12 file, for `pfx`.
+       */
+      pfx_path?: string | null;
+      /**
+       * Why the document is signed.
+       */
+      reason?: string | null;
+      /**
+       * Name to show instead of the one in the certificate.
+       */
+      signer_name?: string | null;
+      /**
+       * Where the key comes from. Default a PFX or P12 file.
+       */
+      source?: 'pfx' | 'windows-store';
+      /**
+       * SHA-1 thumbprint of the certificate (40 hex digits, spaces allowed), for `windows-store`.
+       */
+      thumbprint?: string;
+      /**
+       * Address of the time stamp server, for `b-t` and above.
+       */
+      timestamp_url?: string | null;
+      tool: 'digital-sign';
+      /**
+       * Top edge as a share of the page height, 0 to 1. Default 0.86.
+       */
+      top?: number;
+      /**
+       * Show the signature on a page. Default off: the signature is invisible.
+       */
+      visible?: boolean;
+      /**
+       * Width as a share of the page width. Default 0.35.
+       */
+      width?: number;
+    }
+  | {
+      /**
+       * Allow the connection to the revocation servers named in the certificates. Default off.
+       */
+      allow_network?: boolean;
+      /**
+       * Ask the certificate authorities whether a certificate was revoked. Needs
+       * `allow_network`. Default off.
+       */
+      check_revocation?: boolean;
+      tool: 'verify-signatures';
+      /**
+       * A file of certificates (PEM or DER) to trust besides the ones of Windows, for example the
+       * root certificate of your company.
+       */
+      trusted_certificates?: string | null;
+    }
+  | {
+      /**
        * Resolution of the pictures the pages are compared at. Default 100.
        */
       dpi?: number;
@@ -2257,6 +2376,7 @@ export interface IpcTypes {
   saved_signature: SavedSignature;
   settings: Settings;
   sign_pdf_options: SignPdfOptions;
+  stored_certificate: StoredCertificate;
   text_block: TextBlock;
   thumbnail: Thumbnail;
   tool_descriptor: ToolDescriptor;
@@ -4191,6 +4311,102 @@ export interface RunBatchRequest {
       }
     | {
         /**
+         * Allow the connection to the time stamp server and the revocation servers. Default off.
+         */
+        allow_network?: boolean;
+        /**
+         * Certify the document and limit later changes. Default off.
+         */
+        certify?: 'none' | 'no-changes' | 'form-fill' | 'annotate';
+        /**
+         * How to reach the signer.
+         */
+        contact?: string | null;
+        /**
+         * Name of an empty signature field to sign. Default none: a new field is added.
+         */
+        field?: string | null;
+        /**
+         * Height as a share of the page height. Default 0.1.
+         */
+        height?: number;
+        /**
+         * Left edge of the visible signature as a share of the page width, 0 to 1. Default 0.6.
+         */
+        left?: number;
+        /**
+         * Evidence stored with the signature. Default `b-b`.
+         */
+        level?: 'b-b' | 'b-t' | 'b-lt' | 'b-lta';
+        /**
+         * Where it is signed.
+         */
+        location?: string | null;
+        /**
+         * Page of the visible signature, counted from 1. Default 1.
+         */
+        page?: number;
+        /**
+         * Password of the PFX or P12 file. Kept in memory only.
+         */
+        pfx_password?: Secret | null;
+        /**
+         * The PFX or P12 file, for `pfx`.
+         */
+        pfx_path?: string | null;
+        /**
+         * Why the document is signed.
+         */
+        reason?: string | null;
+        /**
+         * Name to show instead of the one in the certificate.
+         */
+        signer_name?: string | null;
+        /**
+         * Where the key comes from. Default a PFX or P12 file.
+         */
+        source?: 'pfx' | 'windows-store';
+        /**
+         * SHA-1 thumbprint of the certificate (40 hex digits, spaces allowed), for `windows-store`.
+         */
+        thumbprint?: string;
+        /**
+         * Address of the time stamp server, for `b-t` and above.
+         */
+        timestamp_url?: string | null;
+        tool: 'digital-sign';
+        /**
+         * Top edge as a share of the page height, 0 to 1. Default 0.86.
+         */
+        top?: number;
+        /**
+         * Show the signature on a page. Default off: the signature is invisible.
+         */
+        visible?: boolean;
+        /**
+         * Width as a share of the page width. Default 0.35.
+         */
+        width?: number;
+      }
+    | {
+        /**
+         * Allow the connection to the revocation servers named in the certificates. Default off.
+         */
+        allow_network?: boolean;
+        /**
+         * Ask the certificate authorities whether a certificate was revoked. Needs
+         * `allow_network`. Default off.
+         */
+        check_revocation?: boolean;
+        tool: 'verify-signatures';
+        /**
+         * A file of certificates (PEM or DER) to trust besides the ones of Windows, for example the
+         * root certificate of your company.
+         */
+        trusted_certificates?: string | null;
+      }
+    | {
+        /**
          * Resolution of the pictures the pages are compared at. Default 100.
          */
         dpi?: number;
@@ -4707,6 +4923,8 @@ export interface RunBatchRequest {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'digital-sign'
+    | 'verify-signatures'
     | 'compare'
     | 'redact'
     | 'edit-pdf'
@@ -5036,6 +5254,30 @@ export interface SignPdfOptions {
   signatures?: SignatureItem[];
 }
 /**
+ * A certificate the person can sign with.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "StoredCertificate".
+ */
+export interface StoredCertificate {
+  /**
+   * Who issued it.
+   */
+  issuer: string;
+  /**
+   * Who the certificate names.
+   */
+  subject: string;
+  /**
+   * SHA-1 thumbprint, 40 upper case hex digits.
+   */
+  thumbprint: string;
+  /**
+   * Last day it is valid, `YYYY-MM-DD` in UTC.
+   */
+  valid_until: string;
+}
+/**
  * A block of text on a page, found so that it can be changed: the editor covers it and writes
  * new text in its place.
  *
@@ -5166,6 +5408,8 @@ export interface ToolDescriptor {
     | 'rename-by-content'
     | 'attachments'
     | 'page-labels'
+    | 'digital-sign'
+    | 'verify-signatures'
     | 'compare'
     | 'redact'
     | 'edit-pdf'

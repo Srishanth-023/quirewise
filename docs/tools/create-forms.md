@@ -34,7 +34,7 @@ Fields are written into the document's `AcroForm`: a field dictionary and a widg
 
 - Detection is a heuristic and may miss fields or suggest too many; every suggestion is confirmed by the person.
 - Scripts, formats, calculations and validation are not created.
-- Signature fields are empty containers. They are not digitally signed.
+- Signature fields are empty containers. Digital signature can fill one by name (`field` option) with a real signature.
 - A file that already has a form keeps it; the new fields are added to it.
 
 ## Errors

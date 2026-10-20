@@ -16,6 +16,17 @@ fn ask(state: &AppState, query: &DocumentQuery) -> Result<QueryResult, AppError>
     state.queries.query(query, &CancellationToken::new())
 }
 
+/// The certificates of the Windows store that can sign a document.
+#[tauri::command(async)]
+pub fn list_certificates(
+    state: State<'_, AppState>,
+) -> Result<Vec<application::signing::StoredCertificate>, AppError> {
+    match ask(&state, &DocumentQuery::Certificates)? {
+        QueryResult::Certificates(list) => Ok(list),
+        _ => Err(AppError::internal("listing the certificates")),
+    }
+}
+
 /// The installed fonts that text can be set in.
 #[tauri::command(async)]
 pub fn editor_fonts(state: State<'_, AppState>) -> Result<Vec<String>, AppError> {

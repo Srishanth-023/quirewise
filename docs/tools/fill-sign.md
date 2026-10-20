@@ -28,7 +28,7 @@ The form is read in `lopdf`: the field tree is walked with inherited properties 
 - A value for a field that does not exist, or a choice the field does not have, stops the run with a message and writes nothing.
 - Read-only fields cannot be filled.
 - Form JavaScript (calculations, formats and validations written in the file) is not run. A calculated field keeps what you typed.
-- Signature fields are not signed digitally; a visual signature can be placed over them.
+- Signature fields are not signed digitally here; a visual signature can be placed over them. Digital signature (`docs/tools/digital-sign.md`) can fill an empty signature field with a real signature.
 - Barcode and rich-text fields are left as they are.
 
 ## Errors

@@ -18,6 +18,7 @@ pub mod recent;
 pub mod registry;
 pub mod run_tool;
 pub mod runtime;
+pub mod signing;
 pub mod tool;
 pub mod tools;
 

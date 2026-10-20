@@ -1072,12 +1072,6 @@ pub trait HtmlConverter: Send + Sync {
     ) -> Result<(), AppError>;
 }
 
-/// Produces CMS signatures. Private keys never leave the implementation.
-pub trait Signer: Send + Sync {
-    /// Signs a SHA-256 digest and returns a DER-encoded CMS structure.
-    fn sign_digest(&self, digest: &[u8]) -> Result<Vec<u8>, AppError>;
-}
-
 /// Validates PDF/A and PDF/UA conformance.
 pub trait PdfaValidator: Send + Sync {
     /// Validates `path` against `profile` (`None` auto-detects the claimed level).
@@ -1191,6 +1185,13 @@ pub trait ComponentInstaller: Send + Sync {
 pub trait Clock: Send + Sync {
     /// Current local time.
     fn now(&self) -> DateTimeParts;
+
+    /// Current time in seconds since 1970 UTC, for signatures and certificate checks.
+    fn unix_now(&self) -> i64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
+    }
 }
 
 /// Severity of a log event.

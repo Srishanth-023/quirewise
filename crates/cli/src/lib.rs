@@ -100,6 +100,8 @@ pub enum Command {
     },
     /// Print the JSON Schema of the types the UI exchanges with the core.
     Schema,
+    /// List the certificates of the Windows store that can sign, for `digital-sign`.
+    Certificates,
     /// Inspect a PDF through the worker and print the report as JSON.
     Inspect {
         /// PDF to inspect.
@@ -303,6 +305,12 @@ pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
             )
         }
         Command::Schema => Ok(application::dto::ipc_schema_json()),
+        Command::Certificates => {
+            match queries.query(&DocumentQuery::Certificates, &CancellationToken::new())? {
+                QueryResult::Certificates(list) => json(&list),
+                _ => Err(AppError::internal("listing the certificates")),
+            }
+        }
         Command::Inspect { path, .. } => {
             let query = DocumentQuery::Inspect { path, password };
             match queries.query(&query, &CancellationToken::new())? {

@@ -4,16 +4,11 @@
 
 use std::path::PathBuf;
 
-use domain::fonts::{FontFamily, StandardFont};
-use domain::tools::common::Region;
-use domain::tools::editor::{EditItem, ImageItem, TextAlign, TextItem, TextStyle, WhiteoutItem};
+use domain::tools::editor::{EditItem, ImageItem};
 
 use super::comparediff::{Line, RowKind, TextDiff};
+use super::reportkit::{Builder, Face, INK, MARGIN, MUTED, PAGE, Report, wrap};
 
-/// Size of a report page in points: Letter.
-pub const PAGE: (f32, f32) = (612.0, 792.0);
-/// Space around the content.
-const MARGIN: f32 = 40.0;
 /// Rows of text changes the report lists; the rest are counted.
 pub const MAX_ROWS: usize = 1_500;
 /// Pages the report lists with their look differences before it stops listing them.
@@ -28,8 +23,6 @@ const RIGHT_TEXT: (f32, f32) = (320.0, 252.0);
 const LEFT_GUTTER: f32 = 12.0;
 const RIGHT_GUTTER: f32 = 292.0;
 
-const INK: &str = "#1F2328";
-const MUTED: &str = "#5A5F66";
 const REMOVED_TEXT: &str = "#9A1B1B";
 const ADDED_TEXT: &str = "#1B5E20";
 const REMOVED_FILL: &str = "#FBE3E0";
@@ -54,153 +47,7 @@ pub struct VisualPage {
     pub image: PathBuf,
 }
 
-/// The finished layout.
-pub struct Report {
-    /// Pages of the report.
-    pub pages: u32,
-    /// What to draw on them.
-    pub items: Vec<EditItem>,
-}
-
-/// What can be drawn in the standard fonts: other characters become a question mark and control
-/// characters go.
-fn printable(text: &str) -> String {
-    text.chars()
-        .filter_map(|c| match c {
-            '\t' => Some(' '),
-            c if c.is_control() => None,
-            c if StandardFont::encode_char(c).is_some() => Some(c),
-            _ => Some('?'),
-        })
-        .collect()
-}
-
-/// Breaks text into lines of at most `width` characters, at spaces where it can.
-fn wrap(text: &str, width: usize) -> Vec<String> {
-    let text = printable(text);
-    let mut lines = Vec::new();
-    let mut current = String::new();
-    for word in text.split(' ') {
-        let mut word = word.to_owned();
-        while word.chars().count() > width {
-            if !current.is_empty() {
-                lines.push(std::mem::take(&mut current));
-            }
-            let head: String = word.chars().take(width).collect();
-            word = word.chars().skip(width).collect();
-            lines.push(head);
-        }
-        let joined = if current.is_empty() {
-            word.clone()
-        } else {
-            format!("{current} {word}")
-        };
-        if joined.chars().count() > width {
-            lines.push(std::mem::take(&mut current));
-            current = word;
-        } else {
-            current = joined;
-        }
-    }
-    if !current.is_empty() || lines.is_empty() {
-        lines.push(current);
-    }
-    lines
-}
-
-/// How a line of text looks.
-#[derive(Clone, Copy)]
-struct Face<'a> {
-    size: f32,
-    bold: bool,
-    color: &'a str,
-}
-
-struct Builder {
-    items: Vec<EditItem>,
-    page: u32,
-    /// Distance of the next line from the top of the page, in points.
-    y: f32,
-}
-
 impl Builder {
-    fn new() -> Self {
-        Self {
-            items: Vec::new(),
-            page: 1,
-            y: MARGIN,
-        }
-    }
-
-    fn region(x: f32, y: f32, width: f32, height: f32) -> Region {
-        Region {
-            x: x / PAGE.0,
-            y: y / PAGE.1,
-            width: width / PAGE.0,
-            height: height / PAGE.1,
-        }
-    }
-
-    fn new_page(&mut self) {
-        self.page += 1;
-        self.y = MARGIN;
-    }
-
-    fn room(&self, height: f32) -> bool {
-        self.y + height <= PAGE.1 - MARGIN
-    }
-
-    /// Text at `(x, width, y)` in the look `face` says.
-    fn text(&mut self, place: (f32, f32, f32), text: &str, face: Face<'_>) {
-        let (x, width, y) = place;
-        let Face { size, bold, color } = face;
-        let text = printable(text);
-        if text.trim().is_empty() {
-            return;
-        }
-        self.items.push(EditItem::Text(TextItem {
-            page: self.page,
-            region: Self::region(x, y, width, size * 1.4),
-            text,
-            style: TextStyle {
-                font: FontFamily::Helvetica,
-                installed_font: None,
-                bold,
-                italic: false,
-                size_pt: size,
-                color: color.to_owned(),
-            },
-            align: TextAlign::Left,
-        }));
-    }
-
-    fn fill(&mut self, x: f32, y: f32, width: f32, height: f32, color: &str) {
-        self.items.push(EditItem::Whiteout(WhiteoutItem {
-            page: self.page,
-            region: Self::region(x, y, width, height),
-            color: color.to_owned(),
-        }));
-    }
-
-    /// A line of text at the cursor, then the cursor moves down.
-    fn line(&mut self, text: &str, size: f32, bold: bool, color: &str) {
-        let height = size * 1.5;
-        if !self.room(height) {
-            self.new_page();
-        }
-        let y = self.y;
-        self.text(
-            (MARGIN, PAGE.0 - 2.0 * MARGIN, y),
-            text,
-            Face { size, bold, color },
-        );
-        self.y += height;
-    }
-
-    fn gap(&mut self, height: f32) {
-        self.y += height;
-    }
-
     fn columns_header(&mut self, original: &str, changed: &str) {
         let y = self.y;
         let face = Face {
@@ -455,6 +302,7 @@ pub fn layout(
 #[cfg(test)]
 mod tests {
     use super::super::comparediff::diff_text;
+    use super::super::reportkit::printable;
     use super::*;
 
     fn summary() -> Summary {

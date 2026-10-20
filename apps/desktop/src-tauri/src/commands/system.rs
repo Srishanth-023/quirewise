@@ -43,13 +43,16 @@ pub fn pick_files(app: AppHandle) -> Vec<PathBuf> {
 const IMAGE_EXTENSIONS: [&str; 3] = ["png", "jpg", "jpeg"];
 
 /// Shows the system file picker for an option that takes a path: `kind` is `image` for a picture,
-/// `package` for an offline component package, anything else for any file. Returns the chosen paths, empty when cancelled.
+/// `package` for an offline component package, `certificate` for a PFX or P12 file, `trust` for
+/// certificates to trust, anything else for any file. Returns the chosen paths, empty when cancelled.
 #[tauri::command(async)]
 pub fn pick_paths(app: AppHandle, kind: String, multiple: bool) -> Vec<PathBuf> {
     let mut dialog = app.dialog().file();
     match kind.as_str() {
         "image" => dialog = dialog.add_filter("Pictures", &IMAGE_EXTENSIONS),
         "package" => dialog = dialog.add_filter("Quirewise packages", &["qwpkg"]),
+        "certificate" => dialog = dialog.add_filter("Certificate files", &["pfx", "p12"]),
+        "trust" => dialog = dialog.add_filter("Certificates", &["cer", "crt", "pem", "der"]),
         _ => {}
     }
     let picked = if multiple {

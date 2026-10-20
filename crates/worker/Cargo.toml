@@ -30,15 +30,18 @@ quirewise-engine-office-msoffice = { path = "../engines/office-msoffice" }
 quirewise-engine-html-webview2 = { path = "../engines/html-webview2" }
 quirewise-engine-ocr-tesseract = { path = "../engines/ocr-tesseract" }
 quirewise-engine-export = { path = "../engines/export" }
+quirewise-engine-sign-cms = { path = "../engines/sign-cms" }
 
 [dev-dependencies]
 test-support.workspace = true
 quirewise-cli = { path = "../cli" }
 tempfile = "3"
+serde_json.workspace = true
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 tiff = "0.11.3"
 zip = { version = "9", default-features = false, features = ["deflate"] }
 lopdf = { version = "0.45.0", default-features = false }
+quirewise-engine-sign-cms = { path = "../engines/sign-cms", features = ["testkit"] }
 
 [lints]
 workspace = true

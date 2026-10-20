@@ -34,6 +34,16 @@ impl<W: Write + Send> ProgressSink for FrameProgress<'_, W> {
     }
 }
 
+/// Sends the last message of a unit or query. When the message cannot be written (for example
+/// an answer that cannot be encoded), the caller still gets a failure instead of waiting for ever.
+fn send_final<W: Write + Send>(out: &Mutex<W>, id: u64, reply: &Response) {
+    let mut writer = lock(out);
+    if write_frame(&mut *writer, reply).is_err() {
+        let error = AppError::internal("sending the answer");
+        let _ = write_frame(&mut *writer, &Response::Failed { id, error });
+    }
+}
+
 /// What the worker answers requests with.
 #[derive(Clone)]
 pub struct Services {
@@ -74,7 +84,7 @@ where
                             Err(error) => Response::Failed { id, error },
                         };
                         lock(running).remove(&id);
-                        let _ = write_frame(&mut *lock(out), &reply);
+                        send_final(out, id, &reply);
                     });
                 }
                 Ok(Some(Request::Query { id, query })) => {
@@ -90,7 +100,7 @@ where
                             Err(error) => Response::Failed { id, error },
                         };
                         lock(running).remove(&id);
-                        let _ = write_frame(&mut *lock(out), &reply);
+                        send_final(out, id, &reply);
                     });
                 }
                 Ok(Some(Request::Cancel { id })) => {

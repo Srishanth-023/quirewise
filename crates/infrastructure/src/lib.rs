@@ -19,6 +19,7 @@ pub mod session;
 pub mod settings;
 pub mod signatures;
 pub mod supervisor;
+pub mod web;
 
 pub use clock::SystemClock;
 pub use components::{ComponentManager, ComponentTrust, FsComponentStore, default_trust};
@@ -33,3 +34,4 @@ pub use recent::{JsonRecentStore, SystemUnixClock};
 pub use session::WorkerSession;
 pub use settings::TomlSettingsStore;
 pub use supervisor::WorkerSupervisor;
+pub use web::HttpWeb;

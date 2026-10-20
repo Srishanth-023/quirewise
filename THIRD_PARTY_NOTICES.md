@@ -104,3 +104,9 @@ The Word, PowerPoint and Excel files are written with the `zip` and `image` crat
 |---|---|---|
 | regex | MIT or Apache-2.0 | Searches the text of pages for Redact (linear time, so a pattern cannot hang a run) |
 | similar | Apache-2.0 | Line differences for Compare |
+| cms, x509-cert, x509-ocsp, der, spki | MIT or Apache-2.0 | Builds and reads signatures (CMS), certificates and OCSP answers |
+| rsa, p256, p384, ecdsa, signature | MIT or Apache-2.0 | RSA and ECDSA signing and checking |
+| sha1, sha2 | MIT or Apache-2.0 | Hashes for signatures (SHA-1 only to read old ones) |
+| p12-keystore | MIT or Apache-2.0 | Reads PFX and P12 certificate files (and, for tests, writes them) |
+| rustls-native-certs | Apache-2.0, ISC or MIT | Reads the trusted root certificates of Windows |
+| rand_core | MIT or Apache-2.0 | Random numbers for signing and request numbers |

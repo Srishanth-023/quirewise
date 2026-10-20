@@ -8,6 +8,11 @@ targets = [
 [advisories]
 version = 2
 yanked = "deny"
+ignore = [
+  # `rsa` timing differences (Marvin attack): no fixed release. Quirewise only signs and
+  # verifies locally and never decrypts for a remote party, so nobody can time it.
+  { id = "RUSTSEC-2023-0071", reason = "rsa is used for local signing and checking only" },
+]
 
 [licenses]
 version = 2

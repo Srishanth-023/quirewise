@@ -5,6 +5,7 @@
   import { toolName } from '../stores/tools.svelte';
   import { formFields, toolOptions } from '../stores/options.svelte';
   import FieldInput from './FieldInput.svelte';
+  import CertificatePicker from './CertificatePicker.svelte';
   import LanguagePicker from './LanguagePicker.svelte';
   import type { Field, Values } from './schema';
   import { formFor, ruleMet } from './toolForms';
@@ -135,6 +136,13 @@
           {/each}
         </section>
       {/if}
+    {:else if hints.certificatePicker?.includes(field.key)}
+      <CertificatePicker
+        id={`${tool.id}-${field.key}`}
+        label={listLabel(field)}
+        value={typeof values[field.key] === 'string' ? (values[field.key] as string) : ''}
+        onchange={(v) => toolOptions.set(tool, field.key, v)}
+      />
     {:else if hints.languagePicker?.includes(field.key)}
       <LanguagePicker
         id={`${tool.id}-${field.key}`}

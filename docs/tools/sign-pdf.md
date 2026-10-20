@@ -32,7 +32,7 @@ A drawn signature is vector strokes with round joins, scaled to its box. A typed
 
 ## Behavior and limits
 
-- **A visual signature is not a digital signature.** It has no certificate, no timestamp and no check that the file was not changed afterwards. Digital signing and verification come with a later phase.
+- **A visual signature is not a digital signature.** It has no certificate, no timestamp and no check that the file was not changed afterwards. For a signature that proves who signed and that the file is unchanged, use Digital signature (`docs/tools/digital-sign.md`); Verify signatures (`docs/tools/verify-signatures.md`) checks one.
 - Picture signatures are not offered for saving, since the file they point to can move; draw or type to keep one.
 - Saved signatures are limited to 50. A hostile or damaged `.qwsig` file is ignored.
 

@@ -16,6 +16,7 @@ import type {
   RunBatchRequest,
   SavedSignature,
   Settings,
+  StoredCertificate,
   TextBlock,
   Thumbnail,
   ToolDescriptor,
@@ -37,6 +38,7 @@ export type {
   RunBatchRequest,
   SavedSignature,
   Settings,
+  StoredCertificate,
   TextBlock,
   Thumbnail,
   ToolDescriptor,
@@ -79,7 +81,7 @@ export const ipc = {
   appVersion: () => call<string>('app_version'),
   listTools: () => call<ToolDescriptor[]>('list_tools'),
   pickFiles: () => call<string[]>('pick_files'),
-  pickPaths: (kind: 'image' | 'package' | 'any', multiple: boolean) =>
+  pickPaths: (kind: 'image' | 'package' | 'certificate' | 'trust' | 'any', multiple: boolean) =>
     call<string[]>('pick_paths', { kind, multiple }),
   classifyInputs: (paths: string[]) => call<DropAnalysis>('classify_inputs', { paths }),
   inspectDocument: (path: string, password: string | null) =>
@@ -106,6 +108,7 @@ export const ipc = {
     call<TextBlock[]>('text_blocks', { path, password, page }),
   redactMatches: (path: string, password: string | null, options: RedactOptions) =>
     call<RedactMatch[]>('redact_matches', { path, password, options }),
+  listCertificates: () => call<StoredCertificate[]>('list_certificates'),
   signaturesList: () => call<SavedSignature[]>('signatures_list'),
   signatureSave: (signature: NewSavedSignature) =>
     call<SavedSignature>('signature_save', { signature }),

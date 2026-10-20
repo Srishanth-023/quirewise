@@ -10,7 +10,7 @@ use application::tools::{ToolDeps, register_all};
 use application::{AppError, Password, RunTool, ToolRegistry};
 use domain::ErrorCode;
 use domain::limits::SafetyLimits;
-use infrastructure::{AppPaths, FsComponentStore, NativePaths, native::arch_dir};
+use infrastructure::{AppPaths, FsComponentStore, HttpWeb, NativePaths, native::arch_dir};
 use quirewise_engine_export::OfficeWriter;
 use quirewise_engine_html_webview2::EdgePrinter;
 use quirewise_engine_lopdf_ops::{
@@ -23,6 +23,7 @@ use quirewise_engine_office_msoffice::MsOffice;
 use quirewise_engine_pdfium::PdfiumEngine;
 use quirewise_engine_qpdf::QpdfCli;
 use quirewise_engine_raster::RasterConverter;
+use quirewise_engine_sign_cms::CmsEngine;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -149,6 +150,9 @@ pub fn tool_deps(engines: &Engines) -> ToolDeps {
         scans: Arc::new(RasterConverter),
         layout: Arc::new(engines.pdfium),
         docs: Arc::new(OfficeWriter),
+        signer: Arc::new(CmsEngine::new()),
+        signatures: Arc::new(CmsEngine::new()),
+        web: Arc::new(HttpWeb::new()),
     }
 }
 
@@ -186,7 +190,8 @@ pub fn build_services(
         layout: Arc::new(engines.pdfium),
         forms: Arc::new(LopdfForms),
         fonts: Arc::new(InstalledFonts),
-    });
+    })
+    .with_signer(Arc::new(CmsEngine::new()));
     let runner = RunTool::new(
         Arc::new(registry),
         reader,

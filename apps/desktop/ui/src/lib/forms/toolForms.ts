@@ -18,7 +18,9 @@ export interface ToolForm {
   /** Text fields picked with a color control. */
   color?: string[];
   /** Text or line-list fields with a button that opens the file chooser. */
-  picker?: Record<string, 'image' | 'files'>;
+  picker?: Record<string, 'image' | 'files' | 'certificate' | 'trust'>;
+  /** Text fields chosen from the certificates of the Windows store instead of typed. */
+  certificatePicker?: string[];
   /** Lists of objects edited as rows the person can add, remove and move. */
   rows?: string[];
   /** Language lists drawn as a choice of the installed recognition languages. */
@@ -73,6 +75,44 @@ export const toolForms: Record<string, ToolForm> = {
   compare: {
     order: ['mode', 'tolerance_percent', 'ignore_whitespace', 'pages', 'dpi'],
     limits: { tolerance_percent: { min: 0, max: 50 }, dpi: { min: 36, max: 200 } },
+  },
+  'digital-sign': {
+    order: [
+      'source',
+      'pfx_path',
+      'pfx_password',
+      'thumbprint',
+      'visible',
+      'page',
+      'left',
+      'top',
+      'width',
+      'height',
+      'field',
+      'signer_name',
+      'reason',
+      'location',
+      'contact',
+      'level',
+      'timestamp_url',
+      'allow_network',
+      'certify',
+    ],
+    secret: ['pfx_password'],
+    picker: { pfx_path: 'certificate' },
+    certificatePicker: ['thumbprint'],
+    limits: { page: { min: 1 }, left: { min: 0, max: 1 }, top: { min: 0, max: 1 }, width: { min: 0.02, max: 1 }, height: { min: 0.02, max: 1 } },
+    visibleWhen: {
+      ...only(['pfx_path', 'pfx_password'], { field: 'source', equals: 'pfx' }),
+      ...only(['thumbprint'], { field: 'source', equals: 'windows-store' }),
+      ...only(['page', 'left', 'top', 'width', 'height'], { field: 'visible', equals: true }),
+      ...only(['timestamp_url', 'allow_network'], { field: 'level', in: ['b-t', 'b-lt', 'b-lta'] }),
+    },
+  },
+  'verify-signatures': {
+    order: ['trusted_certificates', 'check_revocation', 'allow_network'],
+    picker: { trusted_certificates: 'trust' },
+    visibleWhen: { allow_network: { field: 'check_revocation', equals: true } },
   },
   redact: {
     order: ['terms', 'presets', 'patterns', 'case_sensitive', 'pages', 'fill_color', 'strip_metadata'],

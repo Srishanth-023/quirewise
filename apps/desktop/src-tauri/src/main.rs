@@ -35,6 +35,7 @@ fn main() {
             commands::editor::suggest_fields,
             commands::editor::text_blocks,
             commands::editor::redact_matches,
+            commands::editor::list_certificates,
             commands::editor::signatures_list,
             commands::editor::signature_save,
             commands::editor::signature_delete,

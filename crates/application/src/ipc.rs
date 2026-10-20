@@ -157,6 +157,40 @@ mod tests {
     }
 
     #[test]
+    fn regression_list_answers_survive_the_wire() {
+        use crate::query::QueryResult;
+        use crate::signing::StoredCertificate;
+        // An internal tag cannot be written next to a list: each of these failed to encode, and
+        // the worker never answered.
+        let answers = vec![
+            QueryResult::OcrLanguages(vec!["eng".into(), "deu".into()]),
+            QueryResult::EditorFonts(vec!["Arial".into()]),
+            QueryResult::FormFields(Vec::new()),
+            QueryResult::Suggestions(Vec::new()),
+            QueryResult::TextBlocks(Vec::new()),
+            QueryResult::RedactMatches(Vec::new()),
+            QueryResult::Certificates(vec![StoredCertificate {
+                thumbprint: "AB".repeat(20),
+                subject: "Ada".into(),
+                issuer: "Root".into(),
+                valid_until: "2030-01-01".into(),
+            }]),
+        ];
+        for result in answers {
+            let reply = Response::Answer {
+                id: 3,
+                result: Box::new(result),
+            };
+            let mut buf = Vec::new();
+            write_frame(&mut buf, &reply).expect("the answer can be written");
+            let back = read_frame::<Response>(&mut io::Cursor::new(buf))
+                .unwrap()
+                .unwrap();
+            assert_eq!(back, reply);
+        }
+    }
+
+    #[test]
     fn frames_round_trip() {
         let mut buf = Vec::new();
         write_frame(&mut buf, &Request::Ping).unwrap();

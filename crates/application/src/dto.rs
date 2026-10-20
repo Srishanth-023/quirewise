@@ -211,6 +211,7 @@ pub struct IpcTypes {
     pub create_forms_options: domain::tools::editor::CreateFormsOptions,
     pub redact_options: domain::tools::redact::RedactOptions,
     pub redact_match: domain::tools::redact::RedactMatch,
+    pub stored_certificate: crate::signing::StoredCertificate,
     pub saved_signature: domain::signatures::SavedSignature,
     pub new_saved_signature: domain::signatures::NewSavedSignature,
 }

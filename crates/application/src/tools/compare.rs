@@ -11,7 +11,8 @@ use domain::{ErrorCode, PageIndex, ToolId, ToolOptions};
 
 use super::common::{Progress, Scratch, ToolDeps, page_count, publish_pdf_checked, wrong_options};
 use super::comparediff::{Line, diff_pixels, diff_text, lines_of};
-use super::comparereport::{PAGE, Summary, VisualPage, layout};
+use super::comparereport::{Summary, VisualPage, layout};
+use super::reportkit::PAGE;
 use crate::error::AppError;
 use crate::ports::{AssemblyPlan, PdfEdit, PictureSpec, PlannedPage, RenderedImage};
 use crate::tool::{InputDoc, InputKind, InputMode, JobContext, OutputArtifact, Plan, Tool};

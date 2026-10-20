@@ -112,6 +112,8 @@ pub enum DocumentQuery {
     },
     /// The installed fonts that text can be set in.
     EditorFonts,
+    /// The certificates of the Windows store that can sign.
+    Certificates,
     /// Where the words, patterns and kinds of text of Redact are found. Only what the options
     /// search for is used; drawn areas are ignored.
     RedactMatches {
@@ -138,8 +140,11 @@ pub struct Thumbnail {
 }
 
 /// Answer to a [`DocumentQuery`].
+///
+/// The tag sits next to the value (`{"type":"...","value":...}`): an internal tag cannot be
+/// written for variants that hold a list, which most answers do.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "kebab-case")]
+#[serde(tag = "type", content = "value", rename_all = "kebab-case")]
 pub enum QueryResult {
     /// Inspect result.
     Inspect(Box<DocumentReport>),
@@ -157,6 +162,8 @@ pub enum QueryResult {
     EditorFonts(Vec<String>),
     /// Where Redact finds what it searches for.
     RedactMatches(Vec<domain::tools::redact::RedactMatch>),
+    /// The certificates of the Windows store that can sign.
+    Certificates(Vec<crate::signing::StoredCertificate>),
 }
 
 /// Runs document queries. Implemented in-process by [`QueryService`] and over IPC by the
@@ -179,6 +186,7 @@ pub struct QueryService {
     inspect: InspectDocument,
     limits: SafetyLimits,
     editor: Option<EditorPorts>,
+    signer: Option<Arc<dyn crate::signing::PdfSigner>>,
 }
 
 /// The ports the editor's queries read through.
@@ -244,6 +252,7 @@ impl QueryService {
             inspect,
             limits,
             editor: None,
+            signer: None,
         }
     }
 
@@ -251,6 +260,13 @@ impl QueryService {
     #[must_use]
     pub fn with_editor(mut self, editor: EditorPorts) -> Self {
         self.editor = Some(editor);
+        self
+    }
+
+    /// Adds the signer, for listing the certificates of Windows.
+    #[must_use]
+    pub fn with_signer(mut self, signer: Arc<dyn crate::signing::PdfSigner>) -> Self {
+        self.signer = Some(signer);
         self
     }
 
@@ -294,6 +310,17 @@ impl QueryRunner for QueryService {
         cancel.check()?;
         match query {
             DocumentQuery::OcrLanguages => self.ocr.languages().map(QueryResult::OcrLanguages),
+            DocumentQuery::Certificates => self
+                .signer
+                .as_ref()
+                .ok_or_else(|| {
+                    AppError::new(
+                        domain::ErrorCode::ComponentMissing,
+                        "Signing is not available here.",
+                    )
+                })?
+                .certificates()
+                .map(QueryResult::Certificates),
             DocumentQuery::EditorFonts => self
                 .editor()?
                 .fonts

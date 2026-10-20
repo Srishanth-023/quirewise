@@ -11,3 +11,38 @@ publish = false
 
 [lints]
 workspace = true
+
+[features]
+# Certificate authorities, time stamp servers and PFX files made on the fly, for tests of the
+# engine and of the tools that use it. Never enabled in a release build.
+testkit = []
+
+[dependencies]
+domain.workspace = true
+application.workspace = true
+cms = "0.2.3"
+const-oid = "0.9"
+der = { version = "0.7", features = ["alloc", "derive", "oid", "pem", "std"] }
+ecdsa = { version = "0.16", features = ["der", "pkcs8", "signing", "verifying"] }
+lopdf = { version = "0.45.0", default-features = false }
+p12-keystore = "0.4"
+p256 = { version = "0.13", features = ["ecdsa", "pkcs8"] }
+p384 = { version = "0.13", features = ["ecdsa", "pkcs8"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+regex = "1"
+rsa = { version = "0.9", features = ["sha2"] }
+rustls-native-certs = "0.8"
+sha1 = { version = "0.10", features = ["oid"] }
+sha2 = "0.10"
+signature = { version = "2", features = ["rand_core"] }
+spki = { version = "0.7", features = ["alloc"] }
+x509-cert = { version = "0.2", features = ["builder"] }
+x509-ocsp = "0.2"
+zeroize = "1"
+
+[dev-dependencies]
+tempfile = "3"
+test-support.workspace = true
+
+[target."cfg(windows)".dependencies]
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
