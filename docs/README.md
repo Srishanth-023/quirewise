@@ -1,6 +1,8 @@
 # Quirewise documentation
 
-Root keeps only what tools expect there: `README.md`, `CHANGELOG.md`, `AGENTS.md`, `CLAUDE.md`, `SECURITY.md`, `LICENSE`.
+Root keeps `README.md`, `LICENSE` and `CLAUDE.md` (Claude Code reads it only from the root; it points to `AGENTS.md`). Everything else is here.
+
+`SETUP.md`: set up and run the project. `AGENTS.md`: engineering rules. `CHANGELOG.md`, `SECURITY.md`.
 
 | Folder | Contents |
 |---|---|

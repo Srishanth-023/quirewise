@@ -1,6 +1,6 @@
 # Open questions
 
-Questions are recorded here and work continues with the safest default (AGENTS.md section 1).
+Questions are recorded here and work continues with the safest default (docs/AGENTS.md section 1).
 
 | # | Question | Default taken | Needs |
 |---|---|---|---|

@@ -1,1 +1,1 @@
-Follow AGENTS.md
+Follow docs/AGENTS.md

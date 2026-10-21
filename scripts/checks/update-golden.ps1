@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
   Regenerates golden fingerprints in fixtures/golden (one "WxH | text" line per output page).
-  Review the diff before committing (AGENTS.md section 8). Golden files change only through this
+  Review the diff before committing (docs/AGENTS.md section 8). Golden files change only through this
   script.
 #>
 [CmdletBinding()]

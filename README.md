@@ -4,9 +4,11 @@ Offline-first PDF toolkit for Windows x64 and arm64. Merge, split, compress, con
 
 ## Status
 
-Under construction. Scope and phases are defined in `docs/project/MASTER_PROMPT.md`; engineering rules are in `AGENTS.md`. Progress is tracked in `CHANGELOG.md`.
+Under construction. Scope and phases are defined in `docs/project/MASTER_PROMPT.md`; engineering rules are in `docs/AGENTS.md`. Progress is tracked in `docs/CHANGELOG.md`.
 
 ## Development
+
+Full steps: `docs/SETUP.md`. In short:
 
 Prerequisites: Rust (version pinned in `rust-toolchain.toml`), MSVC build tools with the Windows SDK (and ARM64 build tools for the arm64 target), Node.js 24 and pnpm.
 
@@ -16,7 +18,7 @@ cargo test --workspace --locked
 pnpm -C apps/desktop/ui test
 ```
 
-The full checklist before a change is merged is in `AGENTS.md` section 1.
+The full checklist before a change is merged is in `docs/AGENTS.md` section 1.
 
 ## Layout
 

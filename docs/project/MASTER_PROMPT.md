@@ -1,6 +1,6 @@
 # docs/project/MASTER_PROMPT.md: Build Quirewise
 
-You are the sole engineer building **Quirewise**, a personal-use, offline-first Windows desktop PDF toolkit for **Windows x64 and Windows arm64**. Build the entire application in one continuous run, phase by phase (section 15), without stopping for confirmation. Read and obey `AGENTS.md` at all times. If this file and `AGENTS.md` conflict, `AGENTS.md` wins on rules and this file wins on scope.
+You are the sole engineer building **Quirewise**, a personal-use, offline-first Windows desktop PDF toolkit for **Windows x64 and Windows arm64**. Build the entire application in one continuous run, phase by phase (section 15), without stopping for confirmation. Read and obey `docs/AGENTS.md` at all times. If this file and `docs/AGENTS.md` conflict, `docs/AGENTS.md` wins on rules and this file wins on scope.
 
 This file is self-contained. **Appendix A (Feature Matrix) is normative**: every row must be implemented with the listed options and defaults. Appendix B lists dependencies and licenses. Appendix C defines shared syntax (page ranges, naming tokens, error codes).
 
@@ -88,16 +88,16 @@ Every tool is registered in one `ToolRegistry`. The UI and CLI never hardcode to
 
 ```
 quirewise/
-  AGENTS.md
-  CLAUDE.md                      # one line: "Follow AGENTS.md"
+  docs/AGENTS.md
+  CLAUDE.md                      # one line: "Follow docs/AGENTS.md"
   docs/project/MASTER_PROMPT.md
   README.md
   LICENSE
   docs/legal/THIRD_PARTY_NOTICES.md
   docs/legal/PRIVACY.md
   docs/legal/TERMS.md
-  CHANGELOG.md
-  SECURITY.md
+  docs/CHANGELOG.md
+  docs/SECURITY.md
   Cargo.toml                     # workspace
   rust-toolchain.toml
   deny.toml
@@ -403,7 +403,7 @@ Harsh gradients; Lucide icons; pure white (#FFFFFF) backgrounds; rainbow colorin
 - **Data integrity:** never overwrite inputs; write a temp file in the destination directory, flush, verify, then atomic rename (`MoveFileExW`, replace only our own temp outputs). Verification: reopen with PDFium, `qpdf --check`, expected page count, plus tool-specific assertions (encryption opens with the password, PDF/A report passes, redacted text not extractable, signature validates).
 - **Configuration:** `%APPDATA%\Quirewise\settings.toml` (preferences), `%LOCALAPPDATA%\Quirewise\` (cache, logs, components, recent-files DB, crashes), `%TEMP%\Quirewise\<session>` (scratch, wiped on exit and on next start). Portable mode: if `portable.flag` sits next to the exe, store everything in `.\data\`. Settings are versioned with migrations.
 - **Documentation:** rustdoc on all public items, README per crate, `docs/tools/<tool-id>.md` per tool, ADRs for significant decisions.
-- **Code review:** every change via PR with the AGENTS.md checklist; self-review the diff before merge.
+- **Code review:** every change via PR with the docs/AGENTS.md checklist; self-review the diff before merge.
 
 ---
 
@@ -469,7 +469,7 @@ Each phase ends with: all tests green on both arches, docs updated, CHANGELOG en
 
 | Phase | Work | Rows |
 |---|---|---|
-| 0 | Repo scaffold, workspace, tooling, CI, lint and visual-lint rules, design tokens, fonts, icons, AGENTS.md, CLAUDE.md, ADR-0001 to 0005, threat model draft, LICENSE/TERMS/PRIVACY/NOTICES skeletons | - |
+| 0 | Repo scaffold, workspace, tooling, CI, lint and visual-lint rules, design tokens, fonts, icons, docs/AGENTS.md, CLAUDE.md, ADR-0001 to 0005, threat model draft, LICENSE/TERMS/PRIVACY/NOTICES skeletons | - |
 | 1 | Domain + ports, ToolRegistry, page range parser, naming service, job queue, batch, worker with Job Object, atomic file store, settings, logging, error codes, CLI | 59, 60 |
 | 2 | PDFium + qpdf adapters (both arches), viewer with real thumbnails, drop zone, command palette, recent files, batch queue UI, progress UI, Inspect/Properties | 71, 72 |
 | 3 | Organize tools | 1-11, 32, 69 |

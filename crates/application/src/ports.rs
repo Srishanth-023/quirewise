@@ -85,7 +85,7 @@ pub trait StructureFacts: Send + Sync {
     ) -> Result<StructureReport, AppError>;
 }
 
-/// Checks that a written PDF is sound before success is reported (AGENTS.md section 7).
+/// Checks that a written PDF is sound before success is reported (docs/AGENTS.md section 7).
 pub trait PdfVerifier: Send + Sync {
     /// Reopens `path`, runs the structural check and, when given, compares the page count.
     ///
@@ -1136,7 +1136,7 @@ pub trait LlmEngine: Send + Sync {
     ) -> Result<String, AppError>;
 }
 
-/// File system access with the integrity rules of AGENTS.md section 7.
+/// File system access with the integrity rules of docs/AGENTS.md section 7.
 pub trait FileStore: Send + Sync {
     /// Resolves a path to its canonical form, rejecting reparse-point escapes.
     fn canonicalize(&self, path: &Path) -> Result<PathBuf, AppError>;

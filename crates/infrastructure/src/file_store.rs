@@ -1,4 +1,4 @@
-//! Atomic, never-overwriting file store (AGENTS.md section 7).
+//! Atomic, never-overwriting file store (docs/AGENTS.md section 7).
 
 use application::AppError;
 use application::ports::FileStore;

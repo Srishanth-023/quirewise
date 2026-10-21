@@ -1,4 +1,4 @@
-# cargo-deny policy. Allowed licenses mirror AGENTS.md section 9.
+# cargo-deny policy. Allowed licenses mirror docs/AGENTS.md section 9.
 [graph]
 targets = [
   "x86_64-pc-windows-msvc",

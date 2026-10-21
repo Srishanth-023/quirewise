@@ -1,6 +1,6 @@
 # Handoff: Quirewise, Phase 13 built, release steps left
 
-Written 2026-10-21. Read AGENTS.md and docs/project/MASTER_PROMPT.md (section 15) first; CLAUDE.md only says "Follow AGENTS.md".
+Written 2026-10-21. Read docs/AGENTS.md and docs/project/MASTER_PROMPT.md (section 15) first; CLAUDE.md only says "Follow docs/AGENTS.md".
 
 ## What Quirewise is
 

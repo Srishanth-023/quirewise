@@ -1,6 +1,6 @@
-# AGENTS.md: Always-on rules for Quirewise
+# docs/AGENTS.md: Always-on rules for Quirewise
 
-`CLAUDE.md` contains one line: "Follow AGENTS.md". This file is the single source of truth for rules. Scope, stack, phases and the normative feature matrix (Appendix A) live in `docs/project/MASTER_PROMPT.md`.
+`CLAUDE.md` contains one line: "Follow docs/AGENTS.md". This file is the single source of truth for rules. Scope, stack, phases and the normative feature matrix (Appendix A) live in `docs/project/MASTER_PROMPT.md`.
 
 ## 0. Mission
 Build and maintain Quirewise, an offline-first Windows PDF toolkit for x64 and arm64 with full iLovePDF + Sejda parity. These rules apply to every task, file and commit.

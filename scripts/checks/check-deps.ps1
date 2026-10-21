@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Fails when a workspace crate has a forbidden dependency edge (AGENTS.md section 2).
+  Fails when a workspace crate has a forbidden dependency edge (docs/AGENTS.md section 2).
 #>
 [CmdletBinding()]
 param()
