@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "externalBin": ["staging/quirewise-worker"],
+    "resources": {
+      "staging/native/pdfium/": "native/pdfium/",
+      "staging/native/qpdf/": "native/qpdf/"
+    }
+  }
+}

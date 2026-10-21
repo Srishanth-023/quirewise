@@ -286,7 +286,7 @@
     background: var(--selection);
   }
   li.target {
-    border-left-color: var(--focus);
+    border-inline-start-color: var(--focus);
   }
   .card {
     display: flex;

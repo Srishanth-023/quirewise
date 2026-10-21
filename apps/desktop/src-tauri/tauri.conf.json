@@ -1,11 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Quirewise",
+  "mainBinaryName": "quirewise",
   "version": "0.1.0",
   "identifier": "in.struzon.quirewise",
   "build": {
-    "beforeDevCommand": "pnpm -C ui dev",
-    "beforeBuildCommand": "pnpm -C ui build",
+    "beforeDevCommand": { "script": "pnpm dev", "cwd": "../ui" },
+    "beforeBuildCommand": { "script": "pnpm build", "cwd": "../ui" },
     "devUrl": "http://localhost:5173",
     "frontendDist": "../ui/dist"
   },
@@ -42,7 +43,7 @@
     "license": "../../../LICENSE",
     "windows": {
       "webviewInstallMode": { "type": "downloadBootstrapper" },
-      "nsis": { "installMode": "currentUser" }
+      "nsis": { "installMode": "currentUser", "installerHooks": "installer/hooks.nsh" }
     }
   }
 }

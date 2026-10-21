@@ -38,7 +38,7 @@
   th,
   td {
     padding: var(--space-2) var(--space-3);
-    text-align: left;
+    text-align: start;
     border-bottom: 1px solid var(--border);
   }
   th {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { t } from '../lib/i18n';
-  import { ipc, toAppError } from '../lib/ipc/client';
+  import { ipc, onLaunch, toAppError, type Launch } from '../lib/ipc/client';
   import { listenForDrops } from '../lib/dnd';
   import { interpretKey, isInteractive } from '../lib/shortcuts';
   import CommandPalette from '../lib/components/CommandPalette/CommandPalette.svelte';
@@ -9,6 +9,8 @@
   import type { RecentFile } from '../lib/ipc/client';
   import Toast from '../lib/components/Toast/Toast.svelte';
   import Settings from '../lib/features/settings/View.svelte';
+  import Recipes from '../lib/features/recipes/View.svelte';
+  import { recipes } from '../lib/features/recipes/recipes.svelte';
   import Shortcuts from '../lib/features/shortcuts/View.svelte';
   import { files } from '../lib/stores/files.svelte';
   import { jobs } from '../lib/stores/jobs.svelte';
@@ -28,7 +30,7 @@
   import privacyText from '../../../../../PRIVACY.md?raw';
   import termsText from '../../../../../TERMS.md?raw';
 
-  type Route = 'home' | 'settings' | 'about' | 'license' | 'privacy' | 'terms';
+  type Route = 'home' | 'recipes' | 'settings' | 'about' | 'license' | 'privacy' | 'terms';
 
   let route = $state<Route>('home');
   let paletteOpen = $state(false);
@@ -54,6 +56,14 @@
     paletteOpen = true;
   }
 
+  /** Files and a tool named by an Explorer entry, at start or from a second start. */
+  function applyLaunch(launch: Launch): void {
+    if (launch.files.length === 0 && !launch.tool) return;
+    route = 'home';
+    if (launch.tool) tools.select(launch.tool);
+    if (launch.files.length > 0) void files.add(launch.files);
+  }
+
   function show(next: Route): void {
     route = next;
   }
@@ -71,9 +81,14 @@
       openFiles: () => void pickAndAdd(),
       showShortcuts: () => (shortcutsOpen = true),
       openSettings: () => show('settings'),
+      useRecipe: (id) => {
+        show('recipes');
+        recipes.chosen = id;
+      },
       openAbout: () => show('about'),
       clearFiles: () => files.clear(),
-    }),
+    },
+    recipes.list),
   );
 
   function onkeydown(event: KeyboardEvent): void {
@@ -99,8 +114,14 @@
 
   onMount(() => {
     void tools.load();
+    void recipes.load();
     void settings.load();
     void jobs.listen();
+    void ipc.takeLaunch().then(applyLaunch).catch(() => undefined);
+    let stopLaunch: (() => void) | undefined;
+    void onLaunch(applyLaunch)
+      .then((unlisten) => (stopLaunch = unlisten))
+      .catch(() => undefined);
     let stop: (() => void) | undefined;
     void listenForDrops({
       onhover: (hovering) => (dragging = hovering),
@@ -114,6 +135,7 @@
       .catch(() => undefined);
     return () => {
       stop?.();
+      stopLaunch?.();
       jobs.stop();
     };
   });
@@ -140,6 +162,8 @@
           onanother={() => void openPalette()}
         />
       {/if}
+    {:else if route === 'recipes'}
+      <Recipes />
     {:else if route === 'settings'}
       <Settings />
     {:else if route === 'about'}
@@ -172,10 +196,10 @@
     height: 100%;
   }
   .shell > :global(.nav) {
-    border-right: 1px solid var(--border);
+    border-inline-end: 1px solid var(--border);
   }
   .shell > :global(.panel) {
-    border-left: 1px solid var(--border);
+    border-inline-start: 1px solid var(--border);
   }
   .workspace {
     padding: var(--space-6);
@@ -217,11 +241,11 @@
       flex: none;
     }
     .shell > :global(.nav) {
-      border-right: 0;
+      border-inline-end: 0;
       border-bottom: 1px solid var(--border);
     }
     .shell > :global(.panel) {
-      border-left: 0;
+      border-inline-start: 0;
       border-top: 1px solid var(--border);
     }
   }

@@ -3,7 +3,7 @@
   import Icon from '../../lib/components/Icon.svelte';
   import { tools, toolName } from '../../lib/stores/tools.svelte';
 
-  type Route = 'home' | 'settings' | 'about' | 'license' | 'privacy' | 'terms';
+  type Route = 'home' | 'recipes' | 'settings' | 'about' | 'license' | 'privacy' | 'terms';
 
   interface Props {
     route: Route;
@@ -15,8 +15,9 @@
   let query = $state('');
   const matches = $derived(tools.grouped(tools.search(query)));
 
-  const links: { route: Route; label: 'nav.home' | 'nav.settings' | 'nav.about' | 'nav.license' | 'nav.privacy' | 'nav.terms' }[] = [
+  const links: { route: Route; label: 'nav.home' | 'nav.recipes' | 'nav.settings' | 'nav.about' | 'nav.license' | 'nav.privacy' | 'nav.terms' }[] = [
     { route: 'home', label: 'nav.home' },
+    { route: 'recipes', label: 'nav.recipes' },
     { route: 'settings', label: 'nav.settings' },
     { route: 'about', label: 'nav.about' },
     { route: 'license', label: 'nav.license' },
@@ -125,7 +126,7 @@
     border: 1px solid transparent;
     border-radius: var(--radius-control);
     background: transparent;
-    text-align: left;
+    text-align: start;
   }
   li button:hover {
     background: var(--surface-2);

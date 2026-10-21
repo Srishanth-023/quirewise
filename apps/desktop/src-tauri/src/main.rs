@@ -13,6 +13,10 @@ use tauri::Manager;
 
 fn main() {
     let result = tauri::Builder::default()
+        // First, so a second start hands over its command line before anything else is set up.
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            commands::explorer::forward_launch(app, &args, &cwd);
+        }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -22,10 +26,16 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::explorer::explorer_status,
+            commands::explorer::explorer_tools,
+            commands::explorer::explorer_enable,
+            commands::explorer::explorer_disable,
+            commands::explorer::take_launch,
             commands::system::app_version,
             commands::system::list_tools,
             commands::system::pick_files,
             commands::system::pick_paths,
+            commands::system::pick_folder,
             commands::documents::classify_inputs,
             commands::documents::inspect_document,
             commands::documents::render_thumbnail,

@@ -1,5 +1,6 @@
 // Pure helpers of the tools that use the local language model.
 
+import { formatNumber } from '../../format';
 import type { AiModel, ComponentEntry, SplitPart } from '../../ipc/generated';
 
 /** Id of the component that holds the llama.cpp server program. */
@@ -29,7 +30,7 @@ export function serverInstalled(installed: ComponentEntry[]): boolean {
 
 /** Size of a download in megabytes, as people read it: 1.1 GB for the big ones. */
 export function sizeText(mb: number): string {
-  return mb >= 1000 ? `${(mb / 1000).toFixed(1)} GB` : `${mb} MB`;
+  return mb >= 1000 ? `${formatNumber(mb / 1000, 1)} GB` : `${formatNumber(mb)} MB`;
 }
 
 /** A part of a document as the preview edits it: pages as typed, so a half-typed number is kept. */

@@ -34,6 +34,10 @@ pub struct AppState {
     pub jobs: JobManager,
     /// Saved recipes.
     pub recipes: Recipes,
+    /// What the app was started with (an Explorer entry or "Open with"), until the UI takes it.
+    pub launch: std::sync::Mutex<domain::explorer::Launch>,
+    /// True in portable mode, where nothing may be written outside the app folder.
+    pub portable: bool,
     /// Scratch folder of this session, where recipe steps leave files between them.
     pub temp_dir: PathBuf,
     /// Components installed on this computer.
@@ -93,6 +97,16 @@ impl AppState {
             Arc::clone(&files),
             Arc::new(SystemUnixClock),
         );
+        let portable = paths.portable;
+        let launch = std::sync::Mutex::new(
+            // A bad command line must not stop the app: it just starts empty.
+            domain::explorer::parse_launch(
+                std::env::args_os()
+                    .skip(1)
+                    .map(|a| a.to_string_lossy().into_owned()),
+            )
+            .unwrap_or_default(),
+        );
         let recipes = Recipes::new(
             Arc::new(JsonRecipeStore::new(paths.recipes_file)),
             Arc::new(SystemUnixClock),
@@ -110,6 +124,8 @@ impl AppState {
             Arc::new(FsSignatureStore::new(paths.signatures_dir, Arc::new(Dpapi)));
         Ok(Self {
             recipes,
+            launch,
+            portable,
             temp_dir,
             components,
             installer,

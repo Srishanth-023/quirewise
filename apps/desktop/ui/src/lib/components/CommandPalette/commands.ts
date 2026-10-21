@@ -1,7 +1,7 @@
 /** One entry in the command palette. */
 export interface Command {
   id: string;
-  group: 'tools' | 'files' | 'actions';
+  group: 'tools' | 'recipes' | 'files' | 'actions';
   label: string;
   /** Extra text shown after the label, for example a shortcut or folder. */
   hint?: string;

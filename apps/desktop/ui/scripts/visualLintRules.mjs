@@ -62,6 +62,10 @@ export function lintText(path, text) {
       if (/\bbackdrop-filter\b/.test(line)) add('blur', 'Backdrop blur (liquid glass) is banned.');
       if (/\b(linear|radial|conic)-gradient\b/.test(line)) add('gradient', 'Gradients are banned unless approved in an ADR.');
       if (/font-family\s*:[^;]*\b(Inter|Geist|Space Grotesk)\b/i.test(line)) add('font', 'Banned font family.');
+      // Layouts must survive right to left languages: use logical properties.
+      if (/\b(?:margin|padding|border)-(?:left|right)\b|\btext-align\s*:\s*(?:left|right)\b|\bfloat\s*:\s*(?:left|right)\b/.test(line)) {
+        add('physical-direction', 'Use logical properties (inline-start, inline-end, text-align: start or end) so layouts work right to left.');
+      }
       const radius = /border-radius\s*:\s*([^;}]+)/.exec(line);
       if (radius && radiusTooLarge(radius[1])) add('radius', `border-radius above ${MAX_RADIUS_PX}px is banned.`);
       if (!isTokens) {

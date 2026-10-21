@@ -33,8 +33,17 @@ jobs:
         with:
           node-version: 24
       - run: pnpm -C apps/desktop/ui install --frozen-lockfile
+      - name: Fetch the PDF engines
+        shell: pwsh
+        run: |
+          $arch = if ('${{ matrix.arch }}' -eq 'aarch64') { 'arm64' } else { 'x64' }
+          ./scripts/fetch-pdfium.ps1 -Arch $arch
+          ./scripts/fetch-qpdf.ps1 -Arch $arch
+      - name: Stage the worker and the PDF engines for the installer
+        shell: pwsh
+        run: ./scripts/stage-installer.ps1 -Target ${{ matrix.target }}
       - name: Build NSIS installer
-        run: pnpm -C apps/desktop/ui tauri build --target ${{ matrix.target }} --bundles nsis -- --locked
+        run: pnpm -C apps/desktop/ui tauri build --target ${{ matrix.target }} --bundles nsis --config ../src-tauri/tauri.bundle.conf.json -- --locked
       - name: Authenticode sign
         shell: pwsh
         env:

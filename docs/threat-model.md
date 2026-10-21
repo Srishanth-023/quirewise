@@ -39,3 +39,9 @@ Tracked in `docs/open-questions.md`.
 - **Prompt injection.** A document can say "ignore your instructions". Every prompt marks the text as data, and no answer is trusted: page numbers, titles, personal details, translations and tidied text are parsed and checked against the document before use; the model has no tools and cannot write files. The worst result of a manipulated answer is a wrong split, summary or translation, which the person sees; Redact only removes strings found on the pages, and the preview lists them first.
 - **Resources.** A server can use all memory and processor time. It is started outside the worker's caps (those suit parsing, not inference) in a job that ends it when the worker ends; the worker's own job allows breakaway only for a child that asks for it. A crash of the worker therefore does not leave a server behind.
 - **Models.** Model files are downloaded as components with a hash check, after the license is shown. A model file is parsed by llama.cpp, which is not part of the PDF parsing path.
+
+## Recipes (Phase 13)
+
+- **Folder runs.** A folder scan never follows symbolic links, junctions or other reparse points and skips hidden entries, so a link inside a folder cannot lead a run to files elsewhere. Depth and file count are capped.
+- **Recipe files.** Import reads at most 1 MiB, accepts only the `quirewise-recipe` format, and validates every step with the same rules as a saved recipe. A recipe holds options only, never paths or commands, so importing one cannot run a program. Recipes that include Protect or Digital signature hold the passwords typed into them, in clear text, in `recipes.json` and in exports.
+- **Scratch files.** Files between steps are in the session scratch folder and removed after each step.

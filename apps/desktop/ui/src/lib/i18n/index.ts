@@ -4,7 +4,8 @@ import en from './en.json';
 /** Message keys available in the default locale. */
 export type MessageKey = keyof typeof en;
 
-const locale = 'en';
+/** The language of the app. Numbers and dates are formatted for it. */
+export const locale = 'en';
 const cache = new Map<string, IntlMessageFormat>();
 
 /** Values substituted into a message. */

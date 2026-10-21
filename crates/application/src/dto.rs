@@ -255,6 +255,8 @@ pub struct IpcTypes {
     pub recipe_step: domain::recipe::RecipeStep,
     pub recipe_role: RecipeRoleEntry,
     pub run_recipe_request: RunRecipeRequest,
+    pub explorer_item: domain::explorer::MenuItem,
+    pub launch: domain::explorer::Launch,
 }
 
 /// What the tools that use the language model can be told to use.

@@ -92,8 +92,12 @@ jobs:
       - name: cargo deny
         run: cargo deny check
 
+      - name: Stage the worker and the PDF engines for the installer
+        shell: pwsh
+        run: ./scripts/stage-installer.ps1 -Target ${{ matrix.target }}
+
       - name: Build NSIS installer
-        run: pnpm -C apps/desktop/ui tauri build --target ${{ matrix.target }} --bundles nsis
+        run: pnpm -C apps/desktop/ui tauri build --target ${{ matrix.target }} --bundles nsis --config ../src-tauri/tauri.bundle.conf.json
 
       - name: Installer size budget (30 MB per architecture)
         shell: pwsh

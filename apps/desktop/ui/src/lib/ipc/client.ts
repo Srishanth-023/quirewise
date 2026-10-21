@@ -11,11 +11,16 @@ import type {
   DropAnalysis,
   FieldSuggestion,
   FormField,
+  Launch,
+  MenuItem,
   NewSavedSignature,
   RecentFile,
+  Recipe,
+  RecipeRoleEntry,
   RedactMatch,
   RedactOptions,
   RunBatchRequest,
+  RunRecipeRequest,
   SavedSignature,
   Settings,
   SmartSplitOptions,
@@ -37,11 +42,16 @@ export type {
   DropAnalysis,
   FieldSuggestion,
   FormField,
+  Launch,
+  MenuItem,
   NewSavedSignature,
   RecentFile,
+  Recipe,
+  RecipeRoleEntry,
   RedactMatch,
   RedactOptions,
   RunBatchRequest,
+  RunRecipeRequest,
   SavedSignature,
   Settings,
   SmartSplitOptions,
@@ -89,6 +99,23 @@ export const ipc = {
   appVersion: () => call<string>('app_version'),
   listTools: () => call<ToolDescriptor[]>('list_tools'),
   pickFiles: () => call<string[]>('pick_files'),
+  explorerStatus: () => call<boolean>('explorer_status'),
+  explorerTools: () => call<string[]>('explorer_tools'),
+  explorerEnable: (items: MenuItem[], openTitle: string) =>
+    call<void>('explorer_enable', { items, openTitle }),
+  explorerDisable: () => call<void>('explorer_disable'),
+  takeLaunch: () => call<Launch>('take_launch'),
+  pickFolder: () => call<string | null>('pick_folder'),
+  recipesList: () => call<Recipe[]>('recipes_list'),
+  recipeSave: (recipe: Recipe) => call<Recipe>('recipe_save', { recipe }),
+  recipeDelete: (id: string) => call<void>('recipe_delete', { id }),
+  recipeRename: (id: string, name: string) => call<Recipe>('recipe_rename', { id, name }),
+  recipeExport: (id: string) => call<boolean>('recipe_export', { id }),
+  recipeImport: () => call<Recipe | null>('recipe_import'),
+  recipeRoles: () => call<RecipeRoleEntry[]>('recipe_roles'),
+  folderFiles: (path: string, recursive: boolean, withOffice: boolean) =>
+    call<string[]>('folder_files', { folder: { path, recursive }, withOffice }),
+  runRecipe: (request: RunRecipeRequest) => call<number>('run_recipe', { request }),
   pickPaths: (kind: 'image' | 'package' | 'certificate' | 'trust' | 'any', multiple: boolean) =>
     call<string[]>('pick_paths', { kind, multiple }),
   classifyInputs: (paths: string[]) => call<DropAnalysis>('classify_inputs', { paths }),
@@ -146,6 +173,11 @@ export function onComponentProgress(
   handler: (progress: ComponentProgress) => void,
 ): Promise<UnlistenFn> {
   return listen<ComponentProgress>(COMPONENT_EVENT, (e) => handler(e.payload));
+}
+
+/** Subscribes to launch requests from a second start (an Explorer entry while the app is open). */
+export function onLaunch(handler: (launch: Launch) => void): Promise<UnlistenFn> {
+  return listen<Launch>('launch', (e) => handler(e.payload));
 }
 
 /** Subscribes to batch events. Returns a function that stops listening. */

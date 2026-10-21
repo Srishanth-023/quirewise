@@ -1,9 +1,15 @@
+import { locale as appLocale } from './i18n';
 import type { PageInfo } from './ipc/generated';
 
 const UNITS = ['B', 'KB', 'MB', 'GB'] as const;
 
+/** A number with the separators of the language, and a fixed count of decimals. */
+export function formatNumber(value: number, digits = 0, locale = appLocale): string {
+  return new Intl.NumberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+}
+
 /** Formats a byte count with binary units, matching how the core measures sizes. */
-export function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number, locale = appLocale): string {
   let value = bytes;
   let unit = 0;
   while (value >= 1024 && unit < UNITS.length - 1) {
@@ -11,7 +17,7 @@ export function formatBytes(bytes: number): string {
     unit += 1;
   }
   const digits = unit === 0 || value >= 100 ? 0 : 1;
-  return `${value.toFixed(digits)} ${UNITS[unit]}`;
+  return `${formatNumber(value, digits, locale)} ${UNITS[unit]}`;
 }
 
 /** A run of pages that share one size. */

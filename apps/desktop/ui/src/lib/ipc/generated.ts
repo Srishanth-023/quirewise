@@ -266,17 +266,80 @@ export type EditItem =
       region: Region6;
     };
 /**
- * Kinds of text that are found by their shape.
+ * Identifier of a tool, kebab-case on the wire (`split-by-size`).
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "RedactPreset".
+ * via the `definition` "ToolId".
  */
-export type RedactPreset = 'email' | 'phone' | 'iban' | 'card-number';
-/**
- * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "Password".
- */
-export type Password = string;
+export type ToolId =
+  | 'merge'
+  | 'alternate-mix'
+  | 'organize'
+  | 'split-ranges'
+  | 'split-every-n'
+  | 'extract-pages'
+  | 'remove-pages'
+  | 'split-by-bookmarks'
+  | 'split-in-half'
+  | 'split-by-size'
+  | 'split-by-text'
+  | 'rotate'
+  | 'insert-pages'
+  | 'compress'
+  | 'repair'
+  | 'remove-annotations'
+  | 'flatten'
+  | 'edit-metadata'
+  | 'protect'
+  | 'unlock'
+  | 'sanitize'
+  | 'linearize'
+  | 'page-numbers'
+  | 'header-footer'
+  | 'bates'
+  | 'watermark'
+  | 'crop'
+  | 'resize'
+  | 'flip'
+  | 'n-up'
+  | 'grayscale'
+  | 'bookmarks'
+  | 'rename-by-content'
+  | 'attachments'
+  | 'page-labels'
+  | 'smart-split'
+  | 'ai-summarizer'
+  | 'translate-pdf'
+  | 'pdf-to-pdfa'
+  | 'validate-pdfa'
+  | 'check-pdfua'
+  | 'digital-sign'
+  | 'verify-signatures'
+  | 'compare'
+  | 'redact'
+  | 'edit-pdf'
+  | 'annotate'
+  | 'fill-sign'
+  | 'sign-pdf'
+  | 'create-forms'
+  | 'pdf-to-word'
+  | 'pdf-to-powerpoint'
+  | 'pdf-to-excel'
+  | 'pdf-to-markdown'
+  | 'pdf-to-html'
+  | 'ocr'
+  | 'deskew'
+  | 'scan-to-pdf'
+  | 'word-to-pdf'
+  | 'powerpoint-to-pdf'
+  | 'excel-to-pdf'
+  | 'html-to-pdf'
+  | 'images-to-pdf'
+  | 'pdf-to-images'
+  | 'extract-images'
+  | 'pdf-to-text'
+  | 'tiff-to-pdf'
+  | 'pdf-to-tiff';
 /**
  * One page of the organized result.
  *
@@ -347,6 +410,18 @@ export type Secret = string;
  */
 export type PdfaLevel = '1a' | '1b' | '2a' | '2b' | '2u' | '3a' | '3b' | '3u';
 /**
+ * Kinds of text that are found by their shape.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "RedactPreset".
+ */
+export type RedactPreset = 'email' | 'phone' | 'iban' | 'card-number';
+/**
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Password".
+ */
+export type Password = string;
+/**
  * JSON Schema of the options.
  */
 export type Schema = {} | boolean;
@@ -390,6 +465,13 @@ export type Bytes = number;
  * via the `definition` "Certify".
  */
 export type Certify = 'none' | 'no-changes' | 'form-fill' | 'annotate';
+/**
+ * Where a tool may sit in a chain.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "ChainRole".
+ */
+export type ChainRole = 'source' | 'middle' | 'last' | 'excluded';
 /**
  * The encryption algorithm.
  *
@@ -979,81 +1061,6 @@ export type ToolGroup =
   | 'security'
   | 'intelligence'
   | 'validation';
-/**
- * Identifier of a tool, kebab-case on the wire (`split-by-size`).
- *
- * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "ToolId".
- */
-export type ToolId =
-  | 'merge'
-  | 'alternate-mix'
-  | 'organize'
-  | 'split-ranges'
-  | 'split-every-n'
-  | 'extract-pages'
-  | 'remove-pages'
-  | 'split-by-bookmarks'
-  | 'split-in-half'
-  | 'split-by-size'
-  | 'split-by-text'
-  | 'rotate'
-  | 'insert-pages'
-  | 'compress'
-  | 'repair'
-  | 'remove-annotations'
-  | 'flatten'
-  | 'edit-metadata'
-  | 'protect'
-  | 'unlock'
-  | 'sanitize'
-  | 'linearize'
-  | 'page-numbers'
-  | 'header-footer'
-  | 'bates'
-  | 'watermark'
-  | 'crop'
-  | 'resize'
-  | 'flip'
-  | 'n-up'
-  | 'grayscale'
-  | 'bookmarks'
-  | 'rename-by-content'
-  | 'attachments'
-  | 'page-labels'
-  | 'smart-split'
-  | 'ai-summarizer'
-  | 'translate-pdf'
-  | 'pdf-to-pdfa'
-  | 'validate-pdfa'
-  | 'check-pdfua'
-  | 'digital-sign'
-  | 'verify-signatures'
-  | 'compare'
-  | 'redact'
-  | 'edit-pdf'
-  | 'annotate'
-  | 'fill-sign'
-  | 'sign-pdf'
-  | 'create-forms'
-  | 'pdf-to-word'
-  | 'pdf-to-powerpoint'
-  | 'pdf-to-excel'
-  | 'pdf-to-markdown'
-  | 'pdf-to-html'
-  | 'ocr'
-  | 'deskew'
-  | 'scan-to-pdf'
-  | 'word-to-pdf'
-  | 'powerpoint-to-pdf'
-  | 'excel-to-pdf'
-  | 'html-to-pdf'
-  | 'images-to-pdf'
-  | 'pdf-to-images'
-  | 'extract-images'
-  | 'pdf-to-text'
-  | 'tiff-to-pdf'
-  | 'pdf-to-tiff';
 /**
  * Options for any tool. The tag is the tool id.
  *
@@ -1804,7 +1811,7 @@ export type ToolOptions =
       tool: 'page-labels';
     }
   | {
-      ai?: AiOptions2;
+      ai?: AiOptions1;
       /**
        * What to split by, in your own words, such as "one file for each invoice".
        */
@@ -1817,7 +1824,7 @@ export type ToolOptions =
       tool: 'smart-split';
     }
   | {
-      ai?: AiOptions3;
+      ai?: AiOptions2;
       /**
        * PDF or Markdown. Default PDF.
        */
@@ -1838,7 +1845,7 @@ export type ToolOptions =
       tool: 'ai-summarizer';
     }
   | {
-      ai?: AiOptions4;
+      ai?: AiOptions3;
       /**
        * Pages to translate. Default `all`.
        */
@@ -2010,7 +2017,7 @@ export type ToolOptions =
       tool: 'compare';
     }
   | {
-      ai?: AiOptions5;
+      ai?: AiOptions4;
       /**
        * Also remove what the local model finds: names, addresses and other personal details
        * that no pattern describes. The model can miss things, so read the preview. Default off.
@@ -2160,7 +2167,7 @@ export type ToolOptions =
       tool: 'pdf-to-excel';
     }
   | {
-      ai?: AiOptions6;
+      ai?: AiOptions5;
       /**
        * Let the local model tidy the text: join lines that were broken by the page, mend
        * hyphenated words and fix the heading levels. Words are never added or removed. Default off.
@@ -2504,15 +2511,21 @@ export interface IpcTypes {
   document_report: DocumentReport;
   drop_analysis: DropAnalysis;
   edit_pdf_options: EditPdfOptions;
+  explorer_item: MenuItem;
   field_suggestion: FieldSuggestion;
   fill_sign_options: FillSignOptions;
   form_field: FormField;
+  launch: Launch;
   new_saved_signature: NewSavedSignature;
   output_artifact: OutputArtifact;
   recent_file: RecentFile;
+  recipe: Recipe;
+  recipe_role: RecipeRoleEntry;
+  recipe_step: RecipeStep;
   redact_match: RedactMatch;
   redact_options: RedactOptions;
   run_batch_request: RunBatchRequest;
+  run_recipe_request: RunRecipeRequest;
   saved_signature: SavedSignature;
   settings: Settings;
   sign_pdf_options: SignPdfOptions;
@@ -3317,6 +3330,90 @@ export interface Region6 {
   y: number;
 }
 /**
+ * One tool in the submenu, with the text shown for it.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "MenuItem".
+ */
+export interface MenuItem {
+  /**
+   * Menu text in the language of the app.
+   */
+  title: string;
+  /**
+   * The tool the entry starts.
+   */
+  tool:
+    | 'merge'
+    | 'alternate-mix'
+    | 'organize'
+    | 'split-ranges'
+    | 'split-every-n'
+    | 'extract-pages'
+    | 'remove-pages'
+    | 'split-by-bookmarks'
+    | 'split-in-half'
+    | 'split-by-size'
+    | 'split-by-text'
+    | 'rotate'
+    | 'insert-pages'
+    | 'compress'
+    | 'repair'
+    | 'remove-annotations'
+    | 'flatten'
+    | 'edit-metadata'
+    | 'protect'
+    | 'unlock'
+    | 'sanitize'
+    | 'linearize'
+    | 'page-numbers'
+    | 'header-footer'
+    | 'bates'
+    | 'watermark'
+    | 'crop'
+    | 'resize'
+    | 'flip'
+    | 'n-up'
+    | 'grayscale'
+    | 'bookmarks'
+    | 'rename-by-content'
+    | 'attachments'
+    | 'page-labels'
+    | 'smart-split'
+    | 'ai-summarizer'
+    | 'translate-pdf'
+    | 'pdf-to-pdfa'
+    | 'validate-pdfa'
+    | 'check-pdfua'
+    | 'digital-sign'
+    | 'verify-signatures'
+    | 'compare'
+    | 'redact'
+    | 'edit-pdf'
+    | 'annotate'
+    | 'fill-sign'
+    | 'sign-pdf'
+    | 'create-forms'
+    | 'pdf-to-word'
+    | 'pdf-to-powerpoint'
+    | 'pdf-to-excel'
+    | 'pdf-to-markdown'
+    | 'pdf-to-html'
+    | 'ocr'
+    | 'deskew'
+    | 'scan-to-pdf'
+    | 'word-to-pdf'
+    | 'powerpoint-to-pdf'
+    | 'excel-to-pdf'
+    | 'html-to-pdf'
+    | 'images-to-pdf'
+    | 'pdf-to-images'
+    | 'extract-images'
+    | 'pdf-to-text'
+    | 'tiff-to-pdf'
+    | 'pdf-to-tiff';
+}
+/**
  * A place on a page that looks like a field to fill: a line, an empty box or a small square.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -3603,6 +3700,22 @@ export interface Region9 {
   y: number;
 }
 /**
+ * What an Explorer entry asks the app to do.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "Launch".
+ */
+export interface Launch {
+  /**
+   * The files to add to the work list.
+   */
+  files: string[];
+  /**
+   * The tool to select, when the entry names one.
+   */
+  tool?: ToolId | null;
+}
+/**
  * What the person gives when saving.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
@@ -3692,12 +3805,1693 @@ export interface RecentFile {
   path: string;
 }
 /**
- * A place on a page where the search of Redact found something.
+ * A named chain of steps.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "RedactMatch".
+ * via the `definition` "Recipe".
  */
-export interface RedactMatch {
+export interface Recipe {
+  /**
+   * Stable identifier, assigned when the recipe is first saved.
+   */
+  id?: string;
+  /**
+   * Name shown in the list.
+   */
+  name: string;
+  /**
+   * The steps, first to last.
+   */
+  steps: RecipeStep[];
+}
+/**
+ * One tool run in a recipe.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "RecipeStep".
+ */
+export interface RecipeStep {
+  /**
+   * The options; their tag names the tool.
+   */
+  options:
+    | {
+        /**
+         * Add a bookmark for each file. Default on.
+         */
+        bookmark_per_file?: boolean;
+        /**
+         * Keep or flatten form fields. Default keep.
+         */
+        forms?: 'keep' | 'flatten';
+        /**
+         * Scale all pages to the size of the first page. Default off.
+         */
+        normalize_page_size?: boolean;
+        /**
+         * Per-file settings, matching the input order. Missing entries use the defaults.
+         */
+        per_file?: MergeFileOptions[];
+        /**
+         * Insert a table of contents page listing the files. Default off.
+         */
+        table_of_contents?: boolean;
+        tool: 'merge';
+      }
+    | {
+        /**
+         * Pages taken from each file per turn, 1 to 1000. Default 1.
+         */
+        pages_per_turn?: number;
+        /**
+         * Per-file settings, matching the input order.
+         */
+        per_file?: AlternateFileOptions[];
+        tool: 'alternate-mix';
+      }
+    | {
+        /**
+         * The pages of the result, in order. Empty means keep the first file as it is.
+         */
+        pages?: OrganizedPage[];
+        tool: 'organize';
+      }
+    | {
+        /**
+         * Put all selected ranges into a single file instead. Default off.
+         */
+        merge_into_one?: boolean;
+        /**
+         * Ranges, each comma-separated element becoming one file: `1-3,4-6,7-`. Default `all`.
+         */
+        ranges?: string;
+        tool: 'split-ranges';
+      }
+    | {
+        /**
+         * Pages per file, at least 1. Default 1.
+         */
+        n?: number;
+        tool: 'split-every-n';
+      }
+    | {
+        /**
+         * One output file with all selected pages (default), or one file per page.
+         */
+        one_file?: boolean;
+        /**
+         * Pages to extract: a range such as `1,3-5,last`. Default `all`.
+         */
+        pages?: string;
+        tool: 'extract-pages';
+      }
+    | {
+        /**
+         * Pages to remove: a range such as `2,4-6`. Default `1`.
+         */
+        pages?: string;
+        tool: 'remove-pages';
+      }
+    | {
+        /**
+         * Outline level to split at, where 1 is the top level. Default 1.
+         */
+        level?: number;
+        /**
+         * Name each file after its bookmark title. Default on.
+         */
+        name_from_bookmark?: boolean;
+        tool: 'split-by-bookmarks';
+      }
+    | {
+        /**
+         * Direction of the cut. Default vertical.
+         */
+        direction?: 'vertical' | 'horizontal';
+        /**
+         * Put the right half before the left half, for right-to-left scans. Default off.
+         */
+        right_to_left?: boolean;
+        /**
+         * Leave the first page whole. Default off.
+         */
+        skip_first?: boolean;
+        /**
+         * Leave the last page whole. Default off.
+         */
+        skip_last?: boolean;
+        tool: 'split-in-half';
+      }
+    | {
+        /**
+         * Largest output file in megabytes (1 MB is 1,048,576 bytes). Default 10.
+         */
+        max_size_mb?: number;
+        tool: 'split-by-size';
+      }
+    | {
+        /**
+         * The region to read on every page, drawn on a page preview. Required.
+         */
+        region?: Region | null;
+        /**
+         * Start a new file only on pages whose region text starts with this. Default none.
+         */
+        starts_with?: string | null;
+        tool: 'split-by-text';
+      }
+    | {
+        /**
+         * Rotation angle, clockwise. Default 90.
+         */
+        angle?: '0' | '90' | '180' | '270';
+        /**
+         * Pages to rotate: `all`, `even`, `odd` or a range such as `1,3-5`. Default `all`.
+         */
+        pages?: string;
+        tool: 'rotate';
+      }
+    | {
+        /**
+         * How many to insert at each place, 1 to 100. Default 1.
+         */
+        count?: number;
+        /**
+         * Blank pages or copies. Default blank.
+         */
+        mode?: 'blank' | 'duplicate';
+        /**
+         * Size of blank pages. Default the same as the neighboring page.
+         */
+        page_size?: 'same-as-neighbor' | 'a4' | 'letter' | 'legal' | 'a3';
+        /**
+         * The pages to insert around: a range such as `1,5`. Default `1`.
+         */
+        pages?: string;
+        /**
+         * Before or after each selected page. Default after.
+         */
+        position?: 'before' | 'after';
+        tool: 'insert-pages';
+      }
+    | {
+        /**
+         * Turn color images gray. Default off.
+         */
+        grayscale?: boolean;
+        /**
+         * JPEG quality 1 to 100, replacing the preset's value. Default none.
+         */
+        jpeg_quality?: number | null;
+        /**
+         * Highest image resolution, replacing the preset's value. Default none.
+         */
+        max_image_ppi?: ImagePpi | null;
+        /**
+         * Pack objects into compressed object streams. Default on.
+         */
+        object_streams?: boolean;
+        /**
+         * Starting point for quality and resolution. Default recommended.
+         */
+        preset?: 'extreme' | 'recommended' | 'less';
+        /**
+         * Remove the document information and XMP metadata. Default off.
+         */
+        strip_metadata?: boolean;
+        tool: 'compress';
+      }
+    | {
+        tool: 'repair';
+      }
+    | {
+        /**
+         * Which kinds to remove. Default all.
+         */
+        kinds?: AnnotationKind[];
+        /**
+         * Pages to clean: `all`, `even`, `odd` or a range such as `1,3-5`. Default `all`.
+         */
+        pages?: string;
+        tool: 'remove-annotations';
+      }
+    | {
+        /**
+         * Resolution when everything becomes a picture. Default 150.
+         */
+        dpi?: '75' | '100' | '150' | '220';
+        /**
+         * What to flatten. Default form fields and annotations only.
+         */
+        mode?: 'forms-and-annotations' | 'everything';
+        tool: 'flatten';
+      }
+    | {
+        /**
+         * Author.
+         */
+        author?: string | null;
+        /**
+         * Creation date as `2026-10-19` or `2026-10-19T14:30:00`.
+         */
+        creation_date?: string | null;
+        /**
+         * The program that made the original document.
+         */
+        creator?: string | null;
+        /**
+         * Keywords, separated by commas.
+         */
+        keywords?: string | null;
+        /**
+         * Modification date, same format.
+         */
+        modification_date?: string | null;
+        /**
+         * The program that made the PDF.
+         */
+        producer?: string | null;
+        /**
+         * Remove all metadata. Default off.
+         */
+        remove_all?: boolean;
+        /**
+         * Subject.
+         */
+        subject?: string | null;
+        /**
+         * Title.
+         */
+        title?: string | null;
+        tool: 'edit-metadata';
+        /**
+         * Trapped flag.
+         */
+        trapped?: Trapped | null;
+      }
+    | {
+        /**
+         * Algorithm. Default AES-256.
+         */
+        cipher?: 'aes256' | 'aes128';
+        /**
+         * Password that lifts the restrictions. Required when any permission is turned off.
+         */
+        owner_password?: Secret | null;
+        permissions?: Permissions2;
+        tool: 'protect';
+        /**
+         * Password needed to open the file. Leave empty to let anyone open it.
+         */
+        user_password?: Secret | null;
+      }
+    | {
+        tool: 'unlock';
+      }
+    | {
+        /**
+         * Remove attached files.
+         */
+        embedded_files?: boolean;
+        /**
+         * Remove actions of form fields and links that run or open something.
+         */
+        form_actions?: boolean;
+        /**
+         * Remove layers that are hidden, together with their content.
+         */
+        hidden_layers?: boolean;
+        /**
+         * Remove JavaScript and automatic actions.
+         */
+        javascript?: boolean;
+        /**
+         * Remove the document information (title, author, dates).
+         */
+        metadata?: boolean;
+        /**
+         * Remove private data that applications stored in the file.
+         */
+        private_data?: boolean;
+        /**
+         * Remove page thumbnails.
+         */
+        thumbnails?: boolean;
+        tool: 'sanitize';
+        /**
+         * Remove the XMP metadata packets.
+         */
+        xmp?: boolean;
+      }
+    | {
+        /**
+         * Write the file for fast web view (default). Off writes a normal, non-linearized copy.
+         */
+        enabled?: boolean;
+        tool: 'linearize';
+      }
+    | {
+        /**
+         * Bold. Default off.
+         */
+        bold?: boolean;
+        /**
+         * Text color as `#RRGGBB`. Default black.
+         */
+        color?: string;
+        /**
+         * Mirror the position on left-hand (even) pages, for two-sided printing. Default off.
+         */
+        facing_pages?: boolean;
+        /**
+         * Font family. Default Helvetica.
+         */
+        font?: 'helvetica' | 'times' | 'courier';
+        /**
+         * Italic. Default off.
+         */
+        italic?: boolean;
+        /**
+         * Move right by this many points. Default 0.
+         */
+        offset_x_pt?: number;
+        /**
+         * Move up by this many points. Default 0.
+         */
+        offset_y_pt?: number;
+        /**
+         * Pages to number: `all`, `even`, `odd` or a range such as `2-`. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Place on the page. Default bottom center.
+         */
+        position?:
+          | 'top-left'
+          | 'top-center'
+          | 'top-right'
+          | 'middle-left'
+          | 'center'
+          | 'middle-right'
+          | 'bottom-left'
+          | 'bottom-center'
+          | 'bottom-right';
+        /**
+         * Font size in points. Default 10.
+         */
+        size_pt?: number;
+        /**
+         * Leave the first page without a number and do not count it. Default off.
+         */
+        skip_first_page?: boolean;
+        /**
+         * The number shown on the first numbered page. Default 1.
+         */
+        start_number?: number;
+        /**
+         * How the number is written. Default arabic.
+         */
+        style?: 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
+        /**
+         * Text with `{page}`, `{pages}`, `{date}` and `{filename}`. Default `{page}`.
+         */
+        template?: string;
+        tool: 'page-numbers';
+      }
+    | {
+        /**
+         * Bold. Default off.
+         */
+        bold?: boolean;
+        /**
+         * Text color as `#RRGGBB`. Default black.
+         */
+        color?: string;
+        /**
+         * Font family. Default Helvetica.
+         */
+        font?: 'helvetica' | 'times' | 'courier';
+        /**
+         * Footer text in the center.
+         */
+        footer_center?: string;
+        /**
+         * Footer text at the left.
+         */
+        footer_left?: string;
+        /**
+         * Footer text at the right.
+         */
+        footer_right?: string;
+        /**
+         * Header text in the center.
+         */
+        header_center?: string;
+        /**
+         * Header text at the left. Tokens: `{page}`, `{pages}`, `{date}`, `{filename}`.
+         */
+        header_left?: string;
+        /**
+         * Header text at the right.
+         */
+        header_right?: string;
+        /**
+         * Italic. Default off.
+         */
+        italic?: boolean;
+        /**
+         * Distance from the page edge in points. Default 36.
+         */
+        margin_pt?: number;
+        /**
+         * Pages to mark. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Font size in points. Default 10.
+         */
+        size_pt?: number;
+        tool: 'header-footer';
+      }
+    | {
+        /**
+         * Bold. Default off.
+         */
+        bold?: boolean;
+        /**
+         * Text color as `#RRGGBB`. Default black.
+         */
+        color?: string;
+        /**
+         * Keep counting from one file to the next, in the order of the file list. Default on.
+         */
+        continue_across_files?: boolean;
+        /**
+         * Digits the number is padded to with zeros, 1 to 12. Default 6.
+         */
+        digits?: number;
+        /**
+         * Font family. Default Helvetica.
+         */
+        font?: 'helvetica' | 'times' | 'courier';
+        /**
+         * Italic. Default off.
+         */
+        italic?: boolean;
+        /**
+         * Move right by this many points. Default 0.
+         */
+        offset_x_pt?: number;
+        /**
+         * Move up by this many points. Default 0.
+         */
+        offset_y_pt?: number;
+        /**
+         * Place on the page. Default bottom right.
+         */
+        position?:
+          | 'top-left'
+          | 'top-center'
+          | 'top-right'
+          | 'middle-left'
+          | 'center'
+          | 'middle-right'
+          | 'bottom-left'
+          | 'bottom-center'
+          | 'bottom-right';
+        /**
+         * Text before the number, such as `ACME-`. Default none.
+         */
+        prefix?: string;
+        /**
+         * Font size in points. Default 10.
+         */
+        size_pt?: number;
+        /**
+         * The first number. Default 1.
+         */
+        start?: number;
+        /**
+         * Text after the number. Default none.
+         */
+        suffix?: string;
+        tool: 'bates';
+      }
+    | {
+        /**
+         * Bold. Default off.
+         */
+        bold?: boolean;
+        /**
+         * Text color as `#RRGGBB`. Default gray.
+         */
+        color?: string;
+        /**
+         * Font family. Default Helvetica.
+         */
+        font?: 'helvetica' | 'times' | 'courier';
+        /**
+         * Path of a PNG or JPEG file, for a picture watermark.
+         */
+        image_path?: string | null;
+        /**
+         * Width of the picture as a percent of the page width, 1 to 100. Default 50.
+         */
+        image_width_percent?: number;
+        /**
+         * Italic. Default off.
+         */
+        italic?: boolean;
+        /**
+         * Text or picture. Default text.
+         */
+        kind?: 'text' | 'image';
+        /**
+         * Over or under the page content. Default above.
+         */
+        layer?: 'above' | 'below';
+        /**
+         * Move right by this many points. Default 0.
+         */
+        offset_x_pt?: number;
+        /**
+         * Move up by this many points. Default 0.
+         */
+        offset_y_pt?: number;
+        /**
+         * Pages to mark. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Place on the page. Default center.
+         */
+        position?:
+          | 'top-left'
+          | 'top-center'
+          | 'top-right'
+          | 'middle-left'
+          | 'center'
+          | 'middle-right'
+          | 'bottom-left'
+          | 'bottom-center'
+          | 'bottom-right';
+        /**
+         * Counter-clockwise rotation in degrees, 0 to 360. Default 0.
+         */
+        rotation_deg?: number;
+        /**
+         * Font size in points. Default 48.
+         */
+        size_pt?: number;
+        /**
+         * The text, for a text watermark.
+         */
+        text?: string;
+        /**
+         * Repeat the mark across the whole page. Default off.
+         */
+        tile?: boolean;
+        tool: 'watermark';
+        /**
+         * How see-through the mark is, 1 to 100. Default 50.
+         */
+        transparency?: number;
+      }
+    | {
+        /**
+         * Also cut the media box, so other programs see the smaller page. Default off.
+         */
+        apply_to_media_box?: boolean;
+        /**
+         * Space left around the content, in millimeters, for the auto method. Default 2.
+         */
+        auto_padding_mm?: number;
+        margins?: Margins;
+        /**
+         * How to choose what to keep. Default margins.
+         */
+        method?: 'margins' | 'region' | 'auto';
+        /**
+         * Pages to crop: `all`, `even`, `odd` or a range. Default `all`.
+         */
+        pages?: string;
+        /**
+         * The box to keep, for the region method.
+         */
+        region?: Region | null;
+        tool: 'crop';
+        /**
+         * Unit of the margins. Default millimeters.
+         */
+        unit?: 'mm' | 'in' | 'pt';
+      }
+    | {
+        /**
+         * Height in millimeters, for a custom size. Default 297.
+         */
+        custom_height_mm?: number;
+        /**
+         * Width in millimeters, for a custom size. Default 210.
+         */
+        custom_width_mm?: number;
+        /**
+         * Empty space around the content, in millimeters. Default 0.
+         */
+        margin_mm?: number;
+        /**
+         * Turn the target size to match each page's orientation (default), so a landscape page
+         * stays landscape.
+         */
+        match_orientation?: boolean;
+        /**
+         * Scale the content to fit the new page (default). Off keeps its size, centered.
+         */
+        scale_content?: boolean;
+        /**
+         * Target paper size. Default A4.
+         */
+        size?: 'a4' | 'letter' | 'legal' | 'a3' | 'custom';
+        tool: 'resize';
+      }
+    | {
+        /**
+         * Direction. Default horizontal.
+         */
+        direction?: 'horizontal' | 'vertical';
+        /**
+         * Pages to flip: `all`, `even`, `odd` or a range. Default `all`.
+         */
+        pages?: string;
+        tool: 'flip';
+      }
+    | {
+        /**
+         * The order pages fill a sheet. Default horizontal.
+         */
+        order?: 'horizontal' | 'vertical';
+        /**
+         * Pages per sheet. Default 2.
+         */
+        per_sheet?: '2' | '4' | '8' | '16' | '32';
+        /**
+         * Keep the sheet the size of the first page, shrinking the pages (default). Off makes the
+         * sheet as large as the grid of full-size pages.
+         */
+        preserve_page_size?: boolean;
+        /**
+         * Fill each row from the right, for right-to-left languages. Default off.
+         */
+        right_to_left?: boolean;
+        tool: 'n-up';
+      }
+    | {
+        /**
+         * What to turn gray. Default pictures and text.
+         */
+        apply_to?: 'both' | 'images' | 'text';
+        /**
+         * Resolution of the picture when `raster_fallback` is on. Default 150.
+         */
+        dpi?: '75' | '100' | '150' | '220';
+        /**
+         * Render every page as a gray picture instead. Catches every color, but text can no longer
+         * be selected. Default off.
+         */
+        raster_fallback?: boolean;
+        tool: 'grayscale';
+      }
+    | {
+        /**
+         * Build the list from the large text of the document instead. Default off.
+         */
+        auto_generate?: boolean;
+        /**
+         * Deepest level of generated bookmarks, 1 to 6. Default 3.
+         */
+        auto_max_level?: number;
+        /**
+         * The complete bookmark list of the result, replacing the current one.
+         */
+        bookmarks?: BookmarkEntry[];
+        tool: 'bookmarks';
+      }
+    | {
+        /**
+         * The page to read, counting from 1. Default 1.
+         */
+        page?: number;
+        /**
+         * The new name, with `{text}` for the text read and `{filename}`, `{date}` and the other
+         * naming tokens. Default `{text}`.
+         */
+        pattern?: string;
+        /**
+         * The box that holds the text to read, drawn on the page preview.
+         */
+        region?: Region | null;
+        tool: 'rename-by-content';
+      }
+    | {
+        /**
+         * What to do. Default list.
+         */
+        action?: 'list' | 'add' | 'extract' | 'delete';
+        /**
+         * Paths of the files to attach, for add.
+         */
+        files?: string[];
+        /**
+         * Names of the attachments to extract (none means all) or to delete.
+         */
+        names?: string[];
+        tool: 'attachments';
+      }
+    | {
+        /**
+         * The runs, each starting at a page. Pages before the first run are labeled 1, 2, 3.
+         */
+        ranges?: LabelRange[];
+        /**
+         * Remove all page labels instead. Default off.
+         */
+        remove_all?: boolean;
+        tool: 'page-labels';
+      }
+    | {
+        ai?: AiOptions1;
+        /**
+         * What to split by, in your own words, such as "one file for each invoice".
+         */
+        instruction?: string;
+        /**
+         * The parts to make. Empty: the model proposes them from the instruction. The preview of
+         * the desktop app fills this in, so what you checked is what is made.
+         */
+        parts?: SplitPart[];
+        tool: 'smart-split';
+      }
+    | {
+        ai?: AiOptions2;
+        /**
+         * PDF or Markdown. Default PDF.
+         */
+        format?: 'pdf' | 'markdown';
+        /**
+         * The language of the summary, as a code such as `de`. Default `en`; the desktop app sets
+         * the language of the interface.
+         */
+        language?: string;
+        /**
+         * How long the summary is. Default medium.
+         */
+        length?: 'short' | 'medium' | 'long';
+        /**
+         * Pages to summarize. Default `all`.
+         */
+        pages?: string;
+        tool: 'ai-summarizer';
+      }
+    | {
+        ai?: AiOptions3;
+        /**
+         * Pages to translate. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Keep the pages as they are and put the translation where the text was. Off writes a new
+         * document of flowing text. Default on.
+         */
+        preserve_layout?: boolean;
+        /**
+         * The language to translate into, as a code such as `de`. Default `en`.
+         */
+        target_language?: string;
+        tool: 'translate-pdf';
+      }
+    | {
+        /**
+         * When the level cannot be reached, try the next weaker one instead of failing. Default on.
+         */
+        allow_downgrade?: boolean;
+        /**
+         * The level to reach. Default `2b`.
+         */
+        level?: '1a' | '1b' | '2a' | '2b' | '2u' | '3a' | '3b' | '3u';
+        /**
+         * When a page still cannot be made to conform, replace the document by pictures of its pages.
+         * The result conforms but the text can no longer be selected. Default off.
+         */
+        rasterize_if_needed?: boolean;
+        tool: 'pdf-to-pdfa';
+      }
+    | {
+        /**
+         * How to write the report. Default a web page.
+         */
+        format?: 'html' | 'json';
+        /**
+         * The level to check against. Default: the level the file claims, or `1b` when it claims none.
+         */
+        level?: PdfaLevel | null;
+        tool: 'validate-pdfa';
+      }
+    | {
+        /**
+         * How to write the report. Default a web page.
+         */
+        format?: 'html' | 'json';
+        tool: 'check-pdfua';
+      }
+    | {
+        /**
+         * Allow the connection to the time stamp server and the revocation servers. Default off.
+         */
+        allow_network?: boolean;
+        /**
+         * Certify the document and limit later changes. Default off.
+         */
+        certify?: 'none' | 'no-changes' | 'form-fill' | 'annotate';
+        /**
+         * How to reach the signer.
+         */
+        contact?: string | null;
+        /**
+         * Name of an empty signature field to sign. Default none: a new field is added.
+         */
+        field?: string | null;
+        /**
+         * Height as a share of the page height. Default 0.1.
+         */
+        height?: number;
+        /**
+         * Left edge of the visible signature as a share of the page width, 0 to 1. Default 0.6.
+         */
+        left?: number;
+        /**
+         * Evidence stored with the signature. Default `b-b`.
+         */
+        level?: 'b-b' | 'b-t' | 'b-lt' | 'b-lta';
+        /**
+         * Where it is signed.
+         */
+        location?: string | null;
+        /**
+         * Page of the visible signature, counted from 1. Default 1.
+         */
+        page?: number;
+        /**
+         * Password of the PFX or P12 file. Kept in memory only.
+         */
+        pfx_password?: Secret | null;
+        /**
+         * The PFX or P12 file, for `pfx`.
+         */
+        pfx_path?: string | null;
+        /**
+         * Why the document is signed.
+         */
+        reason?: string | null;
+        /**
+         * Name to show instead of the one in the certificate.
+         */
+        signer_name?: string | null;
+        /**
+         * Where the key comes from. Default a PFX or P12 file.
+         */
+        source?: 'pfx' | 'windows-store';
+        /**
+         * SHA-1 thumbprint of the certificate (40 hex digits, spaces allowed), for `windows-store`.
+         */
+        thumbprint?: string;
+        /**
+         * Address of the time stamp server, for `b-t` and above.
+         */
+        timestamp_url?: string | null;
+        tool: 'digital-sign';
+        /**
+         * Top edge as a share of the page height, 0 to 1. Default 0.86.
+         */
+        top?: number;
+        /**
+         * Show the signature on a page. Default off: the signature is invisible.
+         */
+        visible?: boolean;
+        /**
+         * Width as a share of the page width. Default 0.35.
+         */
+        width?: number;
+      }
+    | {
+        /**
+         * Allow the connection to the revocation servers named in the certificates. Default off.
+         */
+        allow_network?: boolean;
+        /**
+         * Ask the certificate authorities whether a certificate was revoked. Needs
+         * `allow_network`. Default off.
+         */
+        check_revocation?: boolean;
+        tool: 'verify-signatures';
+        /**
+         * A file of certificates (PEM or DER) to trust besides the ones of Windows, for example the
+         * root certificate of your company.
+         */
+        trusted_certificates?: string | null;
+      }
+    | {
+        /**
+         * Resolution of the pictures the pages are compared at. Default 100.
+         */
+        dpi?: number;
+        /**
+         * Treat runs of spaces and tabs as one space, and ignore blank lines. Default on.
+         */
+        ignore_whitespace?: boolean;
+        /**
+         * What to compare. Default both the text and the look of the pages.
+         */
+        mode?: 'both' | 'text' | 'visual';
+        /**
+         * Pages to compare, by number in both files: `all`, `even`, `odd` or a range such as
+         * `1,3-5`. Default `all`.
+         */
+        pages?: string;
+        /**
+         * How much the color of a pixel may differ, in percent of the full range, before the pixel
+         * counts as changed. Default 2.
+         */
+        tolerance_percent?: number;
+        tool: 'compare';
+      }
+    | {
+        ai?: AiOptions4;
+        /**
+         * Also remove what the local model finds: names, addresses and other personal details
+         * that no pattern describes. The model can miss things, so read the preview. Default off.
+         */
+        ai_suggestions?: boolean;
+        /**
+         * Rectangles drawn on pages.
+         */
+        areas?: RedactArea[];
+        /**
+         * Match the case of `terms` and `patterns`. Default off.
+         */
+        case_sensitive?: boolean;
+        /**
+         * The color that covers what was removed, as `#RRGGBB`. Default black.
+         */
+        fill_color?: string;
+        /**
+         * Pages the search covers: `all`, `even`, `odd` or a range such as `1,3-5`. Areas always
+         * apply to their own page. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Patterns to find, as regular expressions.
+         */
+        patterns?: string[];
+        /**
+         * Kinds of text to find by their shape.
+         */
+        presets?: RedactPreset[];
+        /**
+         * Clear the document information and the XMP packet. Default on.
+         */
+        strip_metadata?: boolean;
+        /**
+         * Words or phrases to find. Case does not matter unless `case_sensitive` is on.
+         */
+        terms?: string[];
+        tool: 'redact';
+      }
+    | {
+        /**
+         * Everything added to the pages, in drawing order.
+         */
+        items?: EditItem[];
+        tool: 'edit-pdf';
+      }
+    | {
+        /**
+         * The notes, marks and drawings to add.
+         */
+        annotations?: Annotation[];
+        tool: 'annotate';
+      }
+    | {
+        /**
+         * Signatures, initials, stamps and dates to place.
+         */
+        signatures?: SignatureItem[];
+        tool: 'fill-sign';
+        /**
+         * Values for fields of the form.
+         */
+        values?: FieldValue[];
+      }
+    | {
+        /**
+         * The signatures, initials, stamps and dates to place.
+         */
+        signatures?: SignatureItem[];
+        tool: 'sign-pdf';
+      }
+    | {
+        /**
+         * The fields to add.
+         */
+        fields?: NewField[];
+        tool: 'create-forms';
+      }
+    | {
+        /**
+         * Languages for OCR. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Flowing text or exact positions. Default flowing.
+         */
+        layout?: 'flowing' | 'exact';
+        /**
+         * Read pages that have no text. Default auto.
+         */
+        ocr?: 'auto' | 'off' | 'always';
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-word';
+      }
+    | {
+        /**
+         * Resolution of the pictures for image slides, 100 to 600. Default 150.
+         */
+        dpi?: number;
+        /**
+         * Languages for OCR. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Editable text boxes or one picture per slide. Default editable text.
+         */
+        mode?: 'editable-text' | 'image-slides';
+        /**
+         * Read pages that have no text, for editable text. Default auto.
+         */
+        ocr?: 'auto' | 'off' | 'always';
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-powerpoint';
+      }
+    | {
+        /**
+         * How tables are found. Default auto.
+         */
+        detection?: 'auto' | 'lattice' | 'stream';
+        /**
+         * A workbook or CSV files. Default workbook.
+         */
+        format?: 'xlsx' | 'csv';
+        /**
+         * Sheets per table or per page. Default per table.
+         */
+        grouping?: 'per-table' | 'per-page';
+        /**
+         * Languages for OCR. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Read pages that have no text. Default auto.
+         */
+        ocr?: 'auto' | 'off' | 'always';
+        /**
+         * Pages to search for tables. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-excel';
+      }
+    | {
+        ai?: AiOptions5;
+        /**
+         * Let the local model tidy the text: join lines that were broken by the page, mend
+         * hyphenated words and fix the heading levels. Words are never added or removed. Default off.
+         */
+        ai_cleanup?: boolean;
+        /**
+         * Save the pictures next to the file and link them. Default on.
+         */
+        images?: boolean;
+        /**
+         * Languages for OCR. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Read pages that have no text. Default auto.
+         */
+        ocr?: 'auto' | 'off' | 'always';
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-markdown';
+      }
+    | {
+        /**
+         * Put the pictures inside the page, so it is one file. Default on.
+         */
+        inline_images?: boolean;
+        /**
+         * Languages for OCR. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Read pages that have no text. Default auto.
+         */
+        ocr?: 'auto' | 'off' | 'always';
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-html';
+      }
+    | {
+        /**
+         * Straighten tilted pages before reading them. Default off.
+         */
+        deskew?: boolean;
+        /**
+         * Resolution pages are read at, 100 to 600. Default 300.
+         */
+        dpi?: number;
+        /**
+         * Tesseract language codes, such as `eng` or `deu`. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * A searchable PDF or a text file. Default PDF.
+         */
+        output?: 'pdf' | 'text';
+        /**
+         * Pages to read. Default `all`.
+         */
+        pages?: string;
+        /**
+         * Leave pages that already have text alone. Default on.
+         */
+        skip_pages_with_text?: boolean;
+        tool: 'ocr';
+      }
+    | {
+        /**
+         * The angles of single pages, for manual deskew.
+         */
+        angles?: PageAngle[];
+        /**
+         * The largest tilt that is corrected automatically, in degrees, 1 to 45. Default 15.
+         */
+        max_angle_deg?: number;
+        /**
+         * Measure the tilt (default) or use the typed angles.
+         */
+        mode?: 'auto' | 'manual';
+        /**
+         * Pages to straighten, for automatic deskew. Default `all`.
+         */
+        pages?: string;
+        tool: 'deskew';
+      }
+    | {
+        /**
+         * Cut away what is not paper around the page. Default on.
+         */
+        auto_crop?: boolean;
+        /**
+         * Colors of the pages. Default color.
+         */
+        color?: 'color' | 'gray' | 'black-white';
+        /**
+         * Resolution of the scan, which sets the page size, 100 to 600. Default 300.
+         */
+        dpi?: number;
+        /**
+         * Languages for `ocr`. Default `eng`.
+         */
+        languages?: string[];
+        /**
+         * Make the PDF searchable. Default off.
+         */
+        ocr?: boolean;
+        /**
+         * Straighten pages photographed at an angle. Default on.
+         */
+        perspective_fix?: boolean;
+        tool: 'scan-to-pdf';
+      }
+    | {
+        /**
+         * The program that converts the file. Default auto.
+         */
+        engine?: 'auto' | 'libre-office' | 'ms-office';
+        /**
+         * Pages of the result to keep: `all`, a range, `even`, `odd`. Default `all`.
+         */
+        pages?: string;
+        tool: 'word-to-pdf';
+      }
+    | {
+        /**
+         * The program that converts the file. Default auto.
+         */
+        engine?: 'auto' | 'libre-office' | 'ms-office';
+        /**
+         * Include slides that are hidden in the presentation. Default off.
+         */
+        include_hidden?: boolean;
+        /**
+         * Slides to keep, counting the slides that are in the result. Default `all`.
+         */
+        slides?: string;
+        tool: 'powerpoint-to-pdf';
+      }
+    | {
+        /**
+         * The program that converts the file. Default auto.
+         */
+        engine?: 'auto' | 'libre-office' | 'ms-office';
+        /**
+         * Shrink wide sheets so every column fits the page width. Default on.
+         */
+        fit_to_page_width?: boolean;
+        /**
+         * Page turn. Default auto.
+         */
+        orientation?: 'auto' | 'portrait' | 'landscape';
+        /**
+         * Sheets to print, by position: `all` or for example `1,3`. Default `all`.
+         */
+        sheets?: string;
+        tool: 'excel-to-pdf';
+      }
+    | {
+        /**
+         * Allow the page to load from the internet. Without it only local files print and pictures
+         * or styles that live on the web are left out. Default off.
+         */
+        allow_network?: boolean;
+        /**
+         * Print background colors and pictures. Default on.
+         */
+        background_graphics?: boolean;
+        /**
+         * Height in millimeters, for a custom size. Default 297.
+         */
+        custom_height_mm?: number;
+        /**
+         * Width in millimeters, for a custom size. Default 210.
+         */
+        custom_width_mm?: number;
+        /**
+         * Print the page title and number in the margins. Default off.
+         */
+        header_footer?: boolean;
+        /**
+         * Longest the page may take to load, in seconds, 1 to 300. Default 15.
+         */
+        load_timeout_s?: number;
+        /**
+         * Margin on every side in millimeters. Default 10.
+         */
+        margin_mm?: number;
+        /**
+         * Page turn. Default portrait.
+         */
+        orientation?: 'portrait' | 'landscape';
+        /**
+         * Paper size: A4, Letter, Legal, A3 or custom. Default A4.
+         */
+        page_size?: 'a4' | 'letter' | 'legal' | 'a3' | 'custom';
+        /**
+         * Scale in percent, 10 to 200. Default 100.
+         */
+        scale_percent?: number;
+        tool: 'html-to-pdf';
+        /**
+         * A web address to print instead of a file. Needs `allow_network`. Default none.
+         */
+        url?: string | null;
+      }
+    | {
+        /**
+         * Space around the picture. Default none.
+         */
+        margin?: 'none' | 'small' | 'big';
+        /**
+         * One PDF for all pictures (default) or one PDF per picture.
+         */
+        one_pdf?: boolean;
+        /**
+         * Page turn for A4 and Letter. Default auto.
+         */
+        orientation?: 'auto' | 'portrait' | 'landscape';
+        /**
+         * Page size. Default fit.
+         */
+        page_size?: 'fit' | 'a4' | 'letter';
+        tool: 'images-to-pdf';
+      }
+    | {
+        /**
+         * Colors. Default color.
+         */
+        color?: 'color' | 'gray' | 'black-white';
+        /**
+         * Resolution in dots per inch, 10 to 2400. Default 150.
+         */
+        dpi?: number;
+        /**
+         * File format. Default JPG.
+         */
+        format?: 'jpg' | 'png' | 'tiff';
+        /**
+         * JPEG quality, 1 to 100. Default 90.
+         */
+        jpeg_quality?: number;
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        /**
+         * For TIFF: one multi-page file instead of one file per page. Default off.
+         */
+        single_tiff?: boolean;
+        tool: 'pdf-to-images';
+      }
+    | {
+        /**
+         * Keep the format the picture has in the PDF (default). Off writes every picture as PNG.
+         */
+        keep_original_format?: boolean;
+        /**
+         * Skip pictures lower than this many pixels. Default 50.
+         */
+        min_height?: number;
+        /**
+         * Skip pictures narrower than this many pixels. Default 50.
+         */
+        min_width?: number;
+        tool: 'extract-images';
+      }
+    | {
+        /**
+         * Encoding of the file. Default UTF-8.
+         */
+        encoding?: 'utf8' | 'utf8-bom' | 'utf16' | 'windows1252';
+        /**
+         * Plain or layout-preserving text. Default plain.
+         */
+        layout?: 'plain' | 'layout';
+        /**
+         * Put a line such as `--- Page 2 ---` between pages. Default on.
+         */
+        page_separators?: boolean;
+        /**
+         * Pages to read. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-text';
+      }
+    | {
+        tool: 'tiff-to-pdf';
+      }
+    | {
+        /**
+         * Colors. CCITT G4 always writes black and white. Default color.
+         */
+        color?: 'color' | 'gray' | 'black-white';
+        /**
+         * Compression. Default LZW.
+         */
+        compression?: 'lzw' | 'deflate' | 'ccitt-g4';
+        /**
+         * Resolution in dots per inch, 10 to 2400. Default 150.
+         */
+        dpi?: number;
+        /**
+         * Pages to convert. Default `all`.
+         */
+        pages?: string;
+        tool: 'pdf-to-tiff';
+      };
+}
+/**
+ * Settings for one input of a merge. Entry `i` applies to input `i`.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "MergeFileOptions".
+ */
+export interface MergeFileOptions {
+  /**
+   * Pages to take from this file. Default `all`.
+   */
+  pages?: string;
+  /**
+   * Extra rotation applied to every page taken from this file. Default none.
+   */
+  rotation?: '0' | '90' | '180' | '270';
+}
+/**
+ * Settings for one input of alternate and mix.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "AlternateFileOptions".
+ */
+export interface AlternateFileOptions {
+  /**
+   * Read this file from its last page backwards, to merge the two passes of a duplex scan.
+   * Default off.
+   */
+  reverse?: boolean;
+}
+/**
+ * What opening the file allows. Default everything.
+ */
+export interface Permissions2 {
+  /**
+   * Add or change comments and annotations.
+   */
+  annotate?: boolean;
+  /**
+   * Insert, rotate, delete and reorder pages.
+   */
+  assemble?: boolean;
+  /**
+   * Copy text and images out of it.
+   */
+  copy?: boolean;
+  /**
+   * Fill in form fields.
+   */
+  fill_forms?: boolean;
+  /**
+   * Change the document.
+   */
+  modify?: boolean;
+  /**
+   * Print the document.
+   */
+  print?: boolean;
+}
+/**
+ * Distances to cut off, for the margins method.
+ */
+export interface Margins {
+  /**
+   * Cut off the bottom.
+   */
+  bottom?: number;
+  /**
+   * Cut off the left.
+   */
+  left?: number;
+  /**
+   * Cut off the right.
+   */
+  right?: number;
+  /**
+   * Cut off the top.
+   */
+  top?: number;
+}
+/**
+ * One bookmark.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "BookmarkEntry".
+ */
+export interface BookmarkEntry {
+  /**
+   * Nesting depth, 1 for the top level.
+   */
+  level: number;
+  /**
+   * The page it jumps to, counting from 1.
+   */
+  page: number;
+  /**
+   * The text in the bookmark panel.
+   */
+  title: string;
+}
+/**
+ * One run of pages that share a numbering.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "LabelRange".
+ */
+export interface LabelRange {
+  /**
+   * The first page of the run, counting from 1.
+   */
+  from_page?: number;
+  /**
+   * Text before each number, such as `A-`. Default none.
+   */
+  prefix?: string;
+  /**
+   * The number of the first page of the run. Default 1.
+   */
+  start?: number;
+  /**
+   * How the numbers are written. Default arabic.
+   */
+  style?: 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions1 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
+ * One part of a document, made by Smart Split.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "SplitPart".
+ */
+export interface SplitPart {
+  /**
+   * The last page, from 1.
+   */
+  end: number;
+  /**
+   * The first page, from 1.
+   */
+  start: number;
+  /**
+   * What the part is about; used for the name of the file.
+   */
+  title: string;
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions2 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions3 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions4 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
+ * A rectangle of one page to remove.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "RedactArea".
+ */
+export interface RedactArea {
   /**
    * The page, from 1.
    */
@@ -3727,13 +5521,172 @@ export interface Region10 {
   y: number;
 }
 /**
+ * Which model runs and where. Shared by every tool that uses the model.
+ */
+export interface AiOptions5 {
+  /**
+   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
+   */
+  allow_ollama?: boolean;
+  /**
+   * Where the model runs. Default `bundled`.
+   */
+  backend?: 'bundled' | 'ollama';
+  /**
+   * The model. For `bundled`, the id of a model of the catalog (default
+   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
+   * `llama3.2:3b`; none uses the first one the server lists.
+   */
+  model?: string | null;
+  /**
+   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
+   * or `[::1]`. Default `http://127.0.0.1:11434`.
+   */
+  ollama_url?: string;
+}
+/**
+ * An angle for one page, for manual deskew.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "PageAngle".
+ */
+export interface PageAngle {
+  /**
+   * How far to turn the content counter-clockwise, in degrees. Negative turns it clockwise.
+   */
+  degrees: number;
+  /**
+   * The page, counting from 1.
+   */
+  page: number;
+}
+/**
+ * Where one tool may sit in a recipe.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "RecipeRoleEntry".
+ */
+export interface RecipeRoleEntry {
+  /**
+   * Its place in a chain.
+   */
+  role: 'source' | 'middle' | 'last' | 'excluded';
+  /**
+   * Identifier of a tool, kebab-case on the wire (`split-by-size`).
+   */
+  tool:
+    | 'merge'
+    | 'alternate-mix'
+    | 'organize'
+    | 'split-ranges'
+    | 'split-every-n'
+    | 'extract-pages'
+    | 'remove-pages'
+    | 'split-by-bookmarks'
+    | 'split-in-half'
+    | 'split-by-size'
+    | 'split-by-text'
+    | 'rotate'
+    | 'insert-pages'
+    | 'compress'
+    | 'repair'
+    | 'remove-annotations'
+    | 'flatten'
+    | 'edit-metadata'
+    | 'protect'
+    | 'unlock'
+    | 'sanitize'
+    | 'linearize'
+    | 'page-numbers'
+    | 'header-footer'
+    | 'bates'
+    | 'watermark'
+    | 'crop'
+    | 'resize'
+    | 'flip'
+    | 'n-up'
+    | 'grayscale'
+    | 'bookmarks'
+    | 'rename-by-content'
+    | 'attachments'
+    | 'page-labels'
+    | 'smart-split'
+    | 'ai-summarizer'
+    | 'translate-pdf'
+    | 'pdf-to-pdfa'
+    | 'validate-pdfa'
+    | 'check-pdfua'
+    | 'digital-sign'
+    | 'verify-signatures'
+    | 'compare'
+    | 'redact'
+    | 'edit-pdf'
+    | 'annotate'
+    | 'fill-sign'
+    | 'sign-pdf'
+    | 'create-forms'
+    | 'pdf-to-word'
+    | 'pdf-to-powerpoint'
+    | 'pdf-to-excel'
+    | 'pdf-to-markdown'
+    | 'pdf-to-html'
+    | 'ocr'
+    | 'deskew'
+    | 'scan-to-pdf'
+    | 'word-to-pdf'
+    | 'powerpoint-to-pdf'
+    | 'excel-to-pdf'
+    | 'html-to-pdf'
+    | 'images-to-pdf'
+    | 'pdf-to-images'
+    | 'extract-images'
+    | 'pdf-to-text'
+    | 'tiff-to-pdf'
+    | 'pdf-to-tiff';
+}
+/**
+ * A place on a page where the search of Redact found something.
+ *
+ * This interface was referenced by `IpcTypes`'s JSON-Schema
+ * via the `definition` "RedactMatch".
+ */
+export interface RedactMatch {
+  /**
+   * The page, from 1.
+   */
+  page: number;
+  region: Region11;
+}
+/**
+ * A rectangle on a page, as fractions of the page width and height measured from the top-left.
+ * This is how the user draws a region, independent of page size and rotation of the preview.
+ */
+export interface Region11 {
+  /**
+   * Height, greater than 0 and at most 1.
+   */
+  height: number;
+  /**
+   * Width, greater than 0 and at most 1.
+   */
+  width: number;
+  /**
+   * Left edge, 0 to 1.
+   */
+  x: number;
+  /**
+   * Top edge, 0 to 1.
+   */
+  y: number;
+}
+/**
  * Options for Redact.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "RedactOptions".
  */
 export interface RedactOptions {
-  ai?: AiOptions1;
+  ai?: AiOptions6;
   /**
    * Also remove what the local model finds: names, addresses and other personal details
    * that no pattern describes. The model can miss things, so read the preview. Default off.
@@ -3776,7 +5729,7 @@ export interface RedactOptions {
 /**
  * Which model runs and where. Shared by every tool that uses the model.
  */
-export interface AiOptions1 {
+export interface AiOptions6 {
   /**
    * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
    */
@@ -3796,41 +5749,6 @@ export interface AiOptions1 {
    * or `[::1]`. Default `http://127.0.0.1:11434`.
    */
   ollama_url?: string;
-}
-/**
- * A rectangle of one page to remove.
- *
- * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "RedactArea".
- */
-export interface RedactArea {
-  /**
-   * The page, from 1.
-   */
-  page: number;
-  region: Region11;
-}
-/**
- * A rectangle on a page, as fractions of the page width and height measured from the top-left.
- * This is how the user draws a region, independent of page size and rotation of the preview.
- */
-export interface Region11 {
-  /**
-   * Height, greater than 0 and at most 1.
-   */
-  height: number;
-  /**
-   * Width, greater than 0 and at most 1.
-   */
-  width: number;
-  /**
-   * Left edge, 0 to 1.
-   */
-  x: number;
-  /**
-   * Top edge, 0 to 1.
-   */
-  y: number;
 }
 /**
  * Asks the core to run a tool over a batch of files.
@@ -4594,7 +6512,7 @@ export interface RunBatchRequest {
         tool: 'page-labels';
       }
     | {
-        ai?: AiOptions2;
+        ai?: AiOptions1;
         /**
          * What to split by, in your own words, such as "one file for each invoice".
          */
@@ -4607,7 +6525,7 @@ export interface RunBatchRequest {
         tool: 'smart-split';
       }
     | {
-        ai?: AiOptions3;
+        ai?: AiOptions2;
         /**
          * PDF or Markdown. Default PDF.
          */
@@ -4628,7 +6546,7 @@ export interface RunBatchRequest {
         tool: 'ai-summarizer';
       }
     | {
-        ai?: AiOptions4;
+        ai?: AiOptions3;
         /**
          * Pages to translate. Default `all`.
          */
@@ -4800,7 +6718,7 @@ export interface RunBatchRequest {
         tool: 'compare';
       }
     | {
-        ai?: AiOptions5;
+        ai?: AiOptions4;
         /**
          * Also remove what the local model finds: names, addresses and other personal details
          * that no pattern describes. The model can miss things, so read the preview. Default off.
@@ -4950,7 +6868,7 @@ export interface RunBatchRequest {
         tool: 'pdf-to-excel';
       }
     | {
-        ai?: AiOptions6;
+        ai?: AiOptions5;
         /**
          * Let the local model tidy the text: join lines that were broken by the page, mend
          * hyphenated words and fix the heading levels. Words are never added or removed. Default off.
@@ -5266,7 +7184,7 @@ export interface RunBatchRequest {
    */
   output_dir?: string | null;
   /**
-   * Tool id.
+   * Identifier of a tool, kebab-case on the wire (`split-by-size`).
    */
   tool:
     | 'merge'
@@ -5355,283 +7273,62 @@ export interface InputRef {
   path: string;
 }
 /**
- * Settings for one input of a merge. Entry `i` applies to input `i`.
+ * Asks the core to run a recipe on files, a folder or both.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "MergeFileOptions".
+ * via the `definition` "RunRecipeRequest".
  */
-export interface MergeFileOptions {
+export interface RunRecipeRequest {
   /**
-   * Pages to take from this file. Default `all`.
+   * A folder to run it on, added to `inputs`.
    */
-  pages?: string;
+  folder?: FolderRef | null;
   /**
-   * Extra rotation applied to every page taken from this file. Default none.
+   * Files to run it on.
    */
-  rotation?: '0' | '90' | '180' | '270';
+  inputs: InputRef[];
+  /**
+   * Naming pattern, or `None` for the one in settings.
+   */
+  naming_pattern?: string | null;
+  /**
+   * Output folder, or `None` for next to each source.
+   */
+  output_dir?: string | null;
+  recipe: Recipe1;
 }
 /**
- * Settings for one input of alternate and mix.
+ * A folder to run a recipe on.
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "AlternateFileOptions".
+ * via the `definition` "FolderRef".
  */
-export interface AlternateFileOptions {
+export interface FolderRef {
   /**
-   * Read this file from its last page backwards, to merge the two passes of a duplex scan.
-   * Default off.
+   * The folder.
    */
-  reverse?: boolean;
+  path: string;
+  /**
+   * Also take files from sub-folders.
+   */
+  recursive: boolean;
 }
 /**
- * What opening the file allows. Default everything.
+ * A named chain of steps.
  */
-export interface Permissions2 {
+export interface Recipe1 {
   /**
-   * Add or change comments and annotations.
+   * Stable identifier, assigned when the recipe is first saved.
    */
-  annotate?: boolean;
+  id?: string;
   /**
-   * Insert, rotate, delete and reorder pages.
+   * Name shown in the list.
    */
-  assemble?: boolean;
+  name: string;
   /**
-   * Copy text and images out of it.
+   * The steps, first to last.
    */
-  copy?: boolean;
-  /**
-   * Fill in form fields.
-   */
-  fill_forms?: boolean;
-  /**
-   * Change the document.
-   */
-  modify?: boolean;
-  /**
-   * Print the document.
-   */
-  print?: boolean;
-}
-/**
- * Distances to cut off, for the margins method.
- */
-export interface Margins {
-  /**
-   * Cut off the bottom.
-   */
-  bottom?: number;
-  /**
-   * Cut off the left.
-   */
-  left?: number;
-  /**
-   * Cut off the right.
-   */
-  right?: number;
-  /**
-   * Cut off the top.
-   */
-  top?: number;
-}
-/**
- * One bookmark.
- *
- * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "BookmarkEntry".
- */
-export interface BookmarkEntry {
-  /**
-   * Nesting depth, 1 for the top level.
-   */
-  level: number;
-  /**
-   * The page it jumps to, counting from 1.
-   */
-  page: number;
-  /**
-   * The text in the bookmark panel.
-   */
-  title: string;
-}
-/**
- * One run of pages that share a numbering.
- *
- * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "LabelRange".
- */
-export interface LabelRange {
-  /**
-   * The first page of the run, counting from 1.
-   */
-  from_page?: number;
-  /**
-   * Text before each number, such as `A-`. Default none.
-   */
-  prefix?: string;
-  /**
-   * The number of the first page of the run. Default 1.
-   */
-  start?: number;
-  /**
-   * How the numbers are written. Default arabic.
-   */
-  style?: 'arabic' | 'roman-lower' | 'roman-upper' | 'letters-lower' | 'letters-upper';
-}
-/**
- * Which model runs and where. Shared by every tool that uses the model.
- */
-export interface AiOptions2 {
-  /**
-   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
-   */
-  allow_ollama?: boolean;
-  /**
-   * Where the model runs. Default `bundled`.
-   */
-  backend?: 'bundled' | 'ollama';
-  /**
-   * The model. For `bundled`, the id of a model of the catalog (default
-   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
-   * `llama3.2:3b`; none uses the first one the server lists.
-   */
-  model?: string | null;
-  /**
-   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
-   * or `[::1]`. Default `http://127.0.0.1:11434`.
-   */
-  ollama_url?: string;
-}
-/**
- * One part of a document, made by Smart Split.
- *
- * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "SplitPart".
- */
-export interface SplitPart {
-  /**
-   * The last page, from 1.
-   */
-  end: number;
-  /**
-   * The first page, from 1.
-   */
-  start: number;
-  /**
-   * What the part is about; used for the name of the file.
-   */
-  title: string;
-}
-/**
- * Which model runs and where. Shared by every tool that uses the model.
- */
-export interface AiOptions3 {
-  /**
-   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
-   */
-  allow_ollama?: boolean;
-  /**
-   * Where the model runs. Default `bundled`.
-   */
-  backend?: 'bundled' | 'ollama';
-  /**
-   * The model. For `bundled`, the id of a model of the catalog (default
-   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
-   * `llama3.2:3b`; none uses the first one the server lists.
-   */
-  model?: string | null;
-  /**
-   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
-   * or `[::1]`. Default `http://127.0.0.1:11434`.
-   */
-  ollama_url?: string;
-}
-/**
- * Which model runs and where. Shared by every tool that uses the model.
- */
-export interface AiOptions4 {
-  /**
-   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
-   */
-  allow_ollama?: boolean;
-  /**
-   * Where the model runs. Default `bundled`.
-   */
-  backend?: 'bundled' | 'ollama';
-  /**
-   * The model. For `bundled`, the id of a model of the catalog (default
-   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
-   * `llama3.2:3b`; none uses the first one the server lists.
-   */
-  model?: string | null;
-  /**
-   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
-   * or `[::1]`. Default `http://127.0.0.1:11434`.
-   */
-  ollama_url?: string;
-}
-/**
- * Which model runs and where. Shared by every tool that uses the model.
- */
-export interface AiOptions5 {
-  /**
-   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
-   */
-  allow_ollama?: boolean;
-  /**
-   * Where the model runs. Default `bundled`.
-   */
-  backend?: 'bundled' | 'ollama';
-  /**
-   * The model. For `bundled`, the id of a model of the catalog (default
-   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
-   * `llama3.2:3b`; none uses the first one the server lists.
-   */
-  model?: string | null;
-  /**
-   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
-   * or `[::1]`. Default `http://127.0.0.1:11434`.
-   */
-  ollama_url?: string;
-}
-/**
- * Which model runs and where. Shared by every tool that uses the model.
- */
-export interface AiOptions6 {
-  /**
-   * Agree to talk to the Ollama server on this computer. Needed for `ollama`. Default off.
-   */
-  allow_ollama?: boolean;
-  /**
-   * Where the model runs. Default `bundled`.
-   */
-  backend?: 'bundled' | 'ollama';
-  /**
-   * The model. For `bundled`, the id of a model of the catalog (default
-   * `qwen2.5-1.5b-instruct`). For `ollama`, the name of an installed model such as
-   * `llama3.2:3b`; none uses the first one the server lists.
-   */
-  model?: string | null;
-  /**
-   * The address of the Ollama server. Only this computer is allowed: `127.0.0.1`, `localhost`
-   * or `[::1]`. Default `http://127.0.0.1:11434`.
-   */
-  ollama_url?: string;
-}
-/**
- * An angle for one page, for manual deskew.
- *
- * This interface was referenced by `IpcTypes`'s JSON-Schema
- * via the `definition` "PageAngle".
- */
-export interface PageAngle {
-  /**
-   * How far to turn the content counter-clockwise, in degrees. Negative turns it clockwise.
-   */
-  degrees: number;
-  /**
-   * The page, counting from 1.
-   */
-  page: number;
+  steps: RecipeStep[];
 }
 /**
  * A kept signature.
@@ -5713,6 +7410,10 @@ export interface SavedSignature {
  * via the `definition` "Settings".
  */
 export interface Settings {
+  /**
+   * The tools the Explorer right-click menu offers, when the person turns that menu on.
+   */
+  explorer_tools?: ToolId[];
   limits?: SafetyLimits;
   /**
    * Concurrent heavy jobs, 1 to 4. `None` means physical cores minus one, capped at 4.
@@ -5939,7 +7640,7 @@ export interface ToolDescriptor {
     | 'intelligence'
     | 'validation';
   /**
-   * Tool id.
+   * Identifier of a tool, kebab-case on the wire (`split-by-size`).
    */
   id:
     | 'merge'

@@ -17,7 +17,7 @@
   let input: HTMLInputElement | undefined = $state();
 
   const results = $derived(rankCommands(commands, query));
-  const groups = ['tools', 'files', 'actions'] as const;
+  const groups = ['tools', 'recipes', 'files', 'actions'] as const;
   const activeId = $derived(results[active]?.id);
 
   $effect(() => {

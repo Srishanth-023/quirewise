@@ -4,8 +4,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::error::DomainError;
+use crate::explorer::{DEFAULT_MENU_TOOLS, MAX_MENU_TOOLS, offered_in_menu};
 use crate::limits::SafetyLimits;
 use crate::naming::OutputNamingPattern;
+use crate::tools::ToolId;
 
 /// Current settings schema version. Bump it and add a migration when the shape changes.
 pub const CURRENT_SETTINGS_VERSION: u32 = 1;
@@ -42,6 +44,8 @@ pub struct Settings {
     pub remember_recent_files: bool,
     /// Safety limits for the worker.
     pub limits: SafetyLimits,
+    /// The tools the Explorer right-click menu offers, when the person turns that menu on.
+    pub explorer_tools: Vec<ToolId>,
 }
 
 impl Default for Settings {
@@ -53,6 +57,7 @@ impl Default for Settings {
             max_heavy_jobs: None,
             remember_recent_files: true,
             limits: SafetyLimits::default(),
+            explorer_tools: DEFAULT_MENU_TOOLS.to_vec(),
         }
     }
 }
@@ -66,6 +71,14 @@ impl Settings {
             return Err(DomainError::option(
                 "max_heavy_jobs",
                 format!("must be between 1 and {MAX_HEAVY_JOBS}"),
+            ));
+        }
+        if self.explorer_tools.len() > MAX_MENU_TOOLS
+            || self.explorer_tools.iter().any(|t| !offered_in_menu(*t))
+        {
+            return Err(DomainError::option(
+                "explorer_tools",
+                format!("choose up to {MAX_MENU_TOOLS} tools that can start from a right-click"),
             ));
         }
         self.limits.validate()
@@ -104,6 +117,19 @@ mod tests {
             ..Settings::default()
         };
         assert_eq!(fixed.heavy_job_slots(16), 2);
+    }
+
+    #[test]
+    fn the_explorer_menu_defaults_are_valid_and_too_many_or_unfit_tools_are_not() {
+        assert_eq!(Settings::default().explorer_tools.len(), MAX_MENU_TOOLS);
+        let mut s = Settings::default();
+        s.explorer_tools.push(ToolId::Flatten);
+        assert!(s.validate().is_err());
+        let s = Settings {
+            explorer_tools: vec![ToolId::EditPdf],
+            ..Settings::default()
+        };
+        assert!(s.validate().is_err());
     }
 
     #[test]

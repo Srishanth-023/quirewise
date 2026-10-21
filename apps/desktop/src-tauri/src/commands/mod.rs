@@ -7,6 +7,7 @@ pub mod ai;
 pub mod components;
 pub mod documents;
 pub mod editor;
+pub mod explorer;
 pub mod jobs;
 pub mod recent;
 pub mod recipes;

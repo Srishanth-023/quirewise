@@ -4,12 +4,17 @@ import { formatBytes, groupPageSizes } from './format';
 describe('formatBytes', () => {
   it('uses binary units with sensible precision', () => {
     expect(formatBytes(0)).toBe('0 B');
-    expect(formatBytes(1023)).toBe('1023 B');
+    expect(formatBytes(1023)).toBe('1,023 B');
     expect(formatBytes(1024)).toBe('1.0 KB');
     expect(formatBytes(1536)).toBe('1.5 KB');
     expect(formatBytes(10 * 1024 * 1024)).toBe('10.0 MB');
     expect(formatBytes(200 * 1024 * 1024)).toBe('200 MB');
-    expect(formatBytes(5 * 1024 ** 4)).toBe('5120 GB');
+    expect(formatBytes(5 * 1024 ** 4)).toBe('5,120 GB');
+  });
+
+  it('follows the language for separators', () => {
+    expect(formatBytes(1536, 'de')).toBe('1,5 KB');
+    expect(formatBytes(5 * 1024 ** 4, 'de')).toBe('5.120 GB');
   });
 });
 

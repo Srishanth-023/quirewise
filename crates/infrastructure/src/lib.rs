@@ -8,6 +8,7 @@ pub mod components;
 pub mod download;
 #[cfg(windows)]
 pub mod dpapi;
+pub mod explorer;
 pub mod file_store;
 pub mod jobs;
 pub mod logging;

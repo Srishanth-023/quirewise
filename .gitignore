@@ -113,3 +113,6 @@ fixtures/pdf/large/*.pdf
 fixtures/**/actual/
 
 .cargo/
+
+# Installer staging (scripts/stage-installer.ps1)
+apps/desktop/src-tauri/staging/

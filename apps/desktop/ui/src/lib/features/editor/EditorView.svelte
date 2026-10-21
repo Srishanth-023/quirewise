@@ -544,7 +544,7 @@ import { toolOptions } from '../../stores/options.svelte';
     border-radius: var(--radius-control);
     background: transparent;
     color: var(--text);
-    text-align: left;
+    text-align: start;
     overflow: hidden;
   }
   .placed button[aria-pressed='true'] {

@@ -21,6 +21,12 @@
     return tool ? runsWithoutFiles(tool.id, toolOptions.values(tool)) : false;
   };
   const canRun = (): boolean => !!tool && (files.entries.length > 0 || noFiles());
+  /** Read out by screen readers when a job ends, since the list changes without moving focus. */
+  const announcement = $derived.by(() => {
+    if (jobs.running || !jobs.status || jobs.status === 'running') return '';
+    const done = files.entries.filter((e) => e.status === 'done').length;
+    return t('queue.finished', { done, failed: files.entries.filter((e) => e.status !== 'done').length });
+  });
   const hint = $derived(files.entries.length === 0 ? t('queue.noFiles') : tool ? '' : t('queue.noTool'));
 </script>
 
@@ -49,6 +55,7 @@
     {/if}
   {/if}
   {#if hint && !tool}<span class="hint">{hint}</span>{/if}
+  <p class="sr" role="status">{announcement}</p>
 </div>
 
 <style>
@@ -60,5 +67,13 @@
   }
   .hint {
     color: var(--text-muted);
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
 </style>

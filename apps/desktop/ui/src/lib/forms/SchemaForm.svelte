@@ -3,7 +3,7 @@
   import type { ToolDescriptor } from '../ipc/client';
   import { files } from '../stores/files.svelte';
   import { toolName } from '../stores/tools.svelte';
-  import { formFields, toolOptions } from '../stores/options.svelte';
+  import { formFields, toolOptions, type ToolOptionsStore } from '../stores/options.svelte';
   import FieldInput from './FieldInput.svelte';
   import CertificatePicker from './CertificatePicker.svelte';
   import LanguagePicker from './LanguagePicker.svelte';
@@ -15,13 +15,15 @@
 
   interface Props {
     tool: ToolDescriptor;
+    /** Where the values live. The tool screen uses the shared store; a recipe step brings its own. */
+    store?: ToolOptionsStore;
   }
 
-  let { tool }: Props = $props();
+  let { tool, store = toolOptions }: Props = $props();
 
   const fields = $derived(formFields(tool));
   const hints = $derived(formFor(tool.id));
-  const values = $derived(toolOptions.values(tool));
+  const values = $derived(store.values(tool));
   const drawable = (field: Field): boolean => field.kind !== 'unsupported';
 
   /** Hidden fields wait for the value of the field they depend on. */
@@ -43,11 +45,11 @@
         row[child.key] = child.min ?? (child.kind === 'integer' ? 1 : 0);
       }
     }
-    toolOptions.set(tool, field.key, [...rowsOf(field), row]);
+    store.set(tool, field.key, [...rowsOf(field), row]);
   }
 
   function removeRow(field: Field, index: number): void {
-    toolOptions.set(tool, field.key, rowsOf(field).filter((_, i) => i !== index));
+    store.set(tool, field.key, rowsOf(field).filter((_, i) => i !== index));
   }
 
   function moveRow(field: Field, index: number, by: number): void {
@@ -55,11 +57,11 @@
     const target = index + by;
     if (target < 0 || target >= rows.length) return;
     [rows[index], rows[target]] = [rows[target] as Values, rows[index] as Values];
-    toolOptions.set(tool, field.key, rows);
+    store.set(tool, field.key, rows);
   }
 
   function setCell(field: Field, index: number, key: string, value: unknown): void {
-    toolOptions.set(
+    store.set(
       tool,
       field.key,
       rowsOf(field).map((row, i) => (i === index ? { ...row, [key]: value } : row)),
@@ -83,7 +85,7 @@
         id={`${tool.id}-${field.key}`}
         label={listLabel(field)}
         value={groupValues(field)}
-        onchange={(v) => toolOptions.set(tool, field.key, v)}
+        onchange={(v) => store.set(tool, field.key, v)}
       />
     {:else if field.kind === 'group'}
       <fieldset class="group">
@@ -94,7 +96,7 @@
             value={groupValues(field)[child.key]}
             toolId={tool.id}
             id={`${tool.id}-${field.key}-${child.key}`}
-            onchange={(v) => toolOptions.set(tool, field.key, { ...groupValues(field), [child.key]: v })}
+            onchange={(v) => store.set(tool, field.key, { ...groupValues(field), [child.key]: v })}
           />
         {/each}
       </fieldset>
@@ -125,14 +127,14 @@
       </section>
     {:else if field.kind === 'list'}
       <!-- One group of settings per file, in the order of the file list. -->
-      {#if files.entries.length > 0}
+      {#if store === toolOptions && files.entries.length > 0}
         <section class="per-file" aria-label={listLabel(field)}>
           <h3>{listLabel(field)}</h3>
           {#each files.entries as entry (entry.id)}
             <fieldset>
               <legend>{entry.name}</legend>
               {#each field.children ?? [] as child (child.key)}
-                {@const own = toolOptions.perFile(tool, field, entry.id)}
+                {@const own = store.perFile(tool, field, entry.id)}
                 <FieldInput
                   field={child}
                   value={own[child.key]}
@@ -150,7 +152,7 @@
         id={`${tool.id}-${field.key}`}
         label={listLabel(field)}
         value={typeof values[field.key] === 'string' ? (values[field.key] as string) : ''}
-        onchange={(v) => toolOptions.set(tool, field.key, v)}
+        onchange={(v) => store.set(tool, field.key, v)}
       />
     {:else if hints.languageChoice?.includes(field.key)}
       <LanguageChoice
@@ -159,14 +161,14 @@
         hint={tDynamic(`option.${tool.id}.${field.key}.hint`, '')}
         value={typeof values[field.key] === 'string' ? (values[field.key] as string) : 'en'}
         drawableOnly={tool.id === 'translate-pdf' || values.format === 'pdf'}
-        onchange={(v) => toolOptions.set(tool, field.key, v)}
+        onchange={(v) => store.set(tool, field.key, v)}
       />
     {:else if hints.languagePicker?.includes(field.key)}
       <LanguagePicker
         id={`${tool.id}-${field.key}`}
         label={listLabel(field)}
         value={Array.isArray(values[field.key]) ? (values[field.key] as string[]) : []}
-        onchange={(v) => toolOptions.set(tool, field.key, v)}
+        onchange={(v) => store.set(tool, field.key, v)}
       />
     {:else}
       <FieldInput
@@ -179,12 +181,12 @@
         clearable={hints.clearable?.includes(field.key)}
         color={hints.color?.includes(field.key)}
         picker={hints.picker?.[field.key]}
-        onchange={(v) => toolOptions.set(tool, field.key, v)}
+        onchange={(v) => store.set(tool, field.key, v)}
       />
     {/if}
   {/each}
   {#if fields.some(drawable)}
-    <button type="button" class="reset" onclick={() => toolOptions.reset(tool)}>{t('options.reset')}</button>
+    <button type="button" class="reset" onclick={() => store.reset(tool)}>{t('options.reset')}</button>
   {:else}
     <p class="none">{t('options.none')}</p>
   {/if}

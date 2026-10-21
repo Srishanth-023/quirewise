@@ -38,10 +38,13 @@ export function formFields(tool: ToolDescriptor): Field[] {
  * reading it from a derived value never writes state. Settings of per-file options belong to the
  * file, not to its position, so reordering the file list moves them along.
  */
-class ToolOptionsStore {
+export class ToolOptionsStore {
+  // Plain maps on purpose: each value inside is its own reactive object, the maps only index them.
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity
   #values = new Map<string, Values>();
   /** Counts every edit, for readers that decide something from the values of the selected tool. */
   edits = $state(0);
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity
   #perFile = new Map<string, Values>();
 
   /** Current values of a tool, starting from the defaults. */
@@ -58,6 +61,15 @@ class ToolOptionsStore {
 
   set(tool: ToolDescriptor, key: string, value: unknown): void {
     this.values(tool)[key] = value;
+    this.edits = untrack(() => this.edits) + 1;
+  }
+
+  /** Replaces the values of a tool with saved options, keeping defaults for anything missing. */
+  load(tool: ToolDescriptor, options: Record<string, unknown>): void {
+    const rest = { ...options };
+    delete rest.tool;
+    const values = this.values(tool);
+    Object.assign(values, defaultValues(allFields(tool)), JSON.parse(JSON.stringify(rest)));
     this.edits = untrack(() => this.edits) + 1;
   }
 

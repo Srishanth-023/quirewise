@@ -33,6 +33,15 @@ describe('visual lint rules', () => {
     expect(rules('a.ts', "import { Pdf } from 'lucide-svelte';")).toContain('lucide');
   });
 
+  it('asks for logical properties so layouts work right to left', () => {
+    expect(rules('a.css', 'a { margin-left: 4px; }')).toContain('physical-direction');
+    expect(rules('a.css', 'a { padding-right: 4px; }')).toContain('physical-direction');
+    expect(rules('a.css', 'a { border-left-color: var(--focus); }')).toContain('physical-direction');
+    expect(rules('a.css', 'a { text-align: left; }')).toContain('physical-direction');
+    expect(rules('a.css', 'a { float: right; }')).toContain('physical-direction');
+    expect(rules('a.css', 'a { margin-inline-start: 4px; text-align: start; }')).toEqual([]);
+  });
+
   it('accepts clean token-based styles', () => {
     expect(rules('a.svelte', 'a { color: var(--text); border: 1px solid var(--border); }')).toEqual([]);
   });

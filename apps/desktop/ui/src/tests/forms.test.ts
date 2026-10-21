@@ -39,6 +39,11 @@ const ipc = vi.hoisted(() => ({
   componentsInstalled: vi.fn(),
   ocrLanguages: vi.fn(),
   scanAvailable: vi.fn(),
+  takeLaunch: vi.fn(),
+  recipesList: vi.fn(),
+  recipeRoles: vi.fn(),
+  explorerStatus: vi.fn(),
+  explorerTools: vi.fn(),
   pickPaths: vi.fn(),
 }));
 
@@ -46,6 +51,7 @@ vi.mock('../lib/ipc/client', () => ({
   ipc,
   toAppError: (e: unknown) => e,
   onBatchEvent: () => Promise.resolve(() => undefined),
+  onLaunch: () => Promise.resolve(() => undefined),
   onComponentProgress: () => Promise.resolve(() => undefined),
 }));
 vi.mock('../lib/dnd', () => ({ listenForDrops: () => Promise.reject(new Error('no webview')) }));
@@ -101,6 +107,11 @@ beforeEach(() => {
   ipc.componentsInstalled.mockResolvedValue([]);
   ipc.ocrLanguages.mockResolvedValue(['eng', 'deu']);
   ipc.scanAvailable.mockResolvedValue(false);
+  ipc.takeLaunch.mockResolvedValue({ tool: null, files: [] });
+  ipc.recipesList.mockResolvedValue([]);
+  ipc.recipeRoles.mockResolvedValue([]);
+  ipc.explorerStatus.mockResolvedValue(false);
+  ipc.explorerTools.mockResolvedValue([]);
   ipc.runBatch.mockResolvedValue(1);
   jobs.running = false;
   jobs.status = null;

@@ -39,6 +39,15 @@ pub fn pick_files(app: AppHandle) -> Vec<PathBuf> {
         .collect()
 }
 
+/// Shows the system folder picker and returns the chosen folder, `None` when cancelled.
+#[tauri::command(async)]
+pub fn pick_folder(app: AppHandle) -> Option<PathBuf> {
+    app.dialog()
+        .file()
+        .blocking_pick_folder()
+        .and_then(|p| p.into_path().ok())
+}
+
 /// Picture formats a watermark can use.
 const IMAGE_EXTENSIONS: [&str; 3] = ["png", "jpg", "jpeg"];
 

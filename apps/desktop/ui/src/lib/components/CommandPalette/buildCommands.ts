@@ -1,5 +1,5 @@
 import { t } from '../../i18n';
-import type { RecentFile, ToolDescriptor } from '../../ipc/client';
+import type { RecentFile, Recipe, ToolDescriptor } from '../../ipc/client';
 import { toolName } from '../../stores/tools.svelte';
 import type { Command } from './commands';
 
@@ -10,6 +10,7 @@ export interface PaletteActions {
   openFiles: () => void;
   showShortcuts: () => void;
   openSettings: () => void;
+  useRecipe: (id: string) => void;
   openAbout: () => void;
   clearFiles: () => void;
 }
@@ -19,6 +20,7 @@ export function buildCommands(
   tools: ToolDescriptor[],
   recent: RecentFile[],
   actions: PaletteActions,
+  recipes: Recipe[] = [],
 ): Command[] {
   return [
     ...tools.map(
@@ -27,6 +29,14 @@ export function buildCommands(
         group: 'tools',
         label: toolName(tool),
         run: () => actions.selectTool(tool.id),
+      }),
+    ),
+    ...recipes.map(
+      (recipe): Command => ({
+        id: `recipe-${recipe.id}`,
+        group: 'recipes',
+        label: recipe.name,
+        run: () => actions.useRecipe(recipe.id ?? ''),
       }),
     ),
     ...recent.slice(0, 10).map(

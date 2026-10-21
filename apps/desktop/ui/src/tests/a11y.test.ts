@@ -17,6 +17,11 @@ const ipc = vi.hoisted(() => ({
   componentsInstalled: vi.fn(),
   ocrLanguages: vi.fn(),
   scanAvailable: vi.fn(),
+  takeLaunch: vi.fn(),
+  recipesList: vi.fn(),
+  recipeRoles: vi.fn(),
+  explorerStatus: vi.fn(),
+  explorerTools: vi.fn(),
   saveSettings: vi.fn(),
 }));
 
@@ -24,6 +29,7 @@ vi.mock('../lib/ipc/client', () => ({
   ipc,
   toAppError: (e: unknown) => e,
   onBatchEvent: () => Promise.resolve(() => undefined),
+  onLaunch: () => Promise.resolve(() => undefined),
   onComponentProgress: () => Promise.resolve(() => undefined),
 }));
 vi.mock('../lib/dnd', () => ({ listenForDrops: () => Promise.reject(new Error('no webview')) }));
@@ -51,6 +57,11 @@ beforeEach(() => {
   ipc.componentsInstalled.mockResolvedValue([]);
   ipc.ocrLanguages.mockResolvedValue(['eng', 'deu']);
   ipc.scanAvailable.mockResolvedValue(false);
+  ipc.takeLaunch.mockResolvedValue({ tool: null, files: [] });
+  ipc.recipesList.mockResolvedValue([]);
+  ipc.recipeRoles.mockResolvedValue([]);
+  ipc.explorerStatus.mockResolvedValue(false);
+  ipc.explorerTools.mockResolvedValue([]);
 });
 
 /** Structural accessibility rules. Color contrast needs real layout, so contrast.test.ts covers it. */
@@ -92,6 +103,14 @@ describe('accessibility', () => {
     await screen.findByRole('combobox');
     expect(await violations()).toEqual([]);
     await fireEvent.keyDown(window, { key: 'Escape' });
+  });
+
+  it('the recipes screen is clean, empty and with a saved recipe', async () => {
+    render(App);
+    await fireEvent.click(screen.getByRole('button', { name: 'Recipes' }));
+    await screen.findByRole('heading', { level: 1, name: 'Recipes' });
+    await screen.findByText(/No recipes yet/);
+    expect(await violations()).toEqual([]);
   });
 
   it('settings, about and the legal screens are clean', async () => {

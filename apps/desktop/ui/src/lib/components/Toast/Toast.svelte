@@ -19,7 +19,7 @@
 <style>
   .region {
     position: fixed;
-    right: var(--space-5);
+    inset-inline-end: var(--space-5);
     bottom: var(--space-5);
     display: flex;
     flex-direction: column;

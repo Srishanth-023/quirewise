@@ -5,6 +5,7 @@
 
 pub mod components;
 pub mod error;
+pub mod explorer;
 pub mod fonts;
 pub mod forms;
 pub mod job;
