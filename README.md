@@ -29,7 +29,14 @@ The full checklist before a change is merged is in `AGENTS.md` section 1.
 | `crates/worker` | Isolated process that parses untrusted PDFs |
 | `crates/cli` | Headless CLI (`qw`) |
 | `apps/desktop` | Tauri shell and Svelte UI |
-| `docs/` | Architecture, threat model, ADRs, per-tool docs |
+| `crates/test-support` | Shared test helpers and PDF builders |
+| `fuzz/` | cargo-fuzz targets |
+| `fixtures/` | Test PDFs, images, Office files and golden outputs |
+| `tests/` | Cross-crate integration, regression and end-to-end tests |
+| `scripts/` | Fetch, stage, sign, SBOM and check scripts (`scripts/README.md`) |
+| `vendor/` | Downloaded engines and models (gitignored, filled by `scripts/fetch-*.ps1`) |
+| `docs/` | Guides, design, ADRs, per-tool docs, legal, project notes (`docs/README.md`) |
+| `build-msi.ps1` | One-step .msi build |
 
 ## License
 
