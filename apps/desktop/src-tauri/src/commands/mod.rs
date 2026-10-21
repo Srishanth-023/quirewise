@@ -9,6 +9,7 @@ pub mod documents;
 pub mod editor;
 pub mod jobs;
 pub mod recent;
+pub mod recipes;
 pub mod scan;
 pub mod settings;
 pub mod system;

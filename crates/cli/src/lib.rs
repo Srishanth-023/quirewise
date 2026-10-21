@@ -98,6 +98,25 @@ pub enum Command {
         #[arg(long)]
         password_stdin: bool,
     },
+    /// Run an exported recipe (a chain of tools) on files and/or a folder.
+    Recipe {
+        /// The recipe file exported from the app.
+        recipe: PathBuf,
+        /// Input files.
+        files: Vec<PathBuf>,
+        /// Also take every PDF from this folder (Office files too when the recipe converts them).
+        #[arg(long)]
+        folder: Option<PathBuf>,
+        /// Scan the sub-folders of `--folder` as well.
+        #[arg(long, requires = "folder")]
+        recursive: bool,
+        /// Output folder. Default: next to each source file.
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// Read a password from the first line of standard input and use it for every file.
+        #[arg(long)]
+        password_stdin: bool,
+    },
     /// Print the JSON Schema of the types the UI exchanges with the core.
     Schema,
     /// List the certificates of the Windows store that can sign, for `digital-sign`.
@@ -304,6 +323,24 @@ pub fn execute(cli: Cli, env: Env<'_>) -> Result<String, AppError> {
                 },
             )
         }
+        Command::Recipe {
+            recipe,
+            files: inputs,
+            folder,
+            recursive,
+            out,
+            ..
+        } => run_cmd::run_recipe(
+            runner,
+            run_cmd::RecipeArgs {
+                recipe: &recipe,
+                files: &inputs,
+                folder,
+                recursive,
+                out,
+                password,
+            },
+        ),
         Command::Schema => Ok(application::dto::ipc_schema_json()),
         Command::Certificates => {
             match queries.query(&DocumentQuery::Certificates, &CancellationToken::new())? {
@@ -441,6 +478,10 @@ where
             ..
         }
         | Command::Run {
+            password_stdin: true,
+            ..
+        }
+        | Command::Recipe {
             password_stdin: true,
             ..
         }

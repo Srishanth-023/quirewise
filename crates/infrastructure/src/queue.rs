@@ -6,11 +6,23 @@ use application::{
     UnitRunner,
 };
 use domain::naming::OutputNamingPattern;
+use domain::recipe::Recipe;
 use domain::{ToolId, ToolOptions};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
+
+use crate::file_store::AtomicFileStore;
+
+/// A chain of steps that replaces the single tool of a batch.
+#[derive(Debug, Clone)]
+pub struct RecipeRun {
+    /// The steps. Every file runs through all of them.
+    pub recipe: Recipe,
+    /// Session scratch folder for the files between steps.
+    pub temp_dir: PathBuf,
+}
 
 /// Everything needed to run a batch of files through one tool.
 #[derive(Debug, Clone)]
@@ -30,6 +42,9 @@ pub struct BatchRequest {
     /// True when the tool can run with no input file (it prints a web address): an empty file
     /// list then still makes one run.
     pub without_files: bool,
+    /// When set, each file runs through this recipe and `tool` and `options` only describe its
+    /// first step.
+    pub recipe: Option<RecipeRun>,
 }
 
 impl BatchRequest {
@@ -168,6 +183,29 @@ impl JobQueue {
         cancel: &CancellationToken,
         observer: &dyn BatchObserver,
     ) -> Result<Vec<application::OutputArtifact>, AppError> {
+        let progress = UnitProgress { unit, observer };
+        if let Some(run) = &request.recipe {
+            let Some(input) = inputs.first() else {
+                return Err(AppError::internal("starting the recipe"));
+            };
+            let unit = application::recipe::RecipeUnit {
+                recipe: &run.recipe,
+                input: input.clone(),
+                output_dir: request.output_dir.clone(),
+                naming_pattern: request.naming_pattern.clone(),
+                temp_dir: &run.temp_dir,
+            };
+            return catch_unwind(AssertUnwindSafe(|| {
+                application::recipe::run_recipe_unit(
+                    self.runner.as_ref(),
+                    &AtomicFileStore,
+                    &unit,
+                    cancel,
+                    &progress,
+                )
+            }))
+            .unwrap_or_else(|_| Err(AppError::internal("processing this file")));
+        }
         let unit_request = UnitRequest {
             tool,
             options: request.options.clone(),
@@ -175,7 +213,6 @@ impl JobQueue {
             output_dir: request.output_dir.clone(),
             naming_pattern: request.naming_pattern.clone(),
         };
-        let progress = UnitProgress { unit, observer };
         // A panicking engine must fail one file, not the whole batch.
         catch_unwind(AssertUnwindSafe(|| {
             self.runner.run_unit(&unit_request, cancel, &progress)
@@ -250,6 +287,7 @@ mod tests {
             inputs: names.iter().map(|n| InputDoc::new(*n)).collect(),
             output_dir: None,
             naming_pattern: OutputNamingPattern::default(),
+            recipe: None,
         }
     }
 
@@ -338,5 +376,55 @@ mod tests {
         let (q, probe, _) = queue(2);
         let report = q.run(&request(&[]), &CancellationToken::new(), &*probe);
         assert!(report.files.is_empty());
+    }
+
+    fn recipe_run(tools: &[ToolId]) -> RecipeRun {
+        use domain::recipe::RecipeStep;
+        RecipeRun {
+            recipe: Recipe {
+                id: String::new(),
+                name: "R".into(),
+                steps: tools
+                    .iter()
+                    .map(|t| RecipeStep {
+                        options: ToolOptions::defaults_for(*t),
+                    })
+                    .collect(),
+            },
+            temp_dir: std::env::temp_dir(),
+        }
+    }
+
+    #[test]
+    fn a_recipe_runs_every_step_on_every_file_with_per_file_status() {
+        let (q, probe, runner) = queue(2);
+        let mut req = request(&["a.pdf", "bad.pdf", "c.pdf"]);
+        req.recipe = Some(recipe_run(&[ToolId::Rotate, ToolId::Compress]));
+        let report = q.run(&req, &CancellationToken::new(), &*probe);
+        // a and c: two steps each; bad stops at its first step.
+        assert_eq!(runner.calls.load(Ordering::SeqCst), 5);
+        assert_eq!(report.files[0].status, FileStatus::Done);
+        assert_eq!(report.files[1].status, FileStatus::Damaged);
+        assert!(
+            report.files[1]
+                .error
+                .as_ref()
+                .unwrap()
+                .message
+                .contains("Step 1"),
+            "the failing step is named"
+        );
+        assert_eq!(report.files[2].status, FileStatus::Done);
+        assert_eq!(report.retryable(), vec![1]);
+    }
+
+    #[test]
+    fn an_invalid_recipe_fails_each_file_without_running_a_tool() {
+        let (q, probe, runner) = queue(2);
+        let mut req = request(&["a.pdf"]);
+        req.recipe = Some(recipe_run(&[ToolId::Merge]));
+        let report = q.run(&req, &CancellationToken::new(), &*probe);
+        assert_eq!(runner.calls.load(Ordering::SeqCst), 0);
+        assert_eq!(report.files[0].status, FileStatus::Failed);
     }
 }

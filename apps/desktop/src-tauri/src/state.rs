@@ -4,6 +4,7 @@ use application::ports::{
     ComponentInstaller, ComponentStore, FileStore, SettingsStore, SignatureStore,
 };
 use application::query::QueryRunner;
+use application::recipe::Recipes;
 use application::tools::ToolDeps;
 use application::{AppError, RecentFiles, ToolRegistry};
 use infrastructure::dpapi::Dpapi;
@@ -11,8 +12,8 @@ use infrastructure::logging::LogGuard;
 use infrastructure::signatures::FsSignatureStore;
 use infrastructure::{
     AppPaths, AtomicFileStore, ComponentManager, EventSink, FsComponentStore, HttpsDownloader,
-    JobManager, JsonRecentStore, SystemUnixClock, TempSession, TomlSettingsStore, WorkerSession,
-    WorkerSupervisor, default_trust, init_logging,
+    JobManager, JsonRecentStore, JsonRecipeStore, SystemUnixClock, TempSession, TomlSettingsStore,
+    WorkerSession, WorkerSupervisor, default_trust, init_logging,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -31,6 +32,10 @@ pub struct AppState {
     pub recent: RecentFiles,
     /// Background batch jobs.
     pub jobs: JobManager,
+    /// Saved recipes.
+    pub recipes: Recipes,
+    /// Scratch folder of this session, where recipe steps leave files between them.
+    pub temp_dir: PathBuf,
     /// Components installed on this computer.
     pub components: Arc<dyn ComponentStore>,
     /// Installs, imports and removes components.
@@ -88,6 +93,11 @@ impl AppState {
             Arc::clone(&files),
             Arc::new(SystemUnixClock),
         );
+        let recipes = Recipes::new(
+            Arc::new(JsonRecipeStore::new(paths.recipes_file)),
+            Arc::new(SystemUnixClock),
+        );
+        let temp_dir = temp.path().to_path_buf();
         let components: Arc<dyn ComponentStore> =
             Arc::new(FsComponentStore::new(paths.components_dir.clone()));
         let installer: Arc<dyn ComponentInstaller> = Arc::new(ComponentManager::new(
@@ -99,6 +109,8 @@ impl AppState {
         let signatures: Arc<dyn SignatureStore> =
             Arc::new(FsSignatureStore::new(paths.signatures_dir, Arc::new(Dpapi)));
         Ok(Self {
+            recipes,
+            temp_dir,
             components,
             installer,
             signatures,

@@ -43,6 +43,7 @@ pub fn run_batch(state: State<'_, AppState>, request: RunBatchRequest) -> Result
         output_dir: request.output_dir,
         naming_pattern: pattern,
         without_files,
+        recipe: None,
     }))
 }
 

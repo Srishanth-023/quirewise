@@ -25,6 +25,15 @@ impl AppError {
         }
     }
 
+    /// Puts `context` in front of the message, so a chained run says which step failed. A
+    /// cancellation keeps its own message.
+    pub fn with_context(mut self, context: &str) -> Self {
+        if self.code != ErrorCode::JobCancelled {
+            self.message = format!("{context}: {}", self.message);
+        }
+        self
+    }
+
     /// The job was cancelled by the user.
     pub fn cancelled() -> Self {
         Self::new(

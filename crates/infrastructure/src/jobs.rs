@@ -256,6 +256,7 @@ mod tests {
             inputs: names.iter().map(|n| InputDoc::new(*n)).collect(),
             output_dir: None,
             naming_pattern: OutputNamingPattern::default(),
+            recipe: None,
         }
     }
 

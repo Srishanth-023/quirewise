@@ -16,6 +16,7 @@ pub mod naming_service;
 pub mod ports;
 pub mod query;
 pub mod recent;
+pub mod recipe;
 pub mod registry;
 pub mod run_tool;
 pub mod runtime;

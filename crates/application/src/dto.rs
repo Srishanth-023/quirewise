@@ -42,6 +42,39 @@ pub struct RunBatchRequest {
     pub naming_pattern: Option<String>,
 }
 
+/// Where one tool may sit in a recipe.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct RecipeRoleEntry {
+    /// The tool.
+    pub tool: ToolId,
+    /// Its place in a chain.
+    pub role: domain::recipe::ChainRole,
+}
+
+/// A folder to run a recipe on.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct FolderRef {
+    /// The folder.
+    pub path: PathBuf,
+    /// Also take files from sub-folders.
+    pub recursive: bool,
+}
+
+/// Asks the core to run a recipe on files, a folder or both.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct RunRecipeRequest {
+    /// The recipe, as the UI shows it. It need not be saved.
+    pub recipe: domain::recipe::Recipe,
+    /// Files to run it on.
+    pub inputs: Vec<InputRef>,
+    /// A folder to run it on, added to `inputs`.
+    pub folder: Option<FolderRef>,
+    /// Output folder, or `None` for next to each source.
+    pub output_dir: Option<PathBuf>,
+    /// Naming pattern, or `None` for the one in settings.
+    pub naming_pattern: Option<String>,
+}
+
 /// What `classify_inputs` learned about one dropped path.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct InputSummary {
@@ -218,6 +251,10 @@ pub struct IpcTypes {
     pub ai_options: domain::tools::ai::AiOptions,
     pub smart_split_options: domain::tools::ai::SmartSplitOptions,
     pub split_part: domain::tools::ai::SplitPart,
+    pub recipe: domain::recipe::Recipe,
+    pub recipe_step: domain::recipe::RecipeStep,
+    pub recipe_role: RecipeRoleEntry,
+    pub run_recipe_request: RunRecipeRequest,
 }
 
 /// What the tools that use the language model can be told to use.
