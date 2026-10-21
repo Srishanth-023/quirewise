@@ -33,7 +33,7 @@ regex = "1"
 rsa = { version = "0.9", features = ["sha2"] }
 rustls-native-certs = "0.8"
 sha1 = { version = "0.10", features = ["oid"] }
-sha2 = "0.10"
+sha2 = "0.11"
 signature = { version = "2", features = ["rand_core"] }
 spki = { version = "0.7", features = ["alloc"] }
 x509-cert = { version = "0.2", features = ["builder"] }
