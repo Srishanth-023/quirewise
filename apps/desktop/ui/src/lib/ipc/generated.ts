@@ -1046,7 +1046,7 @@ export type ThemePreference = 'system' | 'light' | 'dark';
  */
 export type TiffCompression = 'lzw' | 'deflate' | 'ccitt-g4';
 /**
- * Navigation group a tool belongs to (MASTER_PROMPT.md section 3.1).
+ * Navigation group a tool belongs to (docs/project/MASTER_PROMPT.md section 3.1).
  *
  * This interface was referenced by `IpcTypes`'s JSON-Schema
  * via the `definition` "ToolGroup".

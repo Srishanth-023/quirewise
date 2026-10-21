@@ -1,4 +1,4 @@
-//! Stable error codes (MASTER_PROMPT.md Appendix C.3) and domain errors.
+//! Stable error codes (docs/project/MASTER_PROMPT.md Appendix C.3) and domain errors.
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

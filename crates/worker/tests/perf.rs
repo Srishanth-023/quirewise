@@ -1,4 +1,4 @@
-//! Speed budgets of docs/performance-budgets.md that a test can measure: the first thumbnail and
+//! Speed budgets of docs/design/performance-budgets.md that a test can measure: the first thumbnail and
 //! the merge of 100 small PDFs. The budgets are for release builds; a debug build is far slower, so
 //! it only checks the loose limit that catches an accidental hang or quadratic loop.
 // Test helpers outside `#[test]` functions may unwrap: a failure should stop the test at once.

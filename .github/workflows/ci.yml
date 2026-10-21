@@ -21,7 +21,7 @@ jobs:
       matrix:
         include:
           # windows-11-arm is the GitHub-hosted arm64 runner. If the plan lacks it, cross-compile
-          # on x64 and run arm64 tests on a self-hosted Windows on Arm machine (open-questions.md).
+          # on x64 and run arm64 tests on a self-hosted Windows on Arm machine (docs/project/open-questions.md).
           - { arch: x86_64, runner: windows-latest, target: x86_64-pc-windows-msvc, native: x64 }
           - { arch: aarch64, runner: windows-11-arm, target: aarch64-pc-windows-msvc, native: arm64 }
     steps:

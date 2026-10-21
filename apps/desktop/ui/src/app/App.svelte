@@ -27,8 +27,8 @@
   import RightPanel from './shell/RightPanel.svelte';
   import Workspace from './shell/Workspace.svelte';
   import licenseText from '../../../../../LICENSE?raw';
-  import privacyText from '../../../../../PRIVACY.md?raw';
-  import termsText from '../../../../../TERMS.md?raw';
+  import privacyText from '../../../../../docs/legal/PRIVACY.md?raw';
+  import termsText from '../../../../../docs/legal/TERMS.md?raw';
 
   type Route = 'home' | 'recipes' | 'settings' | 'about' | 'license' | 'privacy' | 'terms';
 

@@ -42,7 +42,7 @@ Ghostscript is never linked into Quirewise. MuPDF is not used.
 | windows | MIT or Apache-2.0 | Job Object confinement |
 | tauri, tauri-build | MIT or Apache-2.0 | Shell |
 | proptest, tempfile | MIT or Apache-2.0 | Tests only |
-| libfuzzer-sys | MIT or Apache-2.0, plus NCSA | Fuzz harness only, built in its own workspace, never shipped (see docs/open-questions.md) |
+| libfuzzer-sys | MIT or Apache-2.0, plus NCSA | Fuzz harness only, built in its own workspace, never shipped (see docs/project/open-questions.md) |
 
 ## Added in Phase 2
 

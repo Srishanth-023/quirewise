@@ -1,6 +1,6 @@
 # UI theme: Ink and Paper
 
-Tokens live in `apps/desktop/ui/src/lib/design/tokens.css`, the only file allowed to hold raw hex colors. The values mirror `MASTER_PROMPT.md` section 7.
+Tokens live in `apps/desktop/ui/src/lib/design/tokens.css`, the only file allowed to hold raw hex colors. The values mirror `docs/project/MASTER_PROMPT.md` section 7.
 
 ## Rules
 

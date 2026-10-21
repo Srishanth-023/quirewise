@@ -4,7 +4,7 @@ Offline-first PDF toolkit for Windows x64 and arm64. Merge, split, compress, con
 
 ## Status
 
-Under construction. Scope and phases are defined in `MASTER_PROMPT.md`; engineering rules are in `AGENTS.md`. Progress is tracked in `CHANGELOG.md`.
+Under construction. Scope and phases are defined in `docs/project/MASTER_PROMPT.md`; engineering rules are in `AGENTS.md`. Progress is tracked in `CHANGELOG.md`.
 
 ## Development
 
@@ -33,4 +33,4 @@ The full checklist before a change is merged is in `AGENTS.md` section 1.
 
 ## License
 
-MIT. See `LICENSE` and `THIRD_PARTY_NOTICES.md`.
+MIT. See `LICENSE` and `docs/legal/THIRD_PARTY_NOTICES.md`.

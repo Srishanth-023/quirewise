@@ -31,7 +31,7 @@ Canonicalize paths, reject device paths and reparse-point escapes, allow UNC onl
 
 ## Open items
 
-Tracked in `docs/open-questions.md`.
+Tracked in `docs/project/open-questions.md`.
 
 ## Local AI (Phase 12)
 

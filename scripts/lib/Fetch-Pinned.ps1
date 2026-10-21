@@ -13,7 +13,7 @@ function Invoke-PinnedFetch {
     $pin = $pins.$Name.$Arch
     if (-not $pin) { throw "No pin for $Name/$Arch in scripts/native-pins.json" }
     if ([string]::IsNullOrWhiteSpace($pin.sha256)) {
-        throw "Pin for $Name/$Arch has no sha256. Review the download, then record the hash (see docs/open-questions.md)."
+        throw "Pin for $Name/$Arch has no sha256. Review the download, then record the hash (see docs/project/open-questions.md)."
     }
     $dest = Join-Path $Root "vendor/$Name/$Arch"
     $tmp = Join-Path ([IO.Path]::GetTempPath()) ("quirewise-fetch-" + [guid]::NewGuid().ToString('N'))

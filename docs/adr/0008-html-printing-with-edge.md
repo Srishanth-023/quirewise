@@ -4,7 +4,7 @@ Status: accepted
 
 ## Context
 
-MASTER_PROMPT.md names WebView2 `PrintToPdf` in a hidden window. That needs COM calls from Rust (`unsafe`), a message loop and a window inside the confined worker, and it cannot be tested without showing UI.
+docs/project/MASTER_PROMPT.md names WebView2 `PrintToPdf` in a hidden window. That needs COM calls from Rust (`unsafe`), a message loop and a window inside the confined worker, and it cannot be tested without showing UI.
 
 ## Decision
 

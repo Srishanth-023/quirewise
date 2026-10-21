@@ -23,7 +23,7 @@ JPEG and JPEG 2000 pictures are written exactly as the PDF stores them, so a pic
 
 - Scans stored as CCITT or JBIG2 cannot be taken out as files; use PDF to images for those pages. The message says how many were left out.
 - An encrypted PDF is opened with its password first (a decrypted copy is made in the scratch folder and removed).
-- The tool reads PDF picture objects with lopdf, not PDFium (see docs/open-questions.md).
+- The tool reads PDF picture objects with lopdf, not PDFium (see docs/project/open-questions.md).
 
 ## Errors
 

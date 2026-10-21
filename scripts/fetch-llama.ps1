@@ -5,7 +5,7 @@
   Network use is explicit: this runs on a developer machine or in CI, never in the app.
 .DESCRIPTION
   The product ships neither: the llama.cpp server and each model are on-demand components
-  (docs/components.md), and the person sees the license of a model before it is downloaded.
+  (docs/guides/components.md), and the person sees the license of a model before it is downloaded.
   This script prepares a development tree, where the tests of the AI tools look for them.
 .EXAMPLE
   scripts/fetch-llama.ps1 -Arch x64 -Model smollm2-360m-instruct

@@ -31,7 +31,7 @@ $null = New-Item -ItemType Directory -Force $folder
 Copy-Item $app (Join-Path $folder 'quirewise.exe')
 Copy-Item $worker (Join-Path $folder 'quirewise-worker.exe')
 Copy-Item (Join-Path $stage 'native') (Join-Path $folder 'native') -Recurse
-foreach ($doc in 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'PRIVACY.md', 'TERMS.md') {
+foreach ($doc in 'LICENSE', 'docs/legal/THIRD_PARTY_NOTICES.md', 'docs/legal/PRIVACY.md', 'docs/legal/TERMS.md') {
     Copy-Item (Join-Path $root $doc) $folder
 }
 # The flag switches on portable mode: see AppPaths in the infrastructure crate.

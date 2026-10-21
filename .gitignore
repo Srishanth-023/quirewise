@@ -116,3 +116,6 @@ fixtures/**/actual/
 
 # Installer staging (scripts/stage-installer.ps1)
 apps/desktop/src-tauri/staging/
+
+# build-msi.ps1 output
+/dist/

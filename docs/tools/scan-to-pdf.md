@@ -25,7 +25,7 @@ The pictures in the list are the pages, in list order. The paper is found as the
 
 ## Behavior and limits
 
-- The scanner and camera paths use hardware and the Windows dialog; they could not be tried without a device in the automated tests (see docs/open-questions.md).
+- The scanner and camera paths use hardware and the Windows dialog; they could not be tried without a device in the automated tests (see docs/project/open-questions.md).
 - Paper that is not brighter than its background is not found; turn the two clean-up options off for those pictures.
 - With OCR on, the pages are read like any scanned PDF and the result is searchable.
 

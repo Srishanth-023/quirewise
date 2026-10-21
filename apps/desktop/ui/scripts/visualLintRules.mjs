@@ -1,4 +1,4 @@
-// Visual lint rules (MASTER_PROMPT.md section 13, AGENTS.md section 4).
+// Visual lint rules (docs/project/MASTER_PROMPT.md section 13, AGENTS.md section 4).
 // Pure functions so the rules themselves are unit tested.
 
 const STYLE_EXT = new Set(['.css', '.svelte', '.html']);

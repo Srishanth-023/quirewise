@@ -61,7 +61,7 @@ pub use structure::{
     AttachmentsOptions, BookmarksOptions, PageLabelsOptions, RenameByContentOptions,
 };
 
-/// Navigation group a tool belongs to (MASTER_PROMPT.md section 3.1).
+/// Navigation group a tool belongs to (docs/project/MASTER_PROMPT.md section 3.1).
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
 )]

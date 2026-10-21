@@ -1,4 +1,4 @@
-//! Page range grammar (MASTER_PROMPT.md Appendix C.1) and resolution against a page count.
+//! Page range grammar (docs/project/MASTER_PROMPT.md Appendix C.1) and resolution against a page count.
 //!
 //! Parsing is independent of the document so it can be validated as the user types.
 //! Resolution applies the page count and the duplicate policy.

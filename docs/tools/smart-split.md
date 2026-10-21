@@ -43,4 +43,4 @@ Each part is written as `{name} ({title}).pdf`.
 
 ## License impact
 
-llama.cpp (MIT) runs as a separate process; models are separate files under their own licenses (see `docs/components.md`). Nothing is linked.
+llama.cpp (MIT) runs as a separate process; models are separate files under their own licenses (see `docs/guides/components.md`). Nothing is linked.

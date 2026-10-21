@@ -1,6 +1,6 @@
 # Handoff: Quirewise, Phase 13 built, release steps left
 
-Written 2026-10-21. Read AGENTS.md and MASTER_PROMPT.md (section 15) first; CLAUDE.md only says "Follow AGENTS.md".
+Written 2026-10-21. Read AGENTS.md and docs/project/MASTER_PROMPT.md (section 15) first; CLAUDE.md only says "Follow AGENTS.md".
 
 ## What Quirewise is
 
@@ -20,7 +20,7 @@ Work phase by phase without asking for approval. Answers: concise, no greetings,
 
 - Recipes: `domain/recipe.rs`, `application/recipe.rs`, `infrastructure/recipes.rs` and `queue.rs` (recipe branch), CLI `recipe`, UI `features/recipes`. ADR-0011, `docs/tools/recipes.md`.
 - Explorer menu: `domain/explorer.rs`, `infrastructure/explorer.rs` (reg.exe, HKCU), single instance + `launch` event, Settings, Explorer menu. ADR-0012.
-- Installer and portable: `scripts/stage-installer.ps1`, `tauri.bundle.conf.json` (overlay), `installer/hooks.nsh`, `scripts/make-portable.ps1`. Build from `apps/desktop` with `ui\node_modules\.bin\tauri.cmd build --config src-tauri/tauri.bundle.conf.json` (see `docs/installation.md`).
+- Installer and portable: `scripts/stage-installer.ps1`, `tauri.bundle.conf.json` (overlay), `installer/hooks.nsh`, `scripts/make-portable.ps1`. Build from `apps/desktop` with `ui\node_modules\.bin\tauri.cmd build --config src-tauri/tauri.bundle.conf.json` (see `docs/guides/installation.md`).
 - i18n and a11y: logical CSS (visual-lint rule `physical-direction`), `formatNumber`, axe tests, live region in RunBar.
 
 ## Left

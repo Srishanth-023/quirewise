@@ -26,7 +26,7 @@ Editable slides use the analysis below. Every block gets a text box at its posit
 
 - The analysis follows rules, not a trained model. Unusual layouts (text around pictures, magazine pages, forms) may need fixing by hand in the result.
 - Fonts are not kept: text is set in Calibri with the size, bold and italic it had. Text colors, shading and vector drawings (charts, logos drawn as paths) are not carried over; pictures are.
-- Pictures that sit inside a form object are not seen (see docs/open-questions.md). Pictures are limited to 2400 pixels on the long side; opaque pictures of 160000 pixels or more are stored as JPEG, the rest as PNG.
+- Pictures that sit inside a form object are not seen (see docs/project/open-questions.md). Pictures are limited to 2400 pixels on the long side; opaque pictures of 160000 pixels or more are stored as JPEG, the rest as PNG.
 - Text that is not horizontal on the page (vertical lines, text turned by an angle) is read one character at a time and comes out in pieces.
 - A scanned page needs the Tesseract component and the language data (Settings, Components). With text recognition off, or when a page has no picture, such a page stays a picture or empty.
 - The slides use a blank layout; no title or content placeholders are created, so the Outline view of PowerPoint stays empty.

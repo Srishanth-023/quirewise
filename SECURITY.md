@@ -6,7 +6,7 @@ Report vulnerabilities privately through GitHub Security Advisories on the repos
 
 ## Scope
 
-Quirewise treats every input document as hostile. Parser crashes, sandbox escapes from the worker process, path traversal through output names, component verification bypasses and IPC abuse are in scope. See `docs/threat-model.md`.
+Quirewise treats every input document as hostile. Parser crashes, sandbox escapes from the worker process, path traversal through output names, component verification bypasses and IPC abuse are in scope. See `docs/design/threat-model.md`.
 
 ## Supported versions
 

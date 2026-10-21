@@ -1,4 +1,4 @@
-//! Safety limits applied to every job (MASTER_PROMPT.md section 12).
+//! Safety limits applied to every job (docs/project/MASTER_PROMPT.md section 12).
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

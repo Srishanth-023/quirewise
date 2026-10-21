@@ -4,7 +4,7 @@
   Network use is explicit: this runs on a developer machine or in CI, never in the app.
 .DESCRIPTION
   veraPDF is a Java program, so Java 11 or newer must be on the path (or in JAVA_HOME). The product
-  ships veraPDF with its own Java as the on-demand component `verapdf` (docs/components.md); this
+  ships veraPDF with its own Java as the on-demand component `verapdf` (docs/guides/components.md); this
   script only prepares a development tree, where the tests of the PDF/A tools look for it.
   The download address always serves the newest release, so a new release changes the hash:
   review it, then update the pin in scripts/native-pins.json.

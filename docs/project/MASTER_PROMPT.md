@@ -1,4 +1,4 @@
-# MASTER_PROMPT.md: Build Quirewise
+# docs/project/MASTER_PROMPT.md: Build Quirewise
 
 You are the sole engineer building **Quirewise**, a personal-use, offline-first Windows desktop PDF toolkit for **Windows x64 and Windows arm64**. Build the entire application in one continuous run, phase by phase (section 15), without stopping for confirmation. Read and obey `AGENTS.md` at all times. If this file and `AGENTS.md` conflict, `AGENTS.md` wins on rules and this file wins on scope.
 
@@ -90,12 +90,12 @@ Every tool is registered in one `ToolRegistry`. The UI and CLI never hardcode to
 quirewise/
   AGENTS.md
   CLAUDE.md                      # one line: "Follow AGENTS.md"
-  MASTER_PROMPT.md
+  docs/project/MASTER_PROMPT.md
   README.md
   LICENSE
-  THIRD_PARTY_NOTICES.md
-  PRIVACY.md
-  TERMS.md
+  docs/legal/THIRD_PARTY_NOTICES.md
+  docs/legal/PRIVACY.md
+  docs/legal/TERMS.md
   CHANGELOG.md
   SECURITY.md
   Cargo.toml                     # workspace
@@ -410,7 +410,7 @@ Harsh gradients; Lucide icons; pure white (#FFFFFF) backgrounds; rainbow colorin
 ## 11. Additional standards (added)
 
 - SemVer, Conventional Commits, CHANGELOG (Keep a Changelog) via git-cliff.
-- ADRs in `docs/adr`; STRIDE threat model in `docs/threat-model.md`, updated for any feature touching files, network or crypto.
+- ADRs in `docs/adr`; STRIDE threat model in `docs/design/threat-model.md`, updated for any feature touching files, network or crypto.
 - SBOM (CycloneDX) for Rust and npm on every release; `cargo-deny` (licenses, advisories, bans, sources) and `cargo-audit`; npm audit + license checker; Dependabot weekly.
 - **Allowed licenses in core:** MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Zlib, MPL-2.0, OFL-1.1 (fonts), Unicode-3.0, CC0-1.0. GPL/AGPL only behind opt-in features in separate processes, with notices.
 - **Code signing:** Authenticode for exe, dll and installers (Azure Trusted Signing or a code-signing certificate). Component manifest signed with Ed25519 (minisign).
@@ -420,7 +420,7 @@ Harsh gradients; Lucide icons; pure white (#FFFFFF) backgrounds; rainbow colorin
 - **i18n readiness:** all strings in ICU MessageFormat resource files; no string concatenation; RTL-safe layouts; locale-aware numbers and dates.
 - **Reproducible builds:** pinned toolchains, `--locked`, pinned native binaries with SHA-256, `SOURCE_DATE_EPOCH`.
 - **Performance budgets** (targets; CI fails on regressions over 10%): base installer at most 30 MB per arch; cold start to interactive at most 1.0 s on a mid-range x64 or Snapdragon X laptop; idle RAM at most 150 MB including WebView2; first thumbnail at most 300 ms; merge of 100 small PDFs under 3 s.
-- **Legal screens:** LICENSE, THIRD_PARTY_NOTICES.md (generated from audits), TERMS.md, PRIVACY.md (no data collection), About dialog listing versions and licenses of all bundled and installed components and models.
+- **Legal screens:** LICENSE, docs/legal/THIRD_PARTY_NOTICES.md (generated from audits), docs/legal/TERMS.md, docs/legal/PRIVACY.md (no data collection), About dialog listing versions and licenses of all bundled and installed components and models.
 
 ---
 
@@ -498,7 +498,7 @@ A tool is done only when all of the following hold:
 7. UI reachable in at most 3 actions from a drop, keyboard accessible, axe-clean, real preview shown, no banned patterns.
 8. Batch mode supported where it makes sense; last settings remembered.
 9. Docs: `docs/tools/<tool-id>.md` (purpose, options, limits, engine, license impact); CHANGELOG entry.
-10. Any new dependency passes `cargo-deny` and appears in THIRD_PARTY_NOTICES.md.
+10. Any new dependency passes `cargo-deny` and appears in docs/legal/THIRD_PARTY_NOTICES.md.
 
 ---
 

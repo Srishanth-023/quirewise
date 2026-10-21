@@ -1,12 +1,12 @@
 # AGENTS.md: Always-on rules for Quirewise
 
-`CLAUDE.md` contains one line: "Follow AGENTS.md". This file is the single source of truth for rules. Scope, stack, phases and the normative feature matrix (Appendix A) live in `MASTER_PROMPT.md`.
+`CLAUDE.md` contains one line: "Follow AGENTS.md". This file is the single source of truth for rules. Scope, stack, phases and the normative feature matrix (Appendix A) live in `docs/project/MASTER_PROMPT.md`.
 
 ## 0. Mission
 Build and maintain Quirewise, an offline-first Windows PDF toolkit for x64 and arm64 with full iLovePDF + Sejda parity. These rules apply to every task, file and commit.
 
 ## 1. Workflow for every task
-1. Read the relevant `MASTER_PROMPT.md` section, the matching Appendix A row(s), and `docs/tools/<tool-id>.md` if it exists.
+1. Read the relevant `docs/project/MASTER_PROMPT.md` section, the matching Appendix A row(s), and `docs/tools/<tool-id>.md` if it exists.
 2. Write or update tests first (unit, integration, golden, negative).
 3. Implement the smallest change that passes, respecting layer boundaries.
 4. Run:
@@ -22,7 +22,7 @@ Build and maintain Quirewise, an offline-first Windows PDF toolkit for x64 and a
 6. Update docs, CHANGELOG, THIRD_PARTY_NOTICES (if dependencies changed), ADR (if a decision changed).
 7. Self-review the full diff against section 12, then commit.
 
-Never stop to ask for confirmation during a planned phase. Record open questions in `docs/open-questions.md` and continue with the safest reasonable default. Never implement anything listed as out of scope in `MASTER_PROMPT.md` section 3.2.
+Never stop to ask for confirmation during a planned phase. Record open questions in `docs/project/open-questions.md` and continue with the safest reasonable default. Never implement anything listed as out of scope in `docs/project/MASTER_PROMPT.md` section 3.2.
 
 ## 2. Architecture boundaries (hard)
 - `domain` depends on nothing project-internal and performs no I/O.
@@ -35,13 +35,13 @@ Never stop to ask for confirmation during a planned phase. Record open questions
 - `scripts/check-deps.ps1` (using `cargo metadata`) fails CI on any forbidden edge.
 
 ## 3. Coding conventions
-- **Rust:** pinned stable toolchain. `#![forbid(unsafe_code)]` in `domain`, `application`, `infrastructure`. `unsafe` only in engine FFI modules, each block with a `// SAFETY:` comment. Clippy `unwrap_used` and `expect_used` denied outside tests. Errors via `thiserror`; app boundary maps to `AppError` with codes from `MASTER_PROMPT.md` Appendix C.
+- **Rust:** pinned stable toolchain. `#![forbid(unsafe_code)]` in `domain`, `application`, `infrastructure`. `unsafe` only in engine FFI modules, each block with a `// SAFETY:` comment. Clippy `unwrap_used` and `expect_used` denied outside tests. Errors via `thiserror`; app boundary maps to `AppError` with codes from `docs/project/MASTER_PROMPT.md` Appendix C.
 - **Types:** newtypes for units (`PageIndex`, `PageNumber`, `Dpi`, `Percent`, `Bytes`, `Millimeters`). Option structs derive `serde` + `schemars`, with defaults matching Appendix A, validated in `domain`.
 - **Concurrency:** async only for I/O; CPU work on bounded pools; every long operation takes a `CancellationToken` and reports progress.
 - **Resources:** RAII wrappers for PDFium documents and pages; never share handles across threads unless the binding is thread-safe.
 - **TypeScript:** `strict: true`; no `any`; no non-null assertions without a comment; Svelte 5 runes; components under 200 lines; one feature folder per tool.
 - **Naming:** tool ids kebab-case; Rust modules snake_case; types PascalCase; TS files camelCase; Svelte components PascalCase.svelte.
-- No dead code, no commented-out code, no TODO without an issue or `docs/open-questions.md` reference.
+- No dead code, no commented-out code, no TODO without an issue or `docs/project/open-questions.md` reference.
 - Comments explain why, not what. Every public item has rustdoc or TSDoc.
 - **No em dash (U+2014)** anywhere: code, comments, UI strings, docs, commit messages. Use commas, colons, parentheses or hyphens.
 
@@ -63,7 +63,7 @@ Never stop to ask for confirmation during a planned phase. Record open questions
 ## 6. Security and privacy
 - Treat every input file as hostile. Parse only in the worker under Job Object limits, with caps on object count, decompression ratio, page count, and time.
 - No network by default. Any network use (URL to PDF, component download, TSA timestamp, revocation check, update check, loopback AI endpoint) requires explicit consent in that flow and is logged locally.
-- Zero telemetry, analytics, remote fonts or remote scripts. Keep the CSP from `MASTER_PROMPT.md` section 12; Tauri capabilities minimal per window; asset protocol scoped to the session temp directory.
+- Zero telemetry, analytics, remote fonts or remote scripts. Keep the CSP from `docs/project/MASTER_PROMPT.md` section 12; Tauri capabilities minimal per window; asset protocol scoped to the session temp directory.
 - Never execute PDF JavaScript. Never follow launch or URI actions.
 - Passwords and keys: memory only, `zeroize` on drop, never logged, never written to settings. Saved visual signatures encrypted with DPAPI.
 - Paths: canonicalize; deny traversal and reserved device names; sanitize generated file names; temp files only in `%TEMP%\Quirewise\<session>`, deleted afterwards.
@@ -86,7 +86,7 @@ Never stop to ask for confirmation during a planned phase. Record open questions
 ## 9. Dependencies
 - Add a dependency only if maintained (release within 12 months), license-allowed, and arm64-compatible. State the reason in the PR.
 - Allowed licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Zlib, MPL-2.0, OFL-1.1, Unicode-3.0, CC0-1.0. Anything else needs an ADR and must be opt-in.
-- Lockfiles committed and used (`--locked`, `pnpm install --frozen-lockfile`). Update THIRD_PARTY_NOTICES.md.
+- Lockfiles committed and used (`--locked`, `pnpm install --frozen-lockfile`). Update docs/legal/THIRD_PARTY_NOTICES.md.
 - Native binaries (PDFium, qpdf, Tesseract) are fetched by scripts with pinned versions and SHA-256, never committed.
 
 ## 10. Commits, branches, PRs

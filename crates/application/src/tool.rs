@@ -1,4 +1,4 @@
-//! The tool contract (MASTER_PROMPT.md section 4) and the types it exchanges.
+//! The tool contract (docs/project/MASTER_PROMPT.md section 4) and the types it exchanges.
 
 use domain::naming::{NameContext, OutputNamingPattern};
 use domain::{ToolId, ToolOptions};

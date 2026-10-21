@@ -34,7 +34,7 @@ allow = [
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
-# AGPL engines are never linked into the core (MASTER_PROMPT.md section 2).
+# AGPL engines are never linked into the core (docs/project/MASTER_PROMPT.md section 2).
 deny = [
   { name = "mupdf" },
   { name = "mupdf-sys" },
