@@ -10,7 +10,8 @@ Build it from a clean checkout:
 powershell -File scripts/fetch-pdfium.ps1 -Arch x64
 powershell -File scripts/fetch-qpdf.ps1 -Arch x64
 powershell -File scripts/stage-installer.ps1 -Target x86_64-pc-windows-msvc
-pnpm -C apps/desktop/ui tauri build --target x86_64-pc-windows-msvc --bundles nsis --config ../src-tauri/tauri.bundle.conf.json
+cd apps/desktop
+.\ui\node_modules\.bin\tauri.cmd build --target x86_64-pc-windows-msvc --bundles nsis --config src-tauri/tauri.bundle.conf.json
 ```
 
 `stage-installer.ps1` builds the worker in release mode and collects it, `pdfium.dll` and `qpdf` into `apps/desktop/src-tauri/staging`. `tauri.bundle.conf.json` adds those files to the bundle (the worker as a sidecar, renamed to `quirewise-worker.exe` next to the app; the engines under `native\`). The base `tauri.conf.json` does not list them, so `cargo check`, clippy and development builds work without staging.

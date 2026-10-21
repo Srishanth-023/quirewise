@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
   Collects what the installer carries besides the app: the worker program and the PDF engine files.
-  Run it before `tauri build --config ../src-tauri/tauri.bundle.conf.json` (the path is relative to apps/desktop/ui).
+  Run it before `tauri build --config src-tauri/tauri.bundle.conf.json` (run from apps/desktop; the path is relative to it).
 .DESCRIPTION
   Builds the worker in release mode (unless -SkipBuild), then fills apps/desktop/src-tauri/staging:
     quirewise-worker-<target>.exe   the sidecar Tauri renames to quirewise-worker.exe on install
