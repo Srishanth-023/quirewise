@@ -17,7 +17,7 @@ jobs:
       matrix:
         target: [page_range, naming_pattern, options_json, component_manifest, pdf_load]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: true
       - name: Install nightly toolchain and cargo-fuzz
