@@ -55,5 +55,5 @@ todo = "deny"
 
 [profile.release]
 lto = "thin"
-codegen-units = 1
+codegen-units = 16  # thin LTO still optimizes across units; one unit builds several times slower for a few percent
 strip = "symbols"

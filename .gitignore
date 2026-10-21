@@ -75,6 +75,7 @@ secrets/
 local.settings.*
 *.local.toml
 portable.flag
+Quirewise_Full_Summary.txt
 data/
 
 # ---------- OS files ----------

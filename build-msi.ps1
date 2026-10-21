@@ -5,7 +5,9 @@
   Fetches the PDF engines when vendor\ lacks them, stages the worker and engines
   (scripts/package/stage-installer.ps1), builds the UI and the app, and bundles an .msi with
   src-tauri\tauri.bundle.conf.json. Tauri downloads the WiX toolset on the first run.
-  Run from any folder: .\build-msi.ps1 [-Target aarch64-pc-windows-msvc] [-SkipStage]
+  Run from any folder: .\build-msi.ps1 [-Target aarch64-pc-windows-msvc] [-SkipStage] [-Quick]
+  It uses the release profile of Cargo.toml (thin LTO, 16 code-generation units), the same as CI.
+  -Quick turns LTO off for a faster test build; the program is larger and slower, so do not ship it.
   Note: the Explorer menu is written by the app per user; an .msi uninstall does not remove it
   (the NSIS installer does). Remove it in Settings, Explorer menu before uninstalling.
 #>
@@ -14,14 +16,13 @@ param(
     [ValidateSet('x86_64-pc-windows-msvc', 'aarch64-pc-windows-msvc')]
     [string]$Target = 'x86_64-pc-windows-msvc',
     [switch]$SkipStage,
-    [switch]$Full
+    [switch]$Quick
 )
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-if (-not $Full) {
+if ($Quick) {
     # Same `release` folder, so staging and the bundler work unchanged.
     $env:CARGO_PROFILE_RELEASE_LTO = 'off'
-    $env:CARGO_PROFILE_RELEASE_CODEGEN_UNITS = '16'
 }
 $arch = if ($Target -like 'aarch64*') { 'arm64' } else { 'x64' }
 $desktop = Join-Path $root 'apps/desktop'
