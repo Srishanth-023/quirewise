@@ -35,11 +35,10 @@ if (-not (Test-Path $tauri)) {
 
 if (-not $SkipStage) {
     foreach ($fetch in 'fetch-pdfium.ps1', 'fetch-qpdf.ps1') {
+        # PowerShell scripts throw on failure; $LASTEXITCODE would only hold a stale value from an earlier command.
         & (Join-Path $root "scripts/fetch/$fetch") -Arch $arch
-        if ($LASTEXITCODE -ne 0) { throw "$fetch failed." }
     }
     & (Join-Path $root 'scripts/package/stage-installer.ps1') -Target $Target
-    if ($LASTEXITCODE -ne 0) { throw 'Staging failed.' }
 }
 
 # The Tauri CLI finds the project only when started from apps/desktop.
