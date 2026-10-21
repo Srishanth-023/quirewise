@@ -26,7 +26,7 @@ jobs:
         shell: pwsh
         run: |
           "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" | Add-Content $env:GITHUB_ENV
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: apps/desktop/ui/package.json
       - uses: actions/setup-node@v4
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: apps/desktop/ui/package.json
       - uses: actions/setup-node@v4
