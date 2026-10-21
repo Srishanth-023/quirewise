@@ -114,7 +114,7 @@ jobs:
         shell: pwsh
         run: ./scripts/checks/verify-arm64.ps1 -Path "target/aarch64-pc-windows-msvc/release/*"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installer-${{ matrix.arch }}
           path: target/${{ matrix.target }}/release/bundle/nsis/*-setup.exe
