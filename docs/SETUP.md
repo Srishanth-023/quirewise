@@ -67,7 +67,7 @@ Speed budgets: `cargo test --release -p quirewise-worker --test perf`. The full 
 
 | Output | Command |
 |---|---|
-| MSI | `.\build-msi.ps1` (result in `dist\`) |
+| MSI | `.\build-msi.ps1` (fast build, result in `dist\`); add `-Full` for the fully optimized release build |
 | NSIS installer | steps in `docs/guides/installation.md` |
 | Portable zip | `scripts/package/make-portable.ps1 -Target x86_64-pc-windows-msvc` |
 

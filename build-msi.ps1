@@ -13,10 +13,16 @@
 param(
     [ValidateSet('x86_64-pc-windows-msvc', 'aarch64-pc-windows-msvc')]
     [string]$Target = 'x86_64-pc-windows-msvc',
-    [switch]$SkipStage
+    [switch]$SkipStage,
+    [switch]$Full
 )
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
+if (-not $Full) {
+    # Same `release` folder, so staging and the bundler work unchanged.
+    $env:CARGO_PROFILE_RELEASE_LTO = 'off'
+    $env:CARGO_PROFILE_RELEASE_CODEGEN_UNITS = '16'
+}
 $arch = if ($Target -like 'aarch64*') { 'arm64' } else { 'x64' }
 $desktop = Join-Path $root 'apps/desktop'
 $tauri = Join-Path $desktop 'ui/node_modules/.bin/tauri.cmd'
