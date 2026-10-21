@@ -12,7 +12,7 @@
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $pin = (Get-Content (Join-Path $root 'scripts/native-pins.json') -Raw | ConvertFrom-Json).verapdf
 if (-not $pin -or [string]::IsNullOrWhiteSpace($pin.sha256)) { throw 'No verapdf pin with a sha256 in scripts/native-pins.json' }
 

@@ -3,7 +3,7 @@
   Builds the Quirewise .msi installer (WiX) and copies it to .\dist.
 .DESCRIPTION
   Fetches the PDF engines when vendor\ lacks them, stages the worker and engines
-  (scripts\stage-installer.ps1), builds the UI and the app, and bundles an .msi with
+  (scripts/package/stage-installer.ps1), builds the UI and the app, and bundles an .msi with
   src-tauri\tauri.bundle.conf.json. Tauri downloads the WiX toolset on the first run.
   Run from any folder: .\build-msi.ps1 [-Target aarch64-pc-windows-msvc] [-SkipStage]
   Note: the Explorer menu is written by the app per user; an .msi uninstall does not remove it
@@ -28,10 +28,10 @@ if (-not (Test-Path $tauri)) {
 
 if (-not $SkipStage) {
     foreach ($fetch in 'fetch-pdfium.ps1', 'fetch-qpdf.ps1') {
-        & (Join-Path $root "scripts/$fetch") -Arch $arch
+        & (Join-Path $root "scripts/fetch/$fetch") -Arch $arch
         if ($LASTEXITCODE -ne 0) { throw "$fetch failed." }
     }
-    & (Join-Path $root 'scripts/stage-installer.ps1') -Target $Target
+    & (Join-Path $root 'scripts/package/stage-installer.ps1') -Target $Target
     if ($LASTEXITCODE -ne 0) { throw 'Staging failed.' }
 }
 

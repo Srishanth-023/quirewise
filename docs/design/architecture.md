@@ -20,7 +20,7 @@ worker  hosts engines and runs tool plans in an isolated process
 | app-shell | `apps/desktop/src-tauri` | Thin Tauri adapter: commands map DTOs to use cases. No PDF logic |
 | ui | `apps/desktop/ui` | Svelte 5. Never touches the file system, calls typed commands only |
 
-`scripts/check-deps.ps1` enforces the allowed edges using `cargo metadata` and runs in CI.
+`scripts/checks/check-deps.ps1` enforces the allowed edges using `cargo metadata` and runs in CI.
 
 ## Process model
 

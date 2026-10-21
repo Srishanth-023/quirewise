@@ -7,7 +7,7 @@
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
-Set-Location (Split-Path -Parent $PSScriptRoot)
+Set-Location (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 $env:QW_UPDATE_GOLDEN = '1'
 try {
     cargo test -p quirewise-worker --test organize --locked

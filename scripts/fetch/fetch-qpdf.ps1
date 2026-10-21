@@ -5,6 +5,6 @@
 [CmdletBinding()]
 param([ValidateSet('x64', 'arm64')][string[]]$Arch = @('x64', 'arm64'))
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
-. (Join-Path $PSScriptRoot 'lib/Fetch-Pinned.ps1')
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+. (Join-Path $PSScriptRoot '../lib/Fetch-Pinned.ps1')
 foreach ($a in $Arch) { Invoke-PinnedFetch -Name 'qpdf' -Arch $a -Root $root }

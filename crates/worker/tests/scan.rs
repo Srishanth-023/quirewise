@@ -1,6 +1,6 @@
 //! End-to-end tests for the tools that read scans: Deskew, Scan to PDF and OCR. The real RunTool,
 //! worker engines and file store, run on generated pages and checked by rendering them again.
-//! The OCR tests need Tesseract (see `scripts/build-tesseract.ps1`) and do nothing without it.
+//! The OCR tests need Tesseract (see `scripts/fetch/build-tesseract.ps1`) and do nothing without it.
 // Test helpers outside `#[test]` functions may unwrap: a failure should stop the test at once.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

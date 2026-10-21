@@ -20,12 +20,12 @@ Work phase by phase without asking for approval. Answers: concise, no greetings,
 
 - Recipes: `domain/recipe.rs`, `application/recipe.rs`, `infrastructure/recipes.rs` and `queue.rs` (recipe branch), CLI `recipe`, UI `features/recipes`. ADR-0011, `docs/tools/recipes.md`.
 - Explorer menu: `domain/explorer.rs`, `infrastructure/explorer.rs` (reg.exe, HKCU), single instance + `launch` event, Settings, Explorer menu. ADR-0012.
-- Installer and portable: `scripts/stage-installer.ps1`, `tauri.bundle.conf.json` (overlay), `installer/hooks.nsh`, `scripts/make-portable.ps1`. Build from `apps/desktop` with `ui\node_modules\.bin\tauri.cmd build --config src-tauri/tauri.bundle.conf.json` (see `docs/guides/installation.md`).
+- Installer and portable: `scripts/package/stage-installer.ps1`, `tauri.bundle.conf.json` (overlay), `installer/hooks.nsh`, `scripts/package/make-portable.ps1`. Build from `apps/desktop` with `ui\node_modules\.bin\tauri.cmd build --config src-tauri/tauri.bundle.conf.json` (see `docs/guides/installation.md`).
 - i18n and a11y: logical CSS (visual-lint rule `physical-direction`), `formatNumber`, axe tests, live region in RunBar.
 
 ## Left
 
-1. Build the portable zip once (`scripts/make-portable.ps1`), never run.
+1. Build the portable zip once (`scripts/package/make-portable.ps1`), never run.
 2. Install-test the installer on a clean machine; build arm64 installer (open question 104).
 3. Signing and release need the owner's certificate, signing service and component manifest key (open questions 88, 91, 103). Then tag and run `release.yml`.
 4. Open questions 102 (Windows 11 "Show more options") to 104.

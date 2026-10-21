@@ -293,9 +293,9 @@ mod tests {
     fn engines() -> Engines {
         let paths = NativePaths {
             pdfium_dir: pdfium_dir(),
-            qpdf_exe: qpdf_exe().expect("run scripts/fetch-qpdf.ps1 first"),
+            qpdf_exe: qpdf_exe().expect("run scripts/fetch/fetch-qpdf.ps1 first"),
         };
-        Engines::load(&paths).expect("run scripts/fetch-pdfium.ps1 first")
+        Engines::load(&paths).expect("run scripts/fetch/fetch-pdfium.ps1 first")
     }
 
     fn write(dir: &tempfile::TempDir, name: &str, bytes: &[u8]) -> PathBuf {

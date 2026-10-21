@@ -390,7 +390,7 @@ Harsh gradients; Lucide icons; pure white (#FFFFFF) backgrounds; rainbow colorin
 
 ## 10. Backend standards (mandatory)
 
-- **Clean Architecture:** boundaries in section 4, enforced by crate dependencies and `scripts/check-deps.ps1` in CI.
+- **Clean Architecture:** boundaries in section 4, enforced by crate dependencies and `scripts/checks/check-deps.ps1` in CI.
 - **SOLID:** one responsibility per module; tools depend on ports, never on concrete engines.
 - **Naming:** Rust per API guidelines (snake_case, CamelCase); TS camelCase/PascalCase; tool ids kebab-case (`split-by-size`).
 - **Strong typing:** newtypes `PageIndex` (0-based), `PageNumber` (1-based), `Dpi`, `Percent`, `Bytes`, `Millimeters`; no stringly-typed options.
@@ -444,7 +444,7 @@ Harsh gradients; Lucide icons; pure white (#FFFFFF) backgrounds; rainbow colorin
 
 - **Unit:** every domain type and parser (page ranges, naming tokens, option validation) with property tests (`proptest`).
 - **Integration:** every tool through the CLI against fixtures; assert page counts, text presence/absence, metadata, encryption state, validity (`qpdf --check`, PDFium load).
-- **Golden files:** per tool, expected fingerprints (page count, per-page text hash, 72 dpi render hash with tolerance) in `fixtures/golden`; regenerate only via `scripts/update-golden.ps1` with reviewed render diffs.
+- **Golden files:** per tool, expected fingerprints (page count, per-page text hash, 72 dpi render hash with tolerance) in `fixtures/golden`; regenerate only via `scripts/checks/update-golden.ps1` with reviewed render diffs.
 - **Regression:** every fixed bug adds a fixture and a test named `regression_<slug>`.
 - **Fuzzing:** `cargo-fuzz` targets for page ranges, naming patterns, options JSON, component manifest, PDF load through the worker; nightly in CI; crashes become fixtures.
 - **E2E:** Playwright against the built app for all MTP flows; axe-core checks on every screen.

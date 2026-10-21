@@ -1,5 +1,5 @@
 //! Runs the AI tools against the real llama.cpp server and a small model from the development
-//! tree (`scripts/fetch-llama.ps1 -Model smollm2-360m-instruct`). When they are not there the
+//! tree (`scripts/fetch/fetch-llama.ps1 -Model smollm2-360m-instruct`). When they are not there the
 //! tests say so and pass, like the tests of the other on-demand components.
 //!
 //! A model this small does not write good summaries; these tests check that the whole path works
@@ -39,7 +39,7 @@ fn ready() -> bool {
         .is_some_and(|m| vendor().join("models").join(MODEL).join(m.file).is_file());
     if !(server && model) {
         eprintln!(
-            "llama.cpp or the small model is not installed here: run scripts/fetch-llama.ps1 -Model {MODEL}"
+            "llama.cpp or the small model is not installed here: run scripts/fetch/fetch-llama.ps1 -Model {MODEL}"
         );
     }
     server && model

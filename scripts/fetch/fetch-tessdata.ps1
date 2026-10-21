@@ -10,7 +10,7 @@ param(
     [ValidateSet('x64', 'arm64')][string[]]$Arch = @('x64', 'arm64')
 )
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $pins = (Get-Content (Join-Path $root 'scripts/native-pins.json') -Raw | ConvertFrom-Json).tessdata
 foreach ($code in $Language) {
     $pin = $pins.$code

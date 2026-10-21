@@ -8,7 +8,7 @@ Tools must be testable without engines, and untrusted PDFs must not be parsed in
 
 ## Decision
 
-Keep dependencies pointing inward (`ui -> app-shell -> application -> domain`). Engines and infrastructure implement application ports. A separate `quirewise-worker.exe` loads untrusted PDFs and runs tool plans inside a Windows Job Object (memory, CPU time, no child processes except allowed sidecars). Heavy engines run as sidecar processes. `scripts/check-deps.ps1` enforces the allowed edges in CI.
+Keep dependencies pointing inward (`ui -> app-shell -> application -> domain`). Engines and infrastructure implement application ports. A separate `quirewise-worker.exe` loads untrusted PDFs and runs tool plans inside a Windows Job Object (memory, CPU time, no child processes except allowed sidecars). Heavy engines run as sidecar processes. `scripts/checks/check-deps.ps1` enforces the allowed edges in CI.
 
 ## Consequences
 

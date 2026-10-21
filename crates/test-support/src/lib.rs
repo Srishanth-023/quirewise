@@ -26,7 +26,7 @@ pub const fn arch_dir() -> &'static str {
     }
 }
 
-/// Folder holding the fetched PDFium library (`scripts/fetch-pdfium.ps1`).
+/// Folder holding the fetched PDFium library (`scripts/fetch/fetch-pdfium.ps1`).
 pub fn pdfium_dir() -> PathBuf {
     repo_root()
         .join("vendor")
@@ -35,7 +35,7 @@ pub fn pdfium_dir() -> PathBuf {
         .join("bin")
 }
 
-/// Path of the fetched `qpdf.exe` (`scripts/fetch-qpdf.ps1`), or `None` when not fetched.
+/// Path of the fetched `qpdf.exe` (`scripts/fetch/fetch-qpdf.ps1`), or `None` when not fetched.
 pub fn qpdf_exe() -> Option<PathBuf> {
     let base = repo_root().join("vendor").join("qpdf").join(arch_dir());
     std::fs::read_dir(base)
@@ -104,7 +104,7 @@ pub fn minimal_pdf_with_catalog(pages: usize, catalog_extra: &str) -> Vec<u8> {
 /// # Panics
 /// Panics when qpdf is missing or fails, which means the test environment is incomplete.
 pub fn encrypt_pdf(source: &Path, dest: &Path, user_password: &str) {
-    let exe = qpdf_exe().expect("run scripts/fetch-qpdf.ps1 first");
+    let exe = qpdf_exe().expect("run scripts/fetch/fetch-qpdf.ps1 first");
     let status = std::process::Command::new(exe)
         .args(["--encrypt", user_password, "owner", "256", "--"])
         .arg(source)

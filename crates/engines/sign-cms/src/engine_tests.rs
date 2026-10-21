@@ -734,7 +734,7 @@ fn a_signature_can_fill_an_empty_field_that_was_prepared() {
 
 /// Runs qpdf on a file, for making fixtures and for checking results.
 fn qpdf(args: &[&str]) -> std::process::ExitStatus {
-    std::process::Command::new(test_support::qpdf_exe().expect("run scripts/fetch-qpdf.ps1 first"))
+    std::process::Command::new(test_support::qpdf_exe().expect("run scripts/fetch/fetch-qpdf.ps1 first"))
         .args(args)
         .status()
         .expect("qpdf starts")

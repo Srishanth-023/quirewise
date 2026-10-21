@@ -5,7 +5,7 @@
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
-Set-Location (Split-Path -Parent $PSScriptRoot)
+Set-Location (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 
 $meta = cargo metadata --no-deps --format-version 1 --locked | ConvertFrom-Json
 $members = @{}

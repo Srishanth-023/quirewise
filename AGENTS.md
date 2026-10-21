@@ -14,7 +14,7 @@ Build and maintain Quirewise, an offline-first Windows PDF toolkit for x64 and a
    - `cargo clippy --workspace --all-targets -- -D warnings`
    - `cargo test --workspace`
    - `cargo deny check`
-   - `pwsh scripts/check-deps.ps1`
+   - `pwsh scripts/checks/check-deps.ps1`
    - `pnpm -C apps/desktop/ui check`
    - `pnpm -C apps/desktop/ui lint`
    - `pnpm -C apps/desktop/ui test`
@@ -32,7 +32,7 @@ Never stop to ask for confirmation during a planned phase. Record open questions
 - `apps/desktop/src-tauri` is a thin adapter: commands map DTOs to use cases. No PDF logic.
 - `ui` never touches the file system directly; it calls typed commands only.
 - GPL/AGPL code only behind opt-in Cargo features, in separate processes, never in default builds.
-- `scripts/check-deps.ps1` (using `cargo metadata`) fails CI on any forbidden edge.
+- `scripts/checks/check-deps.ps1` (using `cargo metadata`) fails CI on any forbidden edge.
 
 ## 3. Coding conventions
 - **Rust:** pinned stable toolchain. `#![forbid(unsafe_code)]` in `domain`, `application`, `infrastructure`. `unsafe` only in engine FFI modules, each block with a `// SAFETY:` comment. Clippy `unwrap_used` and `expect_used` denied outside tests. Errors via `thiserror`; app boundary maps to `AppError` with codes from `docs/project/MASTER_PROMPT.md` Appendix C.
@@ -81,7 +81,7 @@ Never stop to ask for confirmation during a planned phase. Record open questions
 - Parsers and IPC payloads: `proptest` + `cargo-fuzz` targets.
 - UI: component tests, Playwright E2E for MTP flows, axe-core with zero violations, visual lint clean.
 - Never delete or weaken a failing test to pass CI. Fix the cause, or quarantine with a linked issue.
-- Golden files change only via `scripts/update-golden.ps1`, with render diff images in the PR.
+- Golden files change only via `scripts/checks/update-golden.ps1`, with render diff images in the PR.
 
 ## 9. Dependencies
 - Add a dependency only if maintained (release within 12 months), license-allowed, and arm64-compatible. State the reason in the PR.

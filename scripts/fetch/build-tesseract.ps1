@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
   Builds Tesseract 5 and Leptonica with vcpkg for x64-windows and arm64-windows and stages the
-  program in vendor/tesseract/<arch>. Language data comes from scripts/fetch-tessdata.ps1.
+  program in vendor/tesseract/<arch>. Language data comes from scripts/fetch/fetch-tessdata.ps1.
   Requires VCPKG_ROOT (a vcpkg checkout). The build takes about twenty minutes.
 #>
 [CmdletBinding()]
 param([ValidateSet('x64', 'arm64')][string[]]$Arch = @('x64', 'arm64'))
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if (-not $env:VCPKG_ROOT) { throw 'Set VCPKG_ROOT to a vcpkg checkout first.' }
 foreach ($a in $Arch) {
     $triplet = "$a-windows-release"

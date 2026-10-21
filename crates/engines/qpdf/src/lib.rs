@@ -223,7 +223,7 @@ mod tests {
     use test_support::{minimal_pdf, qpdf_exe};
 
     fn qpdf() -> QpdfCli {
-        QpdfCli::new(qpdf_exe().expect("run scripts/fetch-qpdf.ps1 first"))
+        QpdfCli::new(qpdf_exe().expect("run scripts/fetch/fetch-qpdf.ps1 first"))
     }
 
     fn write(dir: &tempfile::TempDir, name: &str, bytes: &[u8]) -> PathBuf {

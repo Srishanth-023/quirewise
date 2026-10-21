@@ -5,7 +5,7 @@
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
-Set-Location (Split-Path -Parent $PSScriptRoot)
+Set-Location (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 New-Item -ItemType Directory -Force -Path sbom | Out-Null
 cargo cyclonedx --format json --all --override-filename rust-sbom
 if ($LASTEXITCODE -ne 0) { throw 'cargo cyclonedx failed (install: cargo install cargo-cyclonedx --locked)' }

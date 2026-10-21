@@ -8,7 +8,7 @@
   (docs/guides/components.md), and the person sees the license of a model before it is downloaded.
   This script prepares a development tree, where the tests of the AI tools look for them.
 .EXAMPLE
-  scripts/fetch-llama.ps1 -Arch x64 -Model smollm2-360m-instruct
+  scripts/fetch/fetch-llama.ps1 -Arch x64 -Model smollm2-360m-instruct
 #>
 [CmdletBinding()]
 param(
@@ -16,8 +16,8 @@ param(
     [string]$Model = ''
 )
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
-. (Join-Path $PSScriptRoot 'lib/Fetch-Pinned.ps1')
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+. (Join-Path $PSScriptRoot '../lib/Fetch-Pinned.ps1')
 foreach ($a in $Arch) { Invoke-PinnedFetch -Name 'llama-cpp' -Arch $a -Root $root }
 
 if ($Model) {

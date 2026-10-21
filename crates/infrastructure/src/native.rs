@@ -2,7 +2,7 @@
 //!
 //! Installed layout: `<exe folder>\native\pdfium\pdfium.dll` and `<exe folder>\native\qpdf\qpdf.exe`.
 //! Development layout: `vendor\pdfium\<arch>\bin` and `vendor\qpdf\<arch>\<version>\bin`, fetched
-//! by `scripts/fetch-pdfium.ps1` and `scripts/fetch-qpdf.ps1`.
+//! by `scripts/fetch/fetch-pdfium.ps1` and `scripts/fetch/fetch-qpdf.ps1`.
 
 use application::AppError;
 use domain::ErrorCode;

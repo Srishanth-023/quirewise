@@ -328,7 +328,7 @@ mod tests {
     use test_support::{minimal_pdf, pdfium_dir};
 
     fn engine() -> PdfiumEngine {
-        PdfiumEngine::load(&pdfium_dir()).expect("run scripts/fetch-pdfium.ps1 first")
+        PdfiumEngine::load(&pdfium_dir()).expect("run scripts/fetch/fetch-pdfium.ps1 first")
     }
 
     fn write(dir: &tempfile::TempDir, name: &str, bytes: &[u8]) -> std::path::PathBuf {

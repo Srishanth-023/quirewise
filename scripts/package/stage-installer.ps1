@@ -17,7 +17,7 @@ param(
     [switch]$SkipBuild
 )
 $ErrorActionPreference = 'Stop'
-$root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $arch = if ($Target -like 'aarch64*') { 'arm64' } else { 'x64' }
 $stage = Join-Path $root 'apps/desktop/src-tauri/staging'
 
@@ -30,8 +30,8 @@ if (-not (Test-Path $worker)) { throw "Worker not found: $worker" }
 
 $pdfium = Join-Path $root "vendor/pdfium/$arch"
 $qpdfVersions = Get-ChildItem (Join-Path $root "vendor/qpdf/$arch") -Directory -ErrorAction SilentlyContinue
-if (-not (Test-Path (Join-Path $pdfium 'bin/pdfium.dll'))) { throw "pdfium is missing for $arch. Run scripts/fetch-pdfium.ps1." }
-if (-not $qpdfVersions) { throw "qpdf is missing for $arch. Run scripts/fetch-qpdf.ps1." }
+if (-not (Test-Path (Join-Path $pdfium 'bin/pdfium.dll'))) { throw "pdfium is missing for $arch. Run scripts/fetch/fetch-pdfium.ps1." }
+if (-not $qpdfVersions) { throw "qpdf is missing for $arch. Run scripts/fetch/fetch-qpdf.ps1." }
 $qpdfBin = Join-Path ($qpdfVersions | Select-Object -First 1).FullName 'bin'
 
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }

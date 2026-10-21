@@ -1,6 +1,6 @@
 //! End-to-end tests for the PDF/A and PDF/UA tools: the real RunTool, the worker engines and
 //! veraPDF. They need veraPDF and Java; when the development tree has neither (see
-//! `scripts/fetch-verapdf.ps1`) they say so and pass.
+//! `scripts/fetch/fetch-verapdf.ps1`) they say so and pass.
 // Test helpers outside `#[test]` functions may unwrap: a failure should stop the test at once.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
@@ -27,7 +27,7 @@ fn checker() -> VeraPdf {
 fn ready() -> bool {
     let ok = checker().is_available();
     if !ok {
-        eprintln!("veraPDF is not installed here: run scripts/fetch-verapdf.ps1");
+        eprintln!("veraPDF is not installed here: run scripts/fetch/fetch-verapdf.ps1");
     }
     ok
 }

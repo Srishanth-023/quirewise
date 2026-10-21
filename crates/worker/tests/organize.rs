@@ -185,7 +185,7 @@ fn hash(path: &Path) -> Vec<u8> {
 }
 
 /// Compares the fingerprint (one `WxH | text` line per page) with the golden file, or rewrites the
-/// file when `QW_UPDATE_GOLDEN` is set (see scripts/update-golden.ps1).
+/// file when `QW_UPDATE_GOLDEN` is set (see scripts/checks/update-golden.ps1).
 fn golden(name: &str, lab: &Lab, path: &Path) {
     let lines: Vec<String> = lab
         .texts(path)
@@ -204,7 +204,7 @@ fn golden(name: &str, lab: &Lab, path: &Path) {
     }
     let expected = fs::read_to_string(&file).unwrap_or_else(|_| {
         panic!(
-            "missing golden file {}; run scripts/update-golden.ps1",
+            "missing golden file {}; run scripts/checks/update-golden.ps1",
             file.display()
         )
     });
