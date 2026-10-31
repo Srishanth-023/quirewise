@@ -36,7 +36,7 @@ sha1 = { version = "0.10", features = ["oid"] }
 sha2 = "0.10"
 signature = { version = "2", features = ["rand_core"] }
 spki = { version = "0.7", features = ["alloc"] }
-x509-cert = { version = "0.2", features = ["builder"] }
+x509-cert = { version = "0.3", features = ["builder"] }
 x509-ocsp = "0.2"
 zeroize = "1"
 
