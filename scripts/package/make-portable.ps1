@@ -40,5 +40,8 @@ Set-Content -Path (Join-Path $folder 'portable.flag') -Value 'Delete this file t
 $zip = "$folder.zip"
 if (Test-Path $zip) { Remove-Item $zip }
 Compress-Archive -Path $folder -DestinationPath $zip -CompressionLevel Optimal
+# Clean up the uncompressed staging folder and installer staging to save disk space
+Remove-Item -Recurse -Force $folder -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue
 $mb = [math]::Round((Get-Item $zip).Length / 1MB, 2)
 Write-Host "Portable build: $zip ($mb MB)"

@@ -53,6 +53,14 @@ panic = "warn"
 dbg_macro = "deny"
 todo = "deny"
 
+[profile.dev]
+debug = 1
+incremental = false
+
+[profile.test]
+debug = 1
+incremental = false
+
 [profile.release]
 lto = "thin"
 codegen-units = 16  # thin LTO still optimizes across units; one unit builds several times slower for a few percent

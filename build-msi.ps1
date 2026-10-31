@@ -61,9 +61,12 @@ Push-Location $desktop
 try {
     & $tauri build --target $Target --bundles msi --config src-tauri/tauri.bundle.conf.json
     if ($LASTEXITCODE -ne 0) { throw 'tauri build failed.' }
-} finally { Pop-Location }
+} finally {
+    Pop-Location
+    Remove-Item -Recurse -Force (Join-Path $desktop 'src-tauri/staging') -ErrorAction SilentlyContinue
+}
 
-$dist = Join-Path $root 'dist'
+$dist = Join-Path $root 'release'
 New-Item -ItemType Directory -Force $dist | Out-Null
 $msi = Get-ChildItem (Join-Path $root "target/$Target/release/bundle/msi") -Filter *.msi
 if (-not $msi) { throw 'No .msi was produced.' }
