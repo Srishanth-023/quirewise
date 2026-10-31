@@ -4016,7 +4016,7 @@ dependencies = [
 name = "quirewise-desktop"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "quirewise-application",
  "quirewise-domain",
  "quirewise-infrastructure",
@@ -4078,7 +4078,7 @@ dependencies = [
 name = "quirewise-engine-html-webview2"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "lopdf",
  "quirewise-application",
  "quirewise-domain",

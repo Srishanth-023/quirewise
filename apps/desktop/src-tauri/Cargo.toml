@@ -22,7 +22,7 @@ tauri-plugin-opener = "2.7.2"
 tauri-plugin-single-instance = "2"
 serde.workspace = true
 serde_json.workspace = true
-base64 = "0.22"
+base64 = "0.23"
 
 [dev-dependencies]
 tempfile = "3"
