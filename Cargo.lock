@@ -4179,7 +4179,7 @@ dependencies = [
  "quirewise-test-support",
  "tempfile",
  "tiff",
- "weezl 0.1.12",
+ "weezl 0.2.1",
 ]
 
 [[package]]
